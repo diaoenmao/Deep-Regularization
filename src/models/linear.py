@@ -11,7 +11,7 @@ class Linear(nn.Module):
         self.linear = nn.Linear(input_size, target_size) 
         
     def feature(self, x): 
-        x = x.reshape(math.prod(x.size()))
+        x = x.reshape(x.size(0), -1)
         return x 
     
     def classify(self, x): 
@@ -23,3 +23,5 @@ class Linear(nn.Module):
         x = self.classify(x) 
         return x 
     
+    def forward(self, x): 
+        return self.f(x)

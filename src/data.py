@@ -1,11 +1,10 @@
 from torchvision import datasets
-from torchvision.transforms import ToTensor
 import torchvision.transforms as transforms
 from torch.utils.data import DataLoader
 import os 
 
 
-
+# the normalization parameters for each dataset 
 data_stats = {'MNIST': ((0.1307,), (0.3081,)), 'FashionMNIST': ((0.2860,), (0.3530,)),
               'CIFAR10': ((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
               'CIFAR100': ((0.5071, 0.4865, 0.4409), (0.2673, 0.2564, 0.2762)),
@@ -80,13 +79,13 @@ def fetch_dataset(name:str, verbose=True):
             transform=transforms.Compose([transforms.ToTensor()])   
         )
         
-        dataset['train'].transform = datasets.Compose([
+        dataset['train'].transform = transforms.Compose([
             transforms.RandomHorizontalFlip(),
             transforms.RandomCrop(32, padding=4, padding_mode='reflect'),
             transforms.ToTensor(),
             transforms.Normalize(*data_stats[name])])
         
-        dataset['test'].transform = datasets.Compose([
+        dataset['test'].transform = transforms.Compose([
             transforms.ToTensor(),
             transforms.Normalize(*data_stats[name])])
     
@@ -104,13 +103,13 @@ def fetch_dataset(name:str, verbose=True):
             transform=transforms.Compose([transforms.ToTensor()])   
         )
         
-        dataset['train'].transform = datasets.Compose([
+        dataset['train'].transform = transforms.Compose([
             transforms.RandomHorizontalFlip(),
             transforms.RandomCrop(32, padding=4, padding_mode='reflect'),
             transforms.ToTensor(),
             transforms.Normalize(*data_stats[name])])
         
-        dataset['test'].transform = datasets.Compose([
+        dataset['test'].transform = transforms.Compose([
             transforms.ToTensor(),
             transforms.Normalize(*data_stats[name])])
     
@@ -128,12 +127,12 @@ def fetch_dataset(name:str, verbose=True):
             transform=transforms.Compose([transforms.ToTensor()])   
         )
         
-        dataset['train'].transform = datasets.Compose([
+        dataset['train'].transform = transforms.Compose([
             transforms.RandomCrop(32, padding=4, padding_mode='reflect'),
             transforms.ToTensor(),
             transforms.Normalize(*data_stats[name])])
         
-        dataset['test'].transform = datasets.Compose([
+        dataset['test'].transform = transforms.Compose([
             transforms.ToTensor(),
             transforms.Normalize(*data_stats[name])])
     
