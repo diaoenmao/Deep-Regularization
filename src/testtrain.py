@@ -1,36 +1,50 @@
 import torch
-import numpy as np
+from torch.linalg import vector_norm
+from torch.optim import LBFGS
 from src.regularizers import * 
-from src.models.linear import Linear
-import matplotlib.pyplot as plt
 
-def avgParam(model): 
-    out = []
-    for param in model.parameters(): 
-        out.append(torch.mean(param).item())
-    return np.mean(out)
-
-def propZeros(model): 
-    total = 0 
-    zeros = 0 
-    for W in model.parameters(): 
-        size = math.prod(W.size())
-        total += size
-        zeros += size - torch.count_nonzero(W).item()
+def helperFunc(params1, params2): 
     
-    return {"total" : total, "zeros" : zeros}
+    return torch.norm(torch.stack([torch.norm(params1[i] - params2[i]) for i in range(len(params1))]))
 
-def parameterDistribution(model): 
-    vals = []
-    for W in model.parameters(): 
-        vals += list(W.cpu().data.detach().numpy().reshape(-1))
-    plt.hist(vals, bins=np.linspace(-0.1, 0.1, 1000)) 
-    plt.ylim(0., 5000.)
-    plt.show() 
+def proximalPQI(model, device, p, q, lmbda, tau): 
+
+    d = 0
+    for param in model.parameters(): 
+        d += math.prod(param.size())
         
+    u = [W.data.detach().clone() for W in model.parameters()]
+        
+    def objective_function(model): 
+        p_norm = torch.norm(torch.stack([torch.norm(param, p) for param in model.parameters()]), p)
+        q_norm = torch.norm(torch.stack([torch.norm(param, q) for param in model.parameters()]), q)
+        output = lmbda * (d ** ((1/q) - (1/p)) * (p_norm/q_norm)) + 1/(2*tau) * helperFunc([W.data for W in model.parameters()], u) ** 2
+        return  output.to(device)
+
+    optimizer = LBFGS(model.parameters(), lr=0.001)
+
+    def closure():
+        optimizer.zero_grad()
+        loss = objective_function(model)
+        loss.backward()
+        return loss
+
+    old_value = objective_function(model).item()
+    for i in range(500): 
+        optimizer.step(closure)
+        new_value = objective_function(model).item()
+        print(new_value)
+        if new_value > old_value: 
+            break
+
+    # return initial_guess
 
 def train(dataloader, model, loss_fn, optimizer, device, l1:float=0.0, l2:float=0.0, pqi:float=0.0):
+    
     size = len(dataloader.dataset)
+    num_batches = len(dataloader)
+    train_loss = 0.0
+    
     model.train()
     for batch, (X, y) in enumerate(dataloader):
         X, y = X.to(device), y.to(device)
@@ -38,22 +52,30 @@ def train(dataloader, model, loss_fn, optimizer, device, l1:float=0.0, l2:float=
         # Compute prediction error
         pred = model(X)
         loss = loss_fn(pred, y)
-
+        train_loss += loss.item()
+        
         # Backpropagation
         loss.backward()
         optimizer.step()
         optimizer.zero_grad()
+        
+        
         
         if l1 != 0.0: 
             L1_regularizer(model, device, optimizer, l1)
         if l2 != 0.0: 
             L2_regularizer(model, device, optimizer, l2)
         if pqi != 0.0: 
-            PQI_regularizer(model, device, optimizer, pqi, 1, 2)
+            # PQI_regularizer(model, device, optimizer, pqi, 1, 2)
+            proximalPQI(model, device, 1, 2, pqi, 1e-3)
 
         if batch % 100 == 0:
             loss, current = loss.item(), (batch + 1) * len(X)
             print(f"loss: {loss:>7f}  [{current:>5d}/{size:>5d}]")
+            
+    return {"loss" : train_loss / num_batches, 
+            "accuracy" : 0.0}
+         
             
 def test(dataloader, model, loss_fn, device, l1:float=0.0, l2:float=0.0, pqi:float=0.0):
     size = len(dataloader.dataset)
@@ -77,3 +99,6 @@ def test(dataloader, model, loss_fn, device, l1:float=0.0, l2:float=0.0, pqi:flo
     test_loss /= num_batches
     correct /= size
     print(f"Test Error: \n Accuracy: {(100*correct):>0.1f}%, Avg loss: {test_loss:>8f} \n")
+    
+    return {"loss" : test_loss, 
+            "accuracy" : correct}

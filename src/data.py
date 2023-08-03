@@ -145,12 +145,21 @@ def fetch_dataset(name:str, verbose=True):
     return dataset["train"], dataset["test"]
         
 
-def dataloader(training_data, test_data): 
+def dataloader(training_data, test_data, batch_size=-1): 
     
-    train_dataloader = DataLoader(training_data,    # our dataset
-                                    batch_size=64,    # batch size
-                                    shuffle=True      # shuffling the data
-                                    )
-    test_dataloader = DataLoader(test_data, batch_size=64, shuffle=True)
+    if batch_size == -1: 
+    
+        train_dataloader = DataLoader(training_data,  
+                                        batch_size=len(training_data),    
+                                        shuffle=True     
+                                        )
+        test_dataloader = DataLoader(test_data, batch_size=len(test_data), shuffle=True)
+    
+    else: 
+        train_dataloader = DataLoader(training_data,  
+                                        batch_size=batch_size,    
+                                        shuffle=True     
+                                        )
+        test_dataloader = DataLoader(test_data, batch_size=batch_size, shuffle=True)
     
     return train_dataloader, test_dataloader

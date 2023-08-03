@@ -1,5 +1,8 @@
 import torch 
 import math
+import numpy as np
+from scipy.optimize import minimize
+
 
 
 def p_norm(model, device, p:int, normalize=True): 
@@ -25,6 +28,23 @@ def PQI(model, device, p, q):
     pq = d ** ((1/q) - (1/p)) * (p_norm(model, device, p)/p_norm(model, device, q))
     
     return pq
+
+def prox_PQI(model, device, p, q, u, tau): 
+    # proximal operator done on PQI 
+    
+    def objective_function(theta): 
+        d = len(theta) 
+        return d ** ((1/q) - (1/p)) * (np.linalg.norm(theta - u, p)/np.linalg.norm(theta - u, q)) + 1/(2*tau) * np.linalg.norm(theta - u, 2) ** 2
+    
+    total = 0
+    for param in model.parameters(): 
+        total += math.prod(param.size())
+    
+    initial_guess = np.zeros(total)
+    
+    result = minimize(objective_function, initial_guess, method="BFGS")
+    
+    return result.x
 
 def L1_regularizer(model, device, optimizer, lmbda): 
     # L1 regularizer with clipping 
