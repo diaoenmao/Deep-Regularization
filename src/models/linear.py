@@ -9,6 +9,7 @@ class Linear(nn.Module):
         super().__init__() 
         input_size = math.prod(data_shape) 
         self.linear = nn.Linear(input_size, target_size) 
+        self.param_list = [W.data for W in self.parameters()]
         
     def feature(self, x): 
         x = x.reshape(x.size(0), -1)

@@ -19,6 +19,7 @@ class MLP(nn.Module):
             hidden_size = int(hidden_size * scale_factor)
         self.blocks = nn.Sequential(*blocks)
         self.linear = nn.Linear(input_size, target_size)
+        self.param_list = [W.data for W in self.parameters()]
         
         
         parameter_list = [W for W in self.parameters()]

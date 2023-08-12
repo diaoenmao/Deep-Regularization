@@ -4,7 +4,6 @@ import numpy as np
 from scipy.optimize import minimize
 
 
-
 def p_norm(model, device, p:int, normalize=True): 
     p_norm = None
     N = 0
@@ -17,6 +16,8 @@ def p_norm(model, device, p:int, normalize=True):
         if normalize == True: 
             N += math.prod(W.size())
             
+    p_norm = p_norm ** (1/p)
+            
     if normalize == True: 
         return (1/N) * p_norm.to(device)
     else: 
@@ -25,7 +26,7 @@ def p_norm(model, device, p:int, normalize=True):
 def PQI(model, device, p, q): 
     
     d = sum(math.prod(param.size()) for param in model.parameters())
-    pq = d ** ((1/q) - (1/p)) * (p_norm(model, device, p)/p_norm(model, device, q))
+    pq = d ** ((1/q) - (1/p)) * (p_norm(model, device, p, normalize=False)/p_norm(model, device, q, normalize=False))
     
     return pq
 
