@@ -1,7 +1,7 @@
 import torch
 from torch.linalg import vector_norm
 from torch.optim import LBFGS
-from src.regularizers import * 
+from src.traintest.regularizers import * 
 
 def L2diff(params1, params2): 
     
@@ -74,7 +74,7 @@ def proximalPQI(model, device, p, q, lmbda, tau):
     with torch.no_grad(): 
         for name, param in model.named_parameters(): 
             clipped_param = param.clone()
-            clipped_param[torch.logical_and(clipped_param >-1e-0 * lmbda*tau, clipped_param < 1e-0 * lmbda*tau)] = 0.0
+            clipped_param[torch.logical_and(-1e-0 * lmbda*tau < clipped_param, clipped_param < 1e-0 * lmbda*tau)] = 0.0
             param.copy_(clipped_param)
         
 def proximalL1(model, device, lmbda, tau): 
@@ -154,8 +154,7 @@ def soft_threshold(param:torch.tensor, lmbda:torch.tensor):
 
 
 def helperFunc(param1, param2, param3): 
-    
-    
+
     return 
 
 def admmL1(model, device, lmbda, rho): 
@@ -227,7 +226,6 @@ def train(dataloader, model, loss_fn, optimizer, device, l1:float=0.0, l2:float=
             if l2 != 0.: 
                 L2_regularizer(model, device, optimizer, l2)
             if pqi != 0.: 
-                # PQI_regularizer(model, device, optimizer, pqi, 1, 2)
                 proximalPQI(model, device, 1, 2, pqi, tau=lr)
 
         if batch % 100 == 0:
