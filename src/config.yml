@@ -11,6 +11,16 @@ resume_mode: 0
 device: cuda
 verbose: False
 
+# Regularization
+regularizer_name : none 
+lambda : 0.0
+reg_optimizer : SGD 
+reg_initialization : inplace 
+clipping_scale : 1.0 
+line_crossing : False
+p : 1.0 
+q : 2.0 
+
 # experiment
 # pin_memory: True
 # num_workers: 0

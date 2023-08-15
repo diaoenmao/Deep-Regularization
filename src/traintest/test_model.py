@@ -3,9 +3,7 @@ from torch.nn import Module
 from torch.utils.data import DataLoader
 from src.traintest.regularizers import * 
 
-def test(dataloader:DataLoader, model:Module, loss_fn, device:str, regularizer:Regularizer = None, t:int = 0):
-    print(f"Test Epoch {t}\n-------------------------------")
-    
+def test(dataloader:DataLoader, model:Module, loss_fn, device:str, regularizer:Regularizer = "None", t:int = 0):
     size = len(dataloader.dataset)
     num_batches = len(dataloader)
     model.eval()
@@ -16,13 +14,14 @@ def test(dataloader:DataLoader, model:Module, loss_fn, device:str, regularizer:R
             pred = model(X)
             test_loss += loss_fn(pred, y)
             
-            if regularizer is not None: 
+            if regularizer != "none": 
                 test_loss += regularizer.penalty
             
             correct += (pred.argmax(1) == y).type(torch.float).sum().item()
     test_loss /= num_batches
     correct /= size
     print(f"Test Error: \n Accuracy: {(100*correct):>0.1f}%, Avg loss: {test_loss:>8f} \n")
+    print(f"--------------------------------------")
     
     return {"loss" : test_loss.item(), 
             "accuracy" : correct}

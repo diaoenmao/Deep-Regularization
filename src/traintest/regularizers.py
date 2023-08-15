@@ -3,6 +3,26 @@ import math
 import numpy as np
 from abc import ABC, abstractmethod
 
+def make_regularizer(reg:str, model:torch.nn.Module, device:str, lmbda:float, tau:float, optimizer:torch.optim.Optimizer, reg_optimizer:str, reg_initialization:str = "inplace", clipping_scale:float = 1.0, line_crossing:bool = False, p:float = 1.0, q:float = 2.0): 
+
+    if reg == "none": 
+        return "none"
+    elif reg == "l1_softthreshold": 
+        return L1_SoftThreshold(model, device, lmbda, tau) 
+    elif reg == "l1_proximal": 
+        return L1_Proximal(model, device, lmbda, tau, reg_optimizer, reg_initialization, clipping_scale, line_crossing)
+    elif reg == "l1_admm": 
+        return L1_ADMM(model) 
+    elif reg == "l1_sgd_naive": 
+        return L1_SGD_Naive(model, optimizer, device, lmbda) 
+    elif reg == "l2": 
+        return L2_Regularizer(model, optimizer, device, lmbda) 
+    elif reg == "pqi_proximal": 
+        return PQI_Proximal(model, device, p, q, lmbda, tau, reg_optimizer, reg_initialization, clipping_scale, line_crossing)
+    elif reg == "pqi_admm": 
+        return PQI_ADMM(model)
+
+
 class Regularizer(ABC): 
     @abstractmethod 
     def step(self): 
@@ -157,6 +177,7 @@ class L1_SGD_Naive(Regularizer):
         self.optimizer = optimizer
         self.device = device 
         self.lmbda = lmbda 
+        self.penalty = self.lmbda * p_norm(self.model, self.device, 1)
         
     def step(self): 
         positives1 = []
@@ -190,6 +211,8 @@ class L1_SGD_Naive(Regularizer):
             for name, param in self.model.named_parameters(): 
                 param.copy_(clip_mask[i] * param)
                 i += 1 
+                
+        self.penalty = self.lmbda * p_norm(self.model, self.device, 1)
 
 class L2_Regularizer(Regularizer): 
     
@@ -325,6 +348,9 @@ class PQI_Proximal(Regularizer):
         
 
 class PQI_ADMM(Regularizer): 
+    
+    def __init__(self, model:torch.nn.Module): 
+        pass 
     
     pass 
 

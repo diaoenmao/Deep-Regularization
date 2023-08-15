@@ -5,13 +5,18 @@ from src.traintest.regularizers import *
 import time 
 
 
-def train(dataloader:DataLoader, model:Module, loss_fn, optimizer:Optimizer, device:str, regularizer:Regularizer = None, t:int = 0):
-    print(f"Train Epoch {t}\n-------------------------------")
+def train(dataloader:DataLoader, model:Module, loss_fn, optimizer:Optimizer, device:str, regularizer:Regularizer = "None", t:int = 0):
+    print(f"Epoch {t}\n------------------------------------")
     
     start = time.time() 
     
     size = len(dataloader.dataset)
     num_batches = len(dataloader)
+    
+    print_checkpoint = int(num_batches / 4) 
+    if print_checkpoint == 0: 
+        print_checkpoint += 1 
+        
     train_loss = 0.0
     
     model.train()
@@ -29,10 +34,11 @@ def train(dataloader:DataLoader, model:Module, loss_fn, optimizer:Optimizer, dev
             optimizer.step()
             optimizer.zero_grad()
             
-            if regularizer is not None: 
+            if regularizer != "none": 
                 regularizer.step()
             
-        if batch_num % int(len(dataloader)/4) == 0: 
+            
+        if batch_num % print_checkpoint == 0: 
             loss, current = loss.item(), (batch_num + 1) * len(X)
             print(f"loss: {loss:>7f}  [{current:>5d}/{size:>5d}]")
             

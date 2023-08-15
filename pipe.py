@@ -1,18 +1,18 @@
 import torch 
 import torch.nn as nn 
-from pprint import pprint
-from src.traintest.device import select_device 
 from src.data import fetch_dataset, dataloader
-from src.models.linear import Linear
 from src.traintest.regularizers import * 
 from src.metrics.metrics import * 
 from src.traintest.train_model import train
 from src.traintest.test_model import test
 from src.metrics.loggers import Logger, plot_loggers
 from src.hyper import set_hyperparameters
+from src.models.model import make_model
+from src.traintest.optim import make_optimizer
+from src.post.io import * 
 import matplotlib.pyplot as plt 
-import copy
-import argparse
+from pprint import pprint
+import argparse, os 
 from src.config import cfg, process_args
 
 # Initialize the arguments with the ones in config.yml
@@ -22,6 +22,7 @@ for k in cfg:
     exec('parser.add_argument(\'--{0}\', default=cfg[\'{0}\'], type=type(cfg[\'{0}\']))'.format(k))
 args = vars(parser.parse_args())
 process_args(args) 
+
 
 def main(): 
     set_hyperparameters() 
@@ -38,10 +39,11 @@ def runExperiment():
     torch.manual_seed(cfg['seed'])
     torch.cuda.manual_seed(cfg['seed'])
     
+    pprint(cfg)
+    
     # set device
     device = cfg["device"]
     
-    # get t
     training_data, test_data = fetch_dataset(cfg["data_name"], verbose=bool(cfg["verbose"]))
     
     train_dataloader, test_dataloader = dataloader(
@@ -51,20 +53,26 @@ def runExperiment():
         test_batch_size=cfg["hyperparameters"]["batch_size"]["test"]
     )
     
-    logger = Logger()
+    logger = Logger(cfg)
     
-    if cfg["model_name"] == "linear": 
-        model = Linear(data_shape = cfg["data_shape"], target_size=10).to(cfg["device"])
-    
-    if cfg["hyperparameters"]["optimizer_name"] == "SGD": 
-        optimizer = torch.optim.SGD(
-            model.parameters(), 
-            lr = cfg["hyperparameters"]["lr"], 
-            momentum = cfg["hyperparameters"]["momentum"]
-        )
-        
+    model = make_model(cfg["model_name"])
+    optimizer = make_optimizer(cfg["hyperparameters"]["optimizer_name"], model)
     loss = nn.CrossEntropyLoss()
-    regularizer = None 
+    
+    regularizer = make_regularizer(
+        reg = cfg["regularizer_name"], 
+        model = model, 
+        device = cfg["device"], 
+        lmbda = cfg["regularization_parameters"]["lambda"], 
+        tau = cfg["regularization_parameters"]["tau"], 
+        optimizer = optimizer, 
+        reg_optimizer = cfg["regularization_parameters"]["reg_optimizer"], 
+        reg_initialization = cfg["regularization_parameters"]["reg_initialization"], 
+        clipping_scale = cfg["regularization_parameters"]["clipping_scale"], 
+        line_crossing = cfg["regularization_parameters"]["line_crossing"], 
+        p = cfg["regularization_parameters"]["p"], 
+        q = cfg["regularization_parameters"]["q"]
+    )
     
     for t in range(cfg["hyperparameters"]["num_epochs"]): 
         train_dict = train(train_dataloader, model, loss, optimizer, device, regularizer, t)
@@ -77,10 +85,14 @@ def runExperiment():
             PQI_sparsity = PQI(model, device, 1, 2).item(), 
             L0_sparsity = L0_sparsity(model)
         )
-        pprint(f"L0 Sparsity : {100 * L0_sparsity(model)}%")
-        pprint(f"PQ Sparsity : {PQI(model, device, 1, 2).item()}")
+        print(f"L0 Sparsity : {100 * L0_sparsity(model)}%")
+        print(f"PQ Sparsity : {PQI(model, device, 1, 2).item()}")
+        
     
-
+    model_tag_path = os.path.join('output', cfg['model_tag'])
+    save(logger, model_tag_path)
+    
 
 if __name__ == "__main__":
     main() 
+    

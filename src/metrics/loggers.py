@@ -2,7 +2,8 @@ import matplotlib.pyplot as plt
 
 class Logger: 
     
-    def __init__(self): 
+    def __init__(self, cfg): 
+        self.config = cfg
         self.train_losses = [] 
         self.test_losses = [] 
         self.test_accuracies = [] 
