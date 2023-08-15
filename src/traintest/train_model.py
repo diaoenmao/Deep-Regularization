@@ -1,7 +1,13 @@
+from torch.nn import Module
+from torch.utils.data import DataLoader
+from torch.optim import Optimizer
 from src.traintest.regularizers import * 
 import time 
 
-def train(dataloader, model, loss_fn, optimizer, device, regularizer:Regularizer = None, t:int = 0):
+
+def train(dataloader:DataLoader, model:Module, loss_fn, optimizer:Optimizer, device:str, regularizer:Regularizer = None, t:int = 0):
+    print(f"Train Epoch {t}\n-------------------------------")
+    
     start = time.time() 
     
     size = len(dataloader.dataset)
@@ -9,7 +15,7 @@ def train(dataloader, model, loss_fn, optimizer, device, regularizer:Regularizer
     train_loss = 0.0
     
     model.train()
-    for batch, (X, y) in enumerate(dataloader):
+    for batch_num, (X, y) in enumerate(dataloader):
         X, y = X.to(device), y.to(device)
 
         # Compute prediction error
@@ -26,10 +32,10 @@ def train(dataloader, model, loss_fn, optimizer, device, regularizer:Regularizer
             if regularizer is not None: 
                 regularizer.step()
             
-            
-        if batch % 100 == 0:
-            loss, current = loss.item(), (batch + 1) * len(X)
+        if batch_num % int(len(dataloader)/4) == 0: 
+            loss, current = loss.item(), (batch_num + 1) * len(X)
             print(f"loss: {loss:>7f}  [{current:>5d}/{size:>5d}]")
+            
             
     print(f"Epoch Time : {round(time.time() - start, 2)}")
             

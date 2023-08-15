@@ -1,8 +1,11 @@
 import torch
-from torch.optim import LBFGS
+from torch.nn import Module
+from torch.utils.data import DataLoader
 from src.traintest.regularizers import * 
 
-def test(dataloader, model, loss_fn, device, regularizer:Regularizer = None, t:int = 0):
+def test(dataloader:DataLoader, model:Module, loss_fn, device:str, regularizer:Regularizer = None, t:int = 0):
+    print(f"Test Epoch {t}\n-------------------------------")
+    
     size = len(dataloader.dataset)
     num_batches = len(dataloader)
     model.eval()

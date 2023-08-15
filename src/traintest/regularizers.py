@@ -360,7 +360,7 @@ class PQI_ADMM(Regularizer):
 # beta = admm_lasso(Y, X, lmbda, max_iter=10000)
 # print(beta)
 
-def p_norm(model, device:str, p:float, normalize=True): 
+def p_norm(model:torch.nn.Module, device:str, p:float, normalize:bool=True): 
     p_norm = None
     N = 0
     for W in model.parameters(): 
@@ -381,7 +381,7 @@ def p_norm(model, device:str, p:float, normalize=True):
     
 
     
-def PQI(model, device:str, p:float, q:float): 
+def PQI(model:torch.nn.Module, device:str, p:float, q:float): 
     
     d = sum(math.prod(param.size()) for param in model.parameters())
     pq = d ** ((1/q) - (1/p)) * (p_norm(model, device, p, normalize=False)/p_norm(model, device, q, normalize=False))

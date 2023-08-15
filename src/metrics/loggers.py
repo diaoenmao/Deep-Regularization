@@ -2,15 +2,14 @@ import matplotlib.pyplot as plt
 
 class Logger: 
     
-    def __init__(self, path:str): 
-        self.path = path
+    def __init__(self): 
         self.train_losses = [] 
         self.test_losses = [] 
         self.test_accuracies = [] 
         self.PQI_sparsities = [] 
         self.L0_sparsities = [] 
         
-    def push(self, train_loss, test_loss,test_accuracy, PQI_sparsity, L0_sparsity): 
+    def push(self, train_loss:float, test_loss:float, test_accuracy:float, PQI_sparsity:float, L0_sparsity:float): 
         self.train_losses.append(train_loss) 
         self.test_losses.append(test_loss) 
         self.test_accuracies.append(test_accuracy)

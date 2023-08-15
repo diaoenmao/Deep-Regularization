@@ -145,21 +145,25 @@ def fetch_dataset(name:str, verbose=True):
     return dataset["train"], dataset["test"]
         
 
-def dataloader(training_data, test_data, batch_size=-1): 
+def dataloader(training_data, test_data, train_batch_size=-1, test_batch_size=-1): 
     
-    if batch_size == -1: 
+    if train_batch_size == -1: 
     
         train_dataloader = DataLoader(training_data,  
                                         batch_size=len(training_data),    
                                         shuffle=True     
                                         )
-        test_dataloader = DataLoader(test_data, batch_size=len(test_data), shuffle=True)
     
     else: 
         train_dataloader = DataLoader(training_data,  
-                                        batch_size=batch_size,    
+                                        batch_size=train_batch_size,    
                                         shuffle=True     
                                         )
-        test_dataloader = DataLoader(test_data, batch_size=batch_size, shuffle=True)
+        
+    if test_batch_size == -1: 
+        test_dataloader = DataLoader(test_data, batch_size=len(test_data), shuffle=True)
+    
+    else: 
+        test_dataloader = DataLoader(test_data, batch_size=test_batch_size, shuffle=True)
     
     return train_dataloader, test_dataloader
