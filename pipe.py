@@ -1,47 +1,50 @@
 import torch 
 import torch.nn as nn 
+import torch.backends.cudnn as cudnn
 from src.data import fetch_dataset, dataloader
 from src.traintest.regularizers import * 
 from src.metrics.metrics import * 
 from src.traintest.train_model import train
 from src.traintest.test_model import test
-from src.metrics.loggers import Logger, plot_loggers
+from src.metrics.loggers import Logger
 from src.hyper import set_hyperparameters
 from src.models.model import make_model
 from src.traintest.optim import make_optimizer
 from src.post.io import * 
-import matplotlib.pyplot as plt 
 from pprint import pprint
 import argparse, os 
 from src.config import cfg, process_args
 
+
+cudnn.benchmark = True
+
 # Initialize the arguments with the ones in config.yml
-# cudnn.benchmark = True
 parser = argparse.ArgumentParser(description='cfg')
 for k in cfg:
     exec('parser.add_argument(\'--{0}\', default=cfg[\'{0}\'], type=type(cfg[\'{0}\']))'.format(k))
+
+# add the --control_name argument 
+parser.add_argument('--control_name', default=None, type=str)
 args = vars(parser.parse_args())
+
+# set the cfg["control_name"] to whatever is in control in config.yml
 process_args(args) 
 
 
 def main(): 
     set_hyperparameters() 
-    seeds = list(range(cfg['init_seed'], cfg['init_seed'] + cfg['num_experiments']))
-    for i in range(len(seeds)): 
-        cfg["model_tag"] = f"{i}_{cfg['data_name']}_{cfg['model_name']}"
-        # pprint(cfg)
-        print(f"Experiment : {cfg['model_tag']}")
-        runExperiment()
+    cfg["control_name"] = args["control_name"]
+    # pprint(cfg)
+    print(f"Experiment : {cfg['control_name']}")
+    runExperiment()
     
 def runExperiment(): 
     # Set seed 
-    cfg['seed'] = int(cfg['model_tag'].split('_')[0])
     torch.manual_seed(cfg['seed'])
     torch.cuda.manual_seed(cfg['seed'])
     
     pprint(cfg)
     
-    # set device
     device = cfg["device"]
     
     training_data, test_data = fetch_dataset(cfg["data_name"], verbose=bool(cfg["verbose"]))
@@ -82,14 +85,12 @@ def runExperiment():
             train_loss = train_dict["loss"], 
             test_loss = test_dict["loss"], 
             test_accuracy = test_dict["accuracy"], 
-            PQI_sparsity = PQI(model, device, 1, 2).item(), 
+            PQI_sparsity = PQI(model, device, 1, 2), 
             L0_sparsity = L0_sparsity(model)
         )
-        print(f"L0 Sparsity : {100 * L0_sparsity(model)}%")
-        print(f"PQ Sparsity : {PQI(model, device, 1, 2).item()}")
-        
     
-    model_tag_path = os.path.join('output', cfg['model_tag'])
+    model_tag_path = os.path.join('output', f"{cfg['seed']}_{cfg['control_name']}")
+    # print(model_tag_path)
     save(logger, model_tag_path)
     
 

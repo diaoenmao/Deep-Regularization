@@ -1,25 +1,26 @@
 ---
 # control
 
-data_name: MNIST
-model_name: linear
+control: 
+  data_name: MNIST
+  model_name: linear
+  regularizer_name : none 
+  lambda : 0.0
+  reg_optimizer : SGD 
+  reg_initialization : inplace 
+  clipping_scale : 1.0 
+  line_crossing : False
+  p : 1.0 
+  q : 2.0 
 
-init_seed: 0
+seed : 0
 
-num_experiments: 1
 resume_mode: 0
 device: cuda
 verbose: False
 
 # Regularization
-regularizer_name : none 
-lambda : 0.0
-reg_optimizer : SGD 
-reg_initialization : inplace 
-clipping_scale : 1.0 
-line_crossing : False
-p : 1.0 
-q : 2.0 
+
 
 # experiment
 # pin_memory: True

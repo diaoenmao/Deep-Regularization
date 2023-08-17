@@ -7,19 +7,19 @@ def make_regularizer(reg:str, model:torch.nn.Module, device:str, lmbda:float, ta
 
     if reg == "none": 
         return "none"
-    elif reg == "l1_softthreshold": 
+    elif reg == "l1softthreshold": 
         return L1_SoftThreshold(model, device, lmbda, tau) 
-    elif reg == "l1_proximal": 
+    elif reg == "l1proximal": 
         return L1_Proximal(model, device, lmbda, tau, reg_optimizer, reg_initialization, clipping_scale, line_crossing)
-    elif reg == "l1_admm": 
+    elif reg == "l1admm": 
         return L1_ADMM(model) 
-    elif reg == "l1_sgd_naive": 
+    elif reg == "l1sgd_naive": 
         return L1_SGD_Naive(model, optimizer, device, lmbda) 
     elif reg == "l2": 
         return L2_Regularizer(model, optimizer, device, lmbda) 
-    elif reg == "pqi_proximal": 
+    elif reg == "pqiproximal": 
         return PQI_Proximal(model, device, p, q, lmbda, tau, reg_optimizer, reg_initialization, clipping_scale, line_crossing)
-    elif reg == "pqi_admm": 
+    elif reg == "pqiadmm": 
         return PQI_ADMM(model)
 
 
@@ -41,9 +41,9 @@ class L1_SoftThreshold(Regularizer):
         
         self.model = model 
         self.device = device 
-        self.lmbda = lmbda 
-        self.tau = tau 
-        self.penalty = lmbda * p_norm(model, device, 1)
+        self.lmbda = float(lmbda)
+        self.tau = float(tau)
+        self.penalty = self.lmbda * p_norm(self.model, self.device, 1)
     
     def soft_threshold(self, param:torch.tensor, lmbda:torch.tensor): 
         x = torch.sign(param) * torch.max(torch.abs(param) - lmbda, torch.zeros_like(param))
@@ -68,11 +68,11 @@ class L1_Proximal(Regularizer):
         line_crossing - whether we should clip all values that change signs during each proximal optimizer step
         """
         
-        self.lmbda = lmbda 
-        self.tau = tau 
+        self.lmbda = float(lmbda)
+        self.tau = float(tau) 
         self.model = model 
         self.device = device
-        self.penalty = lmbda * p_norm(model, device, 1)
+        self.penalty = self.lmbda * p_norm(self.model, self.device, 1)
         
         if optimizer in ["SGD", "GD"]: 
             self.optimizer = torch.optim.SGD(model.parameters(), lr=lmbda*tau * 0.1, momentum=0.0)
@@ -176,7 +176,7 @@ class L1_SGD_Naive(Regularizer):
         self.model = model 
         self.optimizer = optimizer
         self.device = device 
-        self.lmbda = lmbda 
+        self.lmbda = float(lmbda)
         self.penalty = self.lmbda * p_norm(self.model, self.device, 1)
         
     def step(self): 
@@ -221,7 +221,7 @@ class L2_Regularizer(Regularizer):
         self.model = model 
         self.optimizer = optimizer
         self.device = device 
-        self.lmbda = lmbda 
+        self.lmbda = float(lmbda) 
         self.penalty = self.lmbda * p_norm(self.model, self.device, 2)
 
     def step(self): 
@@ -243,16 +243,16 @@ class PQI_Proximal(Regularizer):
         line_crossing - whether we should clip all values that change signs during each proximal optimizer step
         """
         
-        self.p = p 
-        self.q = q
+        self.p = float(p) 
+        self.q = float(q)
         if p > q: 
             raise Exception("p should be less than q. ")
         
-        self.lmbda = lmbda 
-        self.tau = tau 
+        self.lmbda = float(lmbda) 
+        self.tau = float(tau) 
         self.model = model 
         self.device = device
-        self.penalty = lmbda * PQI(self.model, self.device, self.p, self.q)
+        self.penalty = self.lmbda * PQI(self.model, self.device, self.p, self.q)
         
         if optimizer in ["SGD", "GD"]: 
             self.optimizer = torch.optim.SGD(model.parameters(), lr=lmbda*tau * 0.1, momentum=0.0)

@@ -5,7 +5,7 @@ from src.traintest.regularizers import *
 import time 
 
 
-def train(dataloader:DataLoader, model:Module, loss_fn, optimizer:Optimizer, device:str, regularizer:Regularizer = "None", t:int = 0):
+def train(dataloader:DataLoader, model:Module, loss_fn, optimizer:Optimizer, device:str, regularizer = "none", t:int = 0):
     print(f"Epoch {t}\n------------------------------------")
     
     start = time.time() 
