@@ -78,11 +78,11 @@ def main():
     p = ["1.0"] 
     q = ["2.0"]
     control_name = [
-        [data_name, model_name, ["none"], ["0.0"], ["SGD"], ["inplace"], ["1.0"], ["False"], ["1.0"], ["2.0"]], 
-        [data_name, model_name, ["l1softthreshold"], lmbda, ["SGD"], ["inplace"], ["1.0"], ["False"], ["1.0"], ["2.0"]], 
-        [data_name, model_name, ["l1proximal"], lmbda, ["SGD"], ["zeros", "rand", "inplace"], ["0.5", "1.0", "2.0"], ["False"], ["1.0"], ["2.0"]], 
-        [data_name, model_name, ["l2"], lmbda, ["SGD"], ["inplace"], ["1.0"], ["False"], ["1.0"], ["2.0"]], 
-        [data_name, model_name, ["pqiproximal"], lmbda, ["SGD"], ["zeros", "rand", "inplace"], ["0.5", "1.0", "2.0"], ["False"], ["1.0"], ["2.0"]]
+        # [data_name, model_name, ["none"], ["0.0"], ["SGD"], ["inplace"], ["1.0"], ["False"], ["1.0"], ["2.0"]], 
+        # [data_name, model_name, ["l1softthreshold"], lmbda, ["SGD"], ["inplace"], ["1.0"], ["False"], ["1.0"], ["2.0"]], 
+        # [data_name, model_name, ["l1proximal"], lmbda, ["SGD"], ["zeros", "rand", "inplace"], ["0.5", "1.0", "2.0"], ["False"], ["1.0"], ["2.0"]], 
+        # [data_name, model_name, ["l2"], lmbda, ["SGD"], ["inplace"], ["1.0"], ["False"], ["1.0"], ["2.0"]], 
+        [data_name, model_name, ["pqiproximal"], ["5.0", "10.0"], ["SGD"], ["inplace"], ["0.5", "1.0", "2.0"], ["False"], ["1.0"], ["2.0"]]
     ]
     controls = make_controls(seeds, resume_mode, control_name)
     print(f"Commands to Run : {len(controls)}")
