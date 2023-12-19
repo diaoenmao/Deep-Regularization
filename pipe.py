@@ -15,7 +15,6 @@ from pprint import pprint
 import argparse, os 
 from src.config import cfg, process_args
 
-
 cudnn.benchmark = True
 
 # Initialize the arguments with the ones in config.yml
@@ -30,11 +29,9 @@ args = vars(parser.parse_args())
 # set the cfg["control_name"] to whatever is in control in config.yml
 process_args(args) 
 
-
 def main(): 
     set_hyperparameters() 
     cfg["control_name"] = args["control_name"]
-    # pprint(cfg)
     print(f"Experiment : {cfg['control_name']}")
     runExperiment()
     
