@@ -1,6 +1,7 @@
 import torch 
 import math
-import numpy as np
+import torch.nn.functional as F 
+
 from abc import ABC, abstractmethod
 
 def make_regularizer(reg:str, model:torch.nn.Module, device:str, lmbda:float, tau:float, optimizer:torch.optim.Optimizer, reg_optimizer:str, reg_initialization:str = "inplace", clipping_scale:float = 1.0, line_crossing:bool = False, p:float = 1.0, q:float = 2.0): 
@@ -12,7 +13,9 @@ def make_regularizer(reg:str, model:torch.nn.Module, device:str, lmbda:float, ta
     elif reg == "l1proximal": 
         return L1_Proximal(model, device, lmbda, tau, reg_optimizer, reg_initialization, clipping_scale, line_crossing)
     elif reg == "l1admm": 
-        return L1_ADMM(model) 
+        '''TODO'''
+        raise NotImplementedError("Not implemented yet") 
+        # return L1_ADMM(model) 
     elif reg == "l1sgd_naive": 
         return L1_SGD_Naive(model, optimizer, device, lmbda) 
     elif reg == "l2": 
@@ -20,39 +23,71 @@ def make_regularizer(reg:str, model:torch.nn.Module, device:str, lmbda:float, ta
     elif reg == "pqiproximal": 
         return PQI_Proximal(model, device, p, q, lmbda, tau, reg_optimizer, reg_initialization, clipping_scale, line_crossing)
     elif reg == "pqiadmm": 
-        return PQI_ADMM(model)
-
+        "TODO"
+        raise NotImplementedError("Not implemented yet")
+    else: 
+        raise Exception("Not a valid type.")
 
 class Regularizer(ABC): 
+    """
+    All subclasses of Regularizer reprsents certain method of regularization. 
+    They can all be initialized in their own way, but they must have
+        - the model attribute
+        - the device attribute 
+        - some set of hyperparameters (if needed) 
+        - a step() method 
+    Essentially, during training, the step method will be called, which will 
+    add an extra step to the backpropagation according to this regularizer 
+    on self.model existing on self.device. The step function should not 
+    accept any hyperparameters as arguments. All hyperparameters must be 
+    stored as attributes. 
+    """
     @abstractmethod 
     def step(self): 
         pass 
-    
+
+class NoReg(Regularizer): 
+
+    def __init__(self, model:torch.nn.Module, device:str): 
+        self.model = model 
+        self.device = device 
+
+    def step(self): 
+        pass
+
 class L1_SoftThreshold(Regularizer): 
-    
+
+    """
+    Implementation of the L1 threshold regularizer
+    """    
     def __init__(self, model:torch.nn.Module, device:str, lmbda:float, tau:float): 
         """
         Arguments 
-        model - our model 
-        device = "cpu" or "cuda" 
-        lmbda - regularization parameter 
+        lmbda - strength of L1 regularization
         tau - step size of our gradient step 
-        """
-        
+        """ 
         self.model = model 
         self.device = device 
-        self.lmbda = float(lmbda)
-        self.tau = float(tau)
+        self.lmbda = lmbda
+        self.tau = tau
         self.penalty = self.lmbda * p_norm(self.model, self.device, 1)
     
-    def soft_threshold(self, param:torch.tensor, lmbda:torch.tensor): 
+    def soft_threshold(self, param:torch.Tensor, lmbda:torch.Tensor) -> torch.Tensor: 
+        """
+        Helper function that takes in parameter tensor and does the soft_threshold 
+        function on each element. Outputs the tensor.  
+        """
         x = torch.sign(param) * torch.max(torch.abs(param) - lmbda, torch.zeros_like(param))
         return x
     
     def step(self): 
         with torch.no_grad(): 
+            # updating parameters with gradient data, so you should remove gradient information. 
             for name, param in self.model.named_parameters(): 
-                param.copy_(self.soft_threshold(param, self.tau * torch.tensor(self.lmbda)))
+                if "bias" not in name:
+                    # only focus on non-bias terms
+                    # update the parameters of the model in place with copy_() method 
+                    param.copy_(self.soft_threshold(param, self.tau * torch.tensor(self.lmbda)))
                 
         self.penalty = self.lmbda * p_norm(self.model, self.device, 1)
 
@@ -61,15 +96,14 @@ class L1_Proximal(Regularizer):
     def __init__(self, model:torch.nn.Module, device:str, lmbda:float, tau:float, optimizer:str, initialization:str = "inplace", clipping_scale:float = 1.0, line_crossing:bool = False): 
         """
         Arguments 
-        model - our model 
         optimizer - which optimizer to use for optimizing the argmin of the proximal step (LBFGS or batch GD)
         initialization - where we initialize the model parameters before optimization ("inplace", "rand", "zeros")
         clipping - the threshold to clip all param values to 0 
         line_crossing - whether we should clip all values that change signs during each proximal optimizer step
         """
         
-        self.lmbda = float(lmbda)
-        self.tau = float(tau) 
+        self.lmbda = lmbda
+        self.tau = tau
         self.model = model 
         self.device = device
         self.penalty = self.lmbda * p_norm(self.model, self.device, 1)
@@ -88,9 +122,10 @@ class L1_Proximal(Regularizer):
         
         self.clipping_scale = clipping_scale
         self.line_crossing = line_crossing 
+   
     
     def initialize(self): 
-        
+
         if self.initialization == "inplace": 
             pass 
         elif self.initialization == "rand": 
@@ -101,7 +136,7 @@ class L1_Proximal(Regularizer):
             with torch.no_grad(): 
                 for name, param in self.model.named_parameters(): 
                     param.copy_(0. * param)
-        
+
     def step(self): 
         
         u = [W.data.detach().clone() for W in self.model.parameters()]
@@ -165,8 +200,56 @@ class L1_Proximal(Regularizer):
         
 class L1_ADMM(Regularizer): 
     
-    def __init__(self, model:torch.nn.Module): 
+    def __init__(self, model:torch.nn.Module, device:str, lmbda:float, rho:float, initialization:str = "inplace"): 
+
         self.model = model 
+        self.device = device 
+        self.lmbda = lmbda 
+        self.rho = rho
+
+        if initialization in ["inplace", "zeros", "rand"]: 
+            self.initialization = initialization 
+        else: 
+            raise Exception("Not a valid initialization. ")
+        
+
+
+    def initialize(self): 
+        
+        if self.initialization == "inplace": 
+            pass 
+        elif self.initialization == "rand": 
+            with torch.no_grad(): 
+                for _ , param in self.model.named_parameters(): 
+                    param.copy_(0.01 * torch.randn_like(param))
+        elif self.initialization == "zeros": 
+            with torch.no_grad(): 
+                for _, param in self.model.named_parameters(): 
+                    param.copy_(0. * param)
+        
+    def step(self):
+        # ADMM consists of primal variable update (x), auxiliary variable update (z), and dual variable update (u)
+        z_old = {name: val.clone().detach() for name, val in self.model.named_parameters()}  # Save old z for dual variable update
+        u = {name: torch.zeros_like(val) for name, val in self.model.named_parameters()}  # Initialize dual variables
+
+
+        # Primal variable update (typically a step of gradient descent or other optimization on the original objective)
+        # Assuming an optimizer is defined outside of this function, and a single step is performed before this function is called
+        # optimizer.step()
+
+        # Auxiliary variable update (L1 regularization applied here)
+        with torch.no_grad():
+            for name, param in self.model.named_parameters():
+                # Soft thresholding for L1 regularization
+                z = param + u[name]  # Combine parameter and dual variable
+                z_abs = torch.abs(z)
+                z_sign = torch.sign(z)
+                z[name] = z_sign * F.relu(z_abs - self.lmbda / self.rho)
+
+        # Dual variable update
+        with torch.no_grad():
+            for name, param in self.model.named_parameters():
+                u[name] += param - z_old[name]
         
 class L1_SGD_Naive(Regularizer): 
     
@@ -233,6 +316,7 @@ class L2_Regularizer(Regularizer):
         self.penalty = self.lmbda * p_norm(self.model, self.device, 2)
 
 class PQI_Proximal(Regularizer): 
+
     def __init__(self, model:torch.nn.Module, device:str, p:float, q:float, lmbda:float, tau:float, optimizer:str, initialization:str = "inplace", clipping_scale:float = 1.0, line_crossing:bool = False): 
         """
         Arguments 
@@ -346,7 +430,6 @@ class PQI_Proximal(Regularizer):
 
         self.penalty = self.lmbda * PQI(self.model, self.device, self.p, self.q)
         
-
 class PQI_ADMM(Regularizer): 
     
     def __init__(self, model:torch.nn.Module): 
@@ -354,59 +437,22 @@ class PQI_ADMM(Regularizer):
     
     pass 
 
-# def admm_lasso(Y, X, lmbda, rho=1.0, max_iter=1000, tol=1e-4):
-#     n, p = X.shape
-#     beta = np.zeros(p)
-#     u = np.zeros(p)
-#     lambda_dual = np.zeros(p)
-#     I = np.eye(p)
-    
-#     for _ in range(max_iter):
-#         # Update beta
-#         beta = np.linalg.inv(X.T @ X + rho * I) @ (X.T @ Y + rho * (u - lambda_dual))
-        
-#         # Update u
-#         u = soft_thresholding(beta + lambda_dual, lmbda/rho)
-        
-#         # Update lambda
-#         lambda_dual += rho * (beta - u)
-        
-#         # Convergence check
-#         prim_resid = np.linalg.norm(beta - u)
-#         dual_resid = rho * np.linalg.norm(u - soft_thresholding(beta + 2*lambda_dual, lmbda/rho))
-#         if prim_resid < tol and dual_resid < tol:
-#             break
-            
-#     return beta
-
-# # Test the function
-# Y = np.random.randn(100)
-# X = np.random.randn(100, 10)
-# lmbda = 0.1
-# beta = admm_lasso(Y, X, lmbda, max_iter=10000)
-# print(beta)
-
-def p_norm(model:torch.nn.Module, device:str, p:float, normalize:bool=True): 
-    p_norm = None
+def p_norm(model:torch.nn.Module, device:str, p:float, normalize:bool = True) -> float: 
+    p_norm = 0.0
     N = 0
     for W in model.parameters(): 
-        if p_norm == None: 
-            p_norm = W.norm(p) ** p
-        else: 
-            p_norm += W.norm(p) ** p
-            
-        if normalize == True: 
-            N += math.prod(W.size())
-            
-    p_norm = p_norm ** (1/p)
-            
-    if normalize == True: 
-        return (1/N) * p_norm.to(device)
-    else: 
-        return p_norm.to(device)
-    
+        p_norm += W.norm(p).item() ** p
 
-    
+        if normalize: 
+            N += math.prod(W.size())
+
+    p_norm = p_norm ** (1 / p)
+
+    if normalize and N > 0:
+        p_norm /= N
+
+    return p_norm
+ 
 def PQI(model:torch.nn.Module, device:str, p:float, q:float): 
     
     d = sum(math.prod(param.size()) for param in model.parameters())

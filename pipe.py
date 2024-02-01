@@ -89,7 +89,7 @@ def runExperiment():
     model_tag_path = os.path.join('output', f"{cfg['seed']}_{cfg['control_name']}")
     # print(model_tag_path)
     save(logger, model_tag_path)
-    
+
 
 if __name__ == "__main__":
     main() 
