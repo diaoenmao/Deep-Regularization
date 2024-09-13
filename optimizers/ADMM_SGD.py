@@ -79,3 +79,6 @@ class ADMM_SGD(Optimizer):
                 w.data = zk_temp
 
         return None
+    
+    def update_hyperparameters(self, C):
+        self.C = C

@@ -1,19 +1,21 @@
 import torch
 
-def calculate_pq_index(model):#该算法用来计算PQ INDEX，这是一个模型评定指标，在画图中会用到
+def calculate_pq_index(model):
 
     p, q = 1, 2
     all_weights = torch.cat([param.view(-1) for param in model.parameters()])
+
     d = all_weights.numel()
 
     # Calculate ||w||_p for p = 1
     norm_p = torch.norm(all_weights, p = 1)
 
     # Calculate ||w||_q for q = 2
-    norm_q = torch.norm(all_weights, p = 2)
+    norm_q = torch.norm(all_weights, p=2) + 1e-8
 
     # Calculate PQ Index
     pq_index = 1 - (d ** (1 / q - 1 / p)) * (norm_p / norm_q)
+    
     return pq_index.item()
 
 def calculate_remaining_weights(model):

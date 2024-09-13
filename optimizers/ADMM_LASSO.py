@@ -32,3 +32,6 @@ class ADMM_LASSO(Optimizer):
                 w.data = (torch.where(abs(w.data - w_copy) < abs(w_copy), 1, 0)) * w.data
 
         return None
+    
+    def update_hyperparameters(self, C):
+        self.C = C

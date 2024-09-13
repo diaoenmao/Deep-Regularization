@@ -64,3 +64,39 @@ def save_metrics_and_plots(train_losses, train_accuracies, val_losses, val_accur
 
     plot_metrics(metrics, save_dir=SAVE_DIR)
     plot_accuracy_vs_pruning(metrics['remaining_weights'], metrics['accuracy'], save_dir=SAVE_DIR)
+
+def save_experiment_results(results):
+    results_file = os.path.join(METRICS_DIR, f'{MODEL_TYPE}_{OPTIMIZER_TYPE}_experiment_results.json')
+    with open(results_file, 'w') as f:
+        json.dump(results, f, indent=2)
+    print(f"Saved experiment results to {results_file}")
+
+def plot_experiment_results(results):
+    C_values = [result['C'] for result in results]
+    accuracies = [result['accuracy'] for result in results]
+    remaining_weights = [result['remaining_weights'] for result in results]
+    pq_indices = [result['pq_index'] for result in results]
+
+    plt.figure(figsize=(15, 5))
+    
+    plt.subplot(131)
+    plt.plot(C_values, accuracies, 'o-')
+    plt.xlabel('C value')
+    plt.ylabel('Accuracy (%)')
+    plt.title('Accuracy vs C value')
+
+    plt.subplot(132)
+    plt.plot(C_values, remaining_weights, 'o-')
+    plt.xlabel('C value')
+    plt.ylabel('Remaining Weights (%)')
+    plt.title('Remaining Weights vs C value')
+
+    plt.subplot(133)
+    plt.plot(C_values, pq_indices, 'o-')
+    plt.xlabel('C value')
+    plt.ylabel('PQ Index')
+    plt.title('PQ Index vs C value')
+
+    plt.tight_layout()
+    plt.savefig(os.path.join(PLOTS_DIR, f'{MODEL_TYPE}_{OPTIMIZER_TYPE}_experiment_results.png'))
+    plt.close()
