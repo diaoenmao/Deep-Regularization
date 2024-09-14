@@ -33,82 +33,59 @@ class ADMM_Adam_Layer(Optimizer):
             with torch.enable_grad():
                 loss = closure()
 
-        epi = 1e-8
+        epi = 1e-6
 
         for group in self.param_groups:
             for w, vk_temp, yk_temp, zk_temp, wk_temp, v0_temp, v1_temp in zip(group['params'], self.vk, self.yk, self.zk, self.wk, self.v0, self.v1):
 
-                # if w.isnan().any():
-                #     print("Warning: NaN values detected in w")
-                #     print("w:", w)
-                #     print("w.isnan().any():", w.isnan().any())
-                #     print("w.isinf().any():", w.isinf().any())
-                #     print("k:", self.k)
-                #     sys.exit()
-
                 grad = w.grad
-                print("Shape of grad:", grad.shape)
-                # if torch.isnan(grad).any():
-                #     print("Warning: NaN values detected in grad")
-                #     print("grad:", grad)
-                #     print("w:", w)
-                #     print("w.grad:", w.grad)
-                #     print("w.grad.isnan().any():", w.grad.isnan().any())
-                #     print("w.grad.isinf().any():", w.grad.isinf().any())
-                #     print("k:", self.k)
-                #     sys.exit()
 
-                v0_temp.mul_(self.beta).add_(grad, alpha=1 - self.beta)
+                if grad is None:
+                    continue
 
-                # if torch.isnan(v0_temp).any():
-                #     print("Warning: NaN values detected in v0_temp")
-                #     print("v0_temp:", v0_temp)
-                #     print("self.beta:", self.beta)
-                #     print("self.k:", self.k)
-                #     print("grad:", grad)
-                #     print("grad.isnan().any():", grad.isnan().any())
-                #     print("grad.isinf().any():", grad.isinf().any())
-                #     sys.exit()
-                
-                # Use element-wise multiplication instead of matrix multiplication
-                v1_temp.mul_(self.beta2).add_(grad * grad, alpha=1 - self.beta2)
-                
-                if torch.any(v1_temp < 0):
-                    print("Warning: Negative values detected in v1_temp")
-                    neg_mask = v1_temp < 0
-                    print("v1_temp:", v1_temp[neg_mask])
-                    print("self.beta2:", self.beta2)
-                    print("grad:", grad[neg_mask])
+                if torch.isnan(grad).any():
+                    print("Warning: Gradient contains NaN values.")
+                    print("k:", self.k)
+                    print("Gradient stats:")
+                    print("  Mean:", grad.mean().item())
+                    print("  Std:", grad.std().item())
+                    print("  Max:", grad.max().item())
+                    print("  Min:", grad.min().item())
+                    sys.exit()
+
+                if torch.isnan(grad).any() or torch.isinf(grad).any():
+                    print("Warning: Gradient contains NaN values.")
                     print("k:", self.k)
                     sys.exit()
 
-                # if torch.isnan(v1_temp).any():
-                #     print("Warning: NaN values detected in v1_temp")
-                #     print("v1_temp:", v1_temp)
-                #     print("self.beta2:", self.beta2)
-                #     print("self.k:", self.k)
-                #     sys.exit()
+                v0_temp.mul_(self.beta).add_(grad, alpha=1 - self.beta)
+
+                if torch.isnan(v0_temp).any() or torch.isinf(v0_temp).any():
+                    print("Warning: v0_temp contains NaN values.")
+                    print("k:", self.k)
+                    sys.exit()
+
+                v1_temp.mul_(self.beta2).add_(torch.mul(grad, grad), alpha=1 - self.beta2)
+
+                if torch.isnan(v1_temp).any() or torch.isinf(v1_temp).any():
+                    print("Warning: v1_temp contains NaN values.")
+                    print("k:", self.k)
+                    sys.exit()
 
                 v1_new = v1_temp / (1 - self.beta2 ** (self.k + 1))
-
-                # # Check if v1_new contains NaN values
-                # if torch.isnan(v1_new).any():
-                #     print("Warning: NaN values detected in v1_new")
-                #     print("v1_temp:", v1_temp)
-                #     print("self.beta2:", self.beta2)
-                #     print("self.k:", self.k)
-                #     sys.exit()
+                
+                if torch.isnan(v1_new).any() or torch.isinf(v1_new).any():
+                    print("Warning: v1_new contains NaN values.")
+                    print("k:", self.k)
+                    sys.exit()
 
                 lr = self.lr / (torch.sqrt(v1_new) + epi) / (1 - self.beta ** (self.k + 1))
 
-                # if torch.isnan(lr).any():
-                #     print("Warning: NaN values detected in lr")
-                #     print("lr:", lr)
-                #     print("v1_new:", v1_new)
-                #     print("self.lr:", self.lr)
-                #     print("self.beta:", self.beta)
-                #     print("self.k:", self.k)
-                #     sys.exit()
+                if torch.isnan(lr).any() or torch.isinf(lr).any():
+                    print("Warning: Learning rate contains NaN values.")
+                    print("lr:", self.lr)
+                    print("k:", self.k)
+                    sys.exit()
 
                 grad = v0_temp
 
@@ -138,7 +115,7 @@ class ADMM_Adam_Layer(Optimizer):
                 wk_temp.add_(p * (qk - zk_temp))
                 w.copy_(zk_temp)
 
-                self.k += 1
+        self.k += 1
 
         return loss
     

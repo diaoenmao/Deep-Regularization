@@ -8,6 +8,7 @@ import json
 import matplotlib.pyplot as plt
 from config import METRICS_DIR, PLOTS_DIR
 from torch.nn.utils import parameters_to_vector
+import math
 
 from models import get_model
 from utils import calculate_pq_index, calculate_remaining_weights, save_metrics_and_plots, save_experiment_results, plot_experiment_results
@@ -54,14 +55,12 @@ def get_optimizer(optimizer_type, model_params, model, C=None):
         v0 = []
         v1 = []
         for _, param in model.named_parameters():
-            para_1 = torch.zeros_like(param)
-            para_2 = param
-            vk.append(para_1)
-            wk.append(para_1)
-            yk.append(para_2)
-            zk.append(para_2)
-            v0.append(para_1)
-            v1.append(para_1)
+            vk.append(torch.zeros_like(param))
+            wk.append(torch.zeros_like(param))
+            yk.append(param.clone())
+            zk.append(param.clone())
+            v0.append(torch.zeros_like(param))
+            v1.append(torch.zeros_like(param))
         return ADMM_Adam_Layer(model_params, lr=config.LEARNING_RATE, N=config.N, C=C, 
                             vk=vk, wk=wk, yk=yk, zk=zk, beta=config.BETA1, beta2=config.BETA2, 
                             v0=v0, v1=v1, k=0)
@@ -71,12 +70,10 @@ def get_optimizer(optimizer_type, model_params, model, C=None):
         yk = []
         zk = []
         for _, param in model.named_parameters():
-            para_1 = torch.zeros_like(param)
-            para_2 = param
-            vk.append(para_1)
-            wk.append(para_1)
-            yk.append(para_2)
-            zk.append(para_2)
+            vk.append(torch.zeros_like(param))
+            wk.append(torch.zeros_like(param))
+            yk.append(param.clone())
+            zk.append(param.clone())
         return ADMM_Adam_neuron(model_params, lr=config.LEARNING_RATE, N=config.N, C=C,
                                 vk=vk, wk=wk, yk=yk, zk=zk)
     elif optimizer_type == 'ADMM_Adam_global':
@@ -114,7 +111,9 @@ def train(C=None):
     metrics = {'remaining_weights': [], 'accuracy': [], 'pq_index': []}
 
     for epoch in trange(config.EPOCHS):
-        lr = config.LEARNING_RATE / (1 + epoch / config.N)
+        # Cosine annealing learning rate scheduler
+        lr = config.LEARNING_RATE * 0.5 * (1 + math.cos(math.pi * epoch / config.EPOCHS))
+        # lr = config.LEARNING_RATE
         optimizer = get_optimizer(config.OPTIMIZER_TYPE, model.parameters(), model=model, C=C)
         optimizer.update_base_learning_rate(lr)
 
