@@ -1,102 +1,69 @@
 import os
 import json
 import matplotlib.pyplot as plt
-from utils import plot_metrics, plot_accuracy_vs_pruning
-from config import METRICS_DIR, PLOTS_DIR, MODEL_TYPE, OPTIMIZER_TYPE, SAVE_DIR, EPOCHS
 
-def save_metrics_and_plots(train_losses, train_accuracies, val_losses, val_accuracies, metrics):
-    # Save metrics
-    metrics_data = {
-        'train_loss': train_losses,
-        'train_acc': train_accuracies,
-        'val_loss': val_losses,
-        'val_acc': val_accuracies,
-        'remaining_weights': metrics['remaining_weights'],
-        'accuracy': metrics['accuracy'],
-        'pq_index': metrics['pq_index']
-    }
+def save_metrics(results, save_dir='results', model_type='cnn3', optimizer_type='ADMM_layer_magnitude'):
+    """
+    Save experiment metrics to JSON file
+    """
+    metrics_dir = os.path.join(save_dir, 'metrics')
+    os.makedirs(metrics_dir, exist_ok=True)
     
-    metrics_file = os.path.join(METRICS_DIR, f'{MODEL_TYPE}_{OPTIMIZER_TYPE}_metrics.json')
-    with open(metrics_file, 'w') as f:
-        json.dump(metrics_data, f)
-
-    # Create and save plots
-    epochs = range(1, EPOCHS + 1)
-
-    # Loss plot
-    plt.figure(figsize=(10, 5))
-    plt.plot(epochs, train_losses, label='Train Loss')
-    plt.plot(epochs, val_losses, label='Validation Loss')
-    plt.title('Training and Validation Loss')
-    plt.xlabel('Epochs')
-    plt.ylabel('Loss')
-    plt.legend()
-    plt.savefig(os.path.join(PLOTS_DIR, f'{MODEL_TYPE}_{OPTIMIZER_TYPE}_loss.png'))
-    plt.close()
-
-    # Accuracy plot
-    plt.figure(figsize=(10, 5))
-    plt.plot(epochs, train_accuracies, label='Train Accuracy')
-    plt.plot(epochs, val_accuracies, label='Validation Accuracy')
-    plt.title('Training and Validation Accuracy')
-    plt.xlabel('Epochs')
-    plt.ylabel('Accuracy')
-    plt.legend()
-    plt.savefig(os.path.join(PLOTS_DIR, f'{MODEL_TYPE}_{OPTIMIZER_TYPE}_accuracy.png'))
-    plt.close()
-
-    plt.figure(figsize=(10, 5))
-    plt.scatter(metrics['remaining_weights'], metrics['accuracy'])
-    plt.title('Accuracy vs Remaining Weights')
-    plt.xlabel('Remaining Weights (%)')
-    plt.ylabel('Accuracy (%)')
-    plt.savefig(os.path.join(PLOTS_DIR, f'{MODEL_TYPE}_{OPTIMIZER_TYPE}_accuracy_vs_weights.png'))
-    plt.close()
-
-    # Remaining weights vs Epoch plot
-    plt.figure(figsize=(10, 5))
-    plt.plot(epochs, metrics['remaining_weights'])
-    plt.title('Remaining Weights vs Epoch')
-    plt.xlabel('Epoch')
-    plt.ylabel('Remaining Weights (%)')
-    plt.savefig(os.path.join(PLOTS_DIR, f'{MODEL_TYPE}_{OPTIMIZER_TYPE}_weights_vs_epoch.png'))
-    plt.close()
-
-    plot_metrics(metrics, save_dir=SAVE_DIR)
-    plot_accuracy_vs_pruning(metrics['remaining_weights'], metrics['accuracy'], save_dir=SAVE_DIR)
-
-def save_experiment_results(results):
-    results_file = os.path.join(METRICS_DIR, f'{MODEL_TYPE}_{OPTIMIZER_TYPE}_experiment_results.json')
+    results_file = os.path.join(metrics_dir, f'{model_type}_{optimizer_type}_experiment_results.json')
     with open(results_file, 'w') as f:
         json.dump(results, f, indent=2)
     print(f"Saved experiment results to {results_file}")
 
-def plot_experiment_results(results):
-    C_values = [result['C'] for result in results]
-    accuracies = [result['accuracy'] for result in results]
-    remaining_weights = [result['remaining_weights'] for result in results]
-    pq_indices = [result['pq_index'] for result in results]
-
-    plt.figure(figsize=(15, 5))
+def plot_metrics(results, save_dir='results', model_type='cnn3', optimizer_type='ADMM_layer_magnitude'):
+    """
+    Plot training metrics and save figures
+    """
+    plots_dir = os.path.join(save_dir, 'plots')
+    os.makedirs(plots_dir, exist_ok=True)
     
-    plt.subplot(131)
-    plt.plot(C_values, accuracies, 'o-')
-    plt.xlabel('C value')
-    plt.ylabel('Accuracy (%)')
-    plt.title('Accuracy vs C value')
-
-    plt.subplot(132)
-    plt.plot(C_values, remaining_weights, 'o-')
-    plt.xlabel('C value')
-    plt.ylabel('Remaining Weights (%)')
-    plt.title('Remaining Weights vs C value')
-
-    plt.subplot(133)
-    plt.plot(C_values, pq_indices, 'o-')
-    plt.xlabel('C value')
-    plt.ylabel('PQ Index')
-    plt.title('PQ Index vs C value')
-
+    # Create plots
+    fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(15, 5))
+    
+    # Plot accuracy
+    ax1.plot(results['accuracy'])
+    ax1.set_title('Test Accuracy')
+    ax1.set_xlabel('Experiment')
+    ax1.set_ylabel('Accuracy (%)')
+    
+    # Plot remaining weights
+    ax2.plot(results['remaining_weights'])
+    ax2.set_title('Remaining Weights')
+    ax2.set_xlabel('Experiment')
+    ax2.set_ylabel('Ratio')
+    
+    # Plot PQ index
+    ax3.plot(results['pq_index'])
+    ax3.set_title('PQ Index')
+    ax3.set_xlabel('Experiment')
+    ax3.set_ylabel('Index Value')
+    
     plt.tight_layout()
-    plt.savefig(os.path.join(PLOTS_DIR, f'{MODEL_TYPE}_{OPTIMIZER_TYPE}_experiment_results.png'))
+    
+    # Save plot
+    plot_file = os.path.join(plots_dir, f'{model_type}_{optimizer_type}_metrics.png')
+    plt.savefig(plot_file)
     plt.close()
+    print(f"Saved metrics plot to {plot_file}")
+
+def plot_accuracy_vs_pruning(results, save_dir='results', model_type='cnn3', optimizer_type='ADMM_layer_magnitude'):
+    """
+    Plot accuracy vs pruning ratio
+    """
+    plots_dir = os.path.join(save_dir, 'plots')
+    os.makedirs(plots_dir, exist_ok=True)
+    
+    plt.figure(figsize=(10, 6))
+    plt.scatter(results['remaining_weights'], results['accuracy'])
+    plt.xlabel('Remaining Weights Ratio')
+    plt.ylabel('Accuracy (%)')
+    plt.title('Accuracy vs Pruning Ratio')
+    
+    plot_file = os.path.join(plots_dir, f'{model_type}_{optimizer_type}_acc_vs_pruning.png')
+    plt.savefig(plot_file)
+    plt.close()
+    print(f"Saved accuracy vs pruning plot to {plot_file}")

@@ -1,14 +1,23 @@
 from torch.optim import Optimizer
 import torch
 import torch.nn as nn
+from .utils import soft_thresholding
 
 class LASSO_Neuron(Optimizer):
-    def __init__(self, params, model, lr, N, C, score):
+    def __init__(self, params, model, lr, N, C, score, wk, zk, vk, beta, beta2, v0, v1, k):
         self.model = model
         self.lr = lr
         self.N = N  # NUMBER OF SAMPLES
         self.C = C  # REGULARIZATION CONSTANT
         self.score = score  # Score per neuron
+        self.wk = wk
+        self.zk = zk
+        self.vk = vk
+        self.beta = beta
+        self.beta2 = beta2
+        self.v0 = v0
+        self.v1 = v1
+        self.k = k
         super(LASSO_Neuron, self).__init__(params, {})
 
     @torch.no_grad()
@@ -18,76 +27,86 @@ class LASSO_Neuron(Optimizer):
             with torch.enable_grad():
                 loss = closure()
 
-        for name, module in self.model.named_modules():
-            # Handle different layer types
-            if isinstance(module, nn.Conv2d):
-                self._handle_conv_layer(module, name)
-            elif isinstance(module, nn.Linear):
-                self._handle_linear_layer(module, name)
+        for group in self.param_groups:
+            for w, score_temp, wk_temp, vk_temp, zk_temp in zip(group['params'], self.score, self.wk, self.vk, self.zk):
+                if w.grad is None:
+                    continue
+
+                w_len = len(w.shape)
+                if w_len == 4:  # Conv layer
+                    self._handle_conv_layer(w, score_temp, wk_temp, vk_temp, zk_temp)
+                elif w_len == 2:  # Linear layer
+                    self._handle_linear_layer(w, score_temp, wk_temp, vk_temp, zk_temp)
+                elif w_len == 1:  # Bias or BatchNorm
+                    self._handle_bias_layer(w, score_temp, wk_temp, vk_temp, zk_temp)
 
         return loss
 
-    def _handle_conv_layer(self, layer, name):
+    def _handle_conv_layer(self, w, score_temp, wk_temp, vk_temp, zk_temp):
         """Handle convolutional layer neuron-wise pruning"""
-        if layer.weight.grad is None:
-            return
+        shape0, _, _, _ = w.shape
+        grad = w.grad
 
-        # Shape: [out_channels, in_channels, kernel_h, kernel_w]
-        w = layer.weight.data
-        grad = layer.weight.grad
-        score = self.score[name] if name in self.score else torch.ones_like(w)
+        p = 1 / self.lr
 
-        # Treat each output channel as a neuron
-        for i in range(w.size(0)):  # iterate over output channels
-            # Get all weights connected to this neuron
-            neuron_weights = w[i]  # [in_channels, kernel_h, kernel_w]
-            neuron_grad = grad[i]
-            neuron_score = score[i] if len(score.shape) > 1 else score
+        # Update auxiliary variables (vectorized for all neurons)
+        wk_new = wk_temp - vk_temp/p - grad/p
+        b = wk_new + vk_temp/p
+        
+        # Expand score to match tensor dimensions if needed
+        if len(score_temp.shape) == 1:
+            score_temp = score_temp.view(shape0, 1, 1, 1).expand_as(w)
+            
+        u = (self.C/self.N)/self.lr * torch.abs(score_temp)
+        zk_new = soft_thresholding(b, u)
 
-            # Compute L2 norm of the neuron's weights
-            norm = torch.norm(neuron_weights)
-            if norm > 0:
-                # Apply gradient step
-                neuron_weights = neuron_weights * neuron_score - self.lr * neuron_grad
+        # Update main variables
+        vk_temp.add_((wk_new - zk_new) * p)
+        wk_temp.copy_(wk_new)
+        zk_temp.copy_(zk_new)
+        w.copy_(zk_new)
 
-                # Apply soft thresholding on the entire neuron
-                threshold = (self.C / self.N) * self.lr / (neuron_score + 1e-8)
-                scale = max(0, 1 - threshold / (norm + 1e-8))
-                neuron_weights *= scale
-
-                # Update weights
-                w[i] = neuron_weights
-
-    def _handle_linear_layer(self, layer, name):
+    def _handle_linear_layer(self, w, score_temp, wk_temp, vk_temp, zk_temp):
         """Handle linear layer neuron-wise pruning"""
-        if layer.weight.grad is None:
-            return
+        shape0, shape1 = w.shape
+        grad = w.grad
 
-        # Shape: [out_features, in_features]
-        w = layer.weight.data
-        grad = layer.weight.grad
-        score = self.score[name] if name in self.score else torch.ones_like(w)
+        p = 1 / self.lr
 
-        # Treat each output feature as a neuron
-        for i in range(w.size(0)):  # iterate over output features
-            # Get all weights connected to this neuron
-            neuron_weights = w[i]  # [in_features]
-            neuron_grad = grad[i]
-            neuron_score = score[i] if len(score.shape) > 1 else score
+        # Update auxiliary variables (vectorized for all neurons)
+        wk_new = wk_temp - vk_temp/p - grad/p
+        b = wk_new + vk_temp/p
+        
+        # Expand score to match tensor dimensions if needed
+        if len(score_temp.shape) == 1:
+            score_temp = score_temp.view(shape0, 1).expand_as(w)
+            
+        u = (self.C/self.N)/self.lr * torch.abs(score_temp)
+        zk_new = soft_thresholding(b, u)
 
-            # Compute L2 norm of the neuron's weights
-            norm = torch.norm(neuron_weights)
-            if norm > 0:
-                # Apply gradient step
-                neuron_weights = neuron_weights * neuron_score - self.lr * neuron_grad
+        # Update main variables
+        vk_temp.add_((wk_new - zk_new) * p)
+        wk_temp.copy_(wk_new)
+        zk_temp.copy_(zk_new)
+        w.copy_(zk_new)
 
-                # Apply soft thresholding on the entire neuron
-                threshold = (self.C / self.N) * self.lr / (neuron_score + 1e-8)
-                scale = max(0, 1 - threshold / (norm + 1e-8))
-                neuron_weights *= scale
+    def _handle_bias_layer(self, w, score_temp, wk_temp, vk_temp, zk_temp):
+        """Handle bias or batchnorm layer"""
+        grad = w.grad
 
-                # Update weights
-                w[i] = neuron_weights
+        p = 1 / self.lr
+
+        # Update auxiliary variables
+        wk_new = wk_temp - vk_temp/p - grad/p
+        b = wk_new + vk_temp/p
+        u = (self.C/self.N)/p * torch.abs(score_temp)
+        zk_new = soft_thresholding(b, u)
+
+        # Update main variables
+        vk_temp.add_((wk_new - zk_new) * p)
+        wk_temp.copy_(wk_new)
+        zk_temp.copy_(zk_new)
+        w.copy_(zk_new)
 
     def update_base_learning_rate(self, new_lr):
         self.lr = new_lr

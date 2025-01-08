@@ -3,7 +3,7 @@ from torch.optim import Optimizer
 from .utils import soft_thresholding
 
 class ADMM_Neuron(Optimizer):
-    def __init__(self, params, lr, N, C, vk, wk, yk, zk, score):
+    def __init__(self, params, lr, N, C, vk, wk, yk, zk, score, model, beta, beta2, v0, v1, k):
         self.lr = lr
         self.N = N
         self.C = C
@@ -12,6 +12,12 @@ class ADMM_Neuron(Optimizer):
         self.yk = yk
         self.zk = zk
         self.score = score
+        self.model = model
+        self.beta = beta
+        self.beta2 = beta2
+        self.v0 = v0
+        self.v1 = v1
+        self.k = k
         super(ADMM_Neuron, self).__init__(params, {})
 
     @torch.no_grad()
@@ -144,4 +150,4 @@ class ADMM_Neuron(Optimizer):
 
 
     def update_base_learning_rate(self, new_lr):
-        self.lr = new_lr
+        self.defaults['lr'] = new_lr

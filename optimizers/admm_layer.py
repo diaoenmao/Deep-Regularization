@@ -5,7 +5,7 @@ from .utils import soft_thresholding
 
 class ADMM_Layer(Optimizer):
 
-    def __init__(self, params, lr, N, C, vk, wk, yk, zk, beta, beta2 ,v0, v1, k, score):
+    def __init__(self, params, lr, N, C, vk, wk, yk, zk, beta, beta2 ,v0, v1, k, score, model):
         self.lr = lr
         self.N = N #NUMBER OF SAMPLE
         self.C = C #CONSTANT
@@ -19,6 +19,7 @@ class ADMM_Layer(Optimizer):
         self.v1 = v1
         self.k = k
         self.score = score
+        self.model = model
         super(ADMM_Layer, self).__init__(params, {})
 
     @torch.no_grad()
@@ -27,8 +28,6 @@ class ADMM_Layer(Optimizer):
         if closure is not None:
             with torch.enable_grad():
                 loss = closure()
-
-        epi = 1e-6
 
         for group in self.param_groups:
             for w, vk_temp, yk_temp, zk_temp, wk_temp, score_temp in zip(group['params'], self.vk, self.yk,
@@ -66,4 +65,4 @@ class ADMM_Layer(Optimizer):
         return loss
     
     def update_base_learning_rate(self, new_lr):
-        self.lr = new_lr
+        self.defaults['lr'] = new_lr

@@ -11,8 +11,7 @@ class LoraScore:
         lora_scores = {}
         for name, param in self.model.named_parameters():
             if param.grad is not None:
-                grad = param.grad.detach()
+                lora_scores[name] = param.grad.detach()
             else:
-                grad = torch.ones_like(param)
-            lora_scores[name] = grad
+                lora_scores[name] = torch.ones_like(param)
         return lora_scores

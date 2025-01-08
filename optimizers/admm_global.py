@@ -6,22 +6,22 @@ from .utils import soft_thresholding
 class ADMM_Global(Optimizer):
 
     def __init__(self, params, model, lr, N, C, vk, wk, yk, zk, beta, beta2 ,v0, v1, k, score):
-        self.model = model
-        self.lr = lr
-        self.N = N #NUMBER OF SAMPLE
-        self.C = C #CONSTANT
-        self.vk = vk
-        self.wk = wk
-        self.yk = yk
-        self.zk = zk
-        self.beta = beta
-        self.beta2 = beta2
-        self.v0 = v0
-        self.v1 = v1
-        self.k = k
-        self.score = score
-        super(ADMM_Global, self).__init__(params, {})
+        
+        defaults = dict(lr=lr, N=N, C=C, beta=beta, beta2=beta2)
+        super(ADMM_Global, self).__init__(params, defaults)
 
+        # Store these as state rather than attributes
+        self.state['vk'] = parameters_to_vector(vk)
+        self.state['wk'] = parameters_to_vector(wk)
+        self.state['yk'] = parameters_to_vector(yk)
+        self.state['zk'] = parameters_to_vector(zk)
+        self.state['score'] = parameters_to_vector(score)
+        self.state['v0'] = v0
+        self.state['v1'] = v1
+        self.state['k'] = k
+        
+        self.model = model  # This can stay as attribute
+        
     @torch.no_grad()
     def step(self, closure=None):
 
@@ -33,44 +33,44 @@ class ADMM_Global(Optimizer):
         epi = 1e-8
         grad = parameters_to_vector([param.grad for param in self.model.parameters()])
 
-        self.v0 = self.beta * self.v0 + (1 - self.beta) * grad
-        self.v1 = self.beta2 * self.v1 + (1 - self.beta) * torch.mul(grad, grad)
+        self.state['v0'] = self.defaults['beta'] * self.state['v0'] + (1 - self.defaults['beta']) * grad
+        self.state['v1'] = self.defaults['beta2'] * self.state['v1'] + (1 - self.defaults['beta2']) * torch.mul(grad, grad)
 
-        v1_new = self.v1 / (1 - self.beta2 ** (self.k + 1))
+        v1_new = self.state['v1'] / (1 - self.defaults['beta2'] ** (self.state['k'] + 1))
 
-        lr = self.lr / (torch.sqrt(v1_new) + epi) / (1 - self.beta ** (self.k + 1))
+        lr = self.defaults['lr'] / (torch.sqrt(v1_new) + epi) / (1 - self.defaults['beta'] ** (self.state['k'] + 1))
 
-        grad = self.v0
+        grad = self.state['v0']
 
         p = 1 / lr
-        qk = 0.5 * (self.yk + self.zk - self.vk / p - self.wk / p - grad / p)
+        qk = 0.5 * (self.state['yk'] + self.state['zk'] - self.state['vk'] / p - self.state['wk'] / p - grad / p)
 
-        ck = torch.norm(self.score * self.zk, p=1)
-        dk = qk + self.vk / p
-        yita = torch.norm(self.score * dk, p=2) + 1e-8
-        miu = self.C * ck / self.N
-        D_k = (miu * torch.mul(self.score, self.score)) / (p * (yita ** 3))
+        ck = torch.norm(torch.mul(self.state['score'], self.state['zk']), p=1)
+        dk = qk + self.state['vk'] / p
+        yita = torch.norm(torch.mul(self.state['score'], dk), p=2) + 1e-8
+        miu = self.defaults['C'] * ck / self.defaults['N']
+        D_k = (miu * torch.mul(self.state['score'], self.state['score'])) / (p * (yita ** 3))
         C_K = ((27 * D_k + 2 + ((27 * D_k + 2) ** 2 - 4) ** (1 / 2)) / 2) ** (1 / 3)
         tao_k = 1 / 3 + (1 / 3) * (C_K + 1 / C_K)
 
         if torch.all(dk == 0):
             fangsuo = (ck / p) ** (1 / 3)
-            random_tensor = torch.randn_like(self.yk)
-            self.yk.copy_(random_tensor * (fangsuo / torch.norm(random_tensor, p=2)))
+            random_tensor = torch.randn_like(self.state['yk'])
+            self.state['yk'].copy_(random_tensor * (fangsuo / torch.norm(random_tensor, p=2)))
         else:
-            self.yk.copy_(tao_k * dk)
+            self.state['yk'].copy_(tao_k * dk)
 
-        self.zk = soft_thresholding(b=qk + self.wk / p,
-                                         u=(self.C / self.N) / (p * torch.norm(self.yk, p=2)))
+        self.state['zk'] = soft_thresholding(b=qk + self.state['wk'] / p,
+                                         u=(self.defaults['C'] / self.defaults['N']) / (p * torch.norm(self.state['yk'], p=2)))
 
-        self.vk.add_(p * (qk - self.yk))
-        self.wk.add_(p * (qk - self.zk))
+        self.state['vk'].add_(p * (qk - self.state['yk']))
+        self.state['wk'].add_(p * (qk - self.state['zk']))
 
-        vector_to_parameters(self.zk, self.model.parameters())
+        vector_to_parameters(self.state['zk'], self.model.parameters())
 
-        self.k += 1
+        self.state['k'] += 1
 
         return loss
 
     def update_base_learning_rate(self, new_lr):
-        self.lr = new_lr
+        self.defaults['lr'] = new_lr

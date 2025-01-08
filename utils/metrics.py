@@ -18,11 +18,38 @@ def calculate_pq_index(model):
     
     return pq_index.item()
 
-def calculate_remaining_weights(model):
-    non_zero = 0
-    total = 0
-    for name, param in model.named_parameters():
-        if 'weight' in name:  # Only consider weight parameters
-            non_zero += torch.count_nonzero(param).item()
-            total += param.numel()
-    return 100 * non_zero / total if total > 0 else 100.0
+def calculate_remaining_weights(model, threshold=1e-6):
+    """
+    Calculate the percentage of remaining (non-zero) weights in the model.
+    
+    Args:
+        model: PyTorch model
+        threshold: Values below this threshold are considered zero (default: 1e-6)
+    
+    Returns:
+        float: Percentage of non-zero weights (0-100)
+    """
+    try:
+        non_zero = 0
+        total = 0
+        
+        for name, param in model.named_parameters():
+            # Get statistics for this layer
+            abs_weights = torch.abs(param.data)            
+            # Count non-zero weights
+            layer_nonzero = torch.sum(abs_weights >= threshold).item()
+            layer_total = param.numel()
+
+            non_zero += layer_nonzero
+            total += layer_total
+            
+        if total == 0:
+            return 0.0
+            
+        final_percentage = 100.0 * non_zero / total
+
+        return final_percentage
+        
+    except Exception as e:
+        print(f"Error calculating remaining weights: {str(e)}")
+        return 0.0

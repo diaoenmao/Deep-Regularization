@@ -1,11 +1,18 @@
 from torch.optim import Optimizer
 import torch
+import math
 
 class P_Percent_Layer(Optimizer):
-    def __init__(self, params, lr, p_percent, score):
+    def __init__(self, params, lr, p_percent, score, model, beta, beta2, v0, v1, k):
         self.lr = lr
         self.p_percent = p_percent  # percentage of weights to prune per layer (0-100)
         self.score = score  # importance scores per layer
+        self.model = model
+        self.beta = beta
+        self.beta2 = beta2
+        self.v0 = v0
+        self.v1 = v1
+        self.k = k
         super(P_Percent_Layer, self).__init__(params, {})
 
     @torch.no_grad()
@@ -15,32 +22,37 @@ class P_Percent_Layer(Optimizer):
             with torch.enable_grad():
                 loss = closure()
 
+        total_weights = 0
+        remaining_weights = 0
+
         for group in self.param_groups:
             for w, score_temp in zip(group['params'], self.score):
                 if w.grad is None:
                     continue
+                
+                w_temp = w.data.clone()
 
-                # Standard gradient step
-                w.data = w.data - self.lr * w.grad
-
-                # Apply importance scores
-                w.data = w.data * score_temp
-
-                # Get absolute values
-                abs_weights = torch.abs(w.data)
+                w_temp = w_temp * score_temp
+                # Get absolute values of the weights directly
+                abs_weights = torch.abs(w_temp)
 
                 # Calculate number of weights to prune in this layer
-                k = int(w.data.numel() * (self.p_percent / 100.0))
+                k = int(w.numel() * (self.p_percent / 100.0))
 
                 if k > 0:  # only prune if k > 0
                     # Find threshold for this layer
                     threshold = torch.kthvalue(abs_weights.view(-1), k).values
 
                     # Create pruning mask (1 for keep, 0 for prune)
-                    mask = torch.where(abs_weights > threshold, 1.0, 0.0)
+                    mask = (abs_weights > threshold).float()
 
-                    # Apply mask to weights
-                    w.data = w.data * mask
+                    # Apply mask to original weights
+                    w.data.mul_(mask)  # Use mul_ instead of direct assignment
+                    
+                    # Count remaining weights (non-zero weights after pruning)
+                    remaining_weights += torch.count_nonzero(w.data).item()
+                else:
+                    remaining_weights += w.numel()
 
         return loss
 
