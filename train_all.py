@@ -11,6 +11,8 @@ from scores.wanda import WandaScoreCalculator
 from scores.lora import LoraScore
 from scores.magnitude import MagnitudeScore
 from schedulers.lr_scheduler import CosineScheduler
+from tqdm import tqdm
+import sys
 
 # Import optimizers
 from optimizers.lasso_global import LASSO_Global
@@ -29,7 +31,7 @@ def load_mnist():
     test_loader = DataLoader(test_dataset, batch_size=1000, shuffle=False)
     return train_loader, test_loader
 
-def train_epoch(model, train_loader, optimizer, criterion, device, score_type, scheduler, update_interval=100):
+def train_epoch(model, train_loader, optimizer, criterion, device, score_type, scheduler, epoch, total_epochs, pbar=None):
     model.train()
     train_loss = 0
     correct = 0
@@ -43,7 +45,7 @@ def train_epoch(model, train_loader, optimizer, criterion, device, score_type, s
         loss.backward()
         
         # Update scores periodically
-        if batch_idx % update_interval == 0:
+        if batch_idx % 100 == 0:
             if score_type == 'wanda':
                 scores_dict = choose_score(WandaScoreCalculator, score_type, model)
             elif score_type == 'lora':
@@ -60,8 +62,6 @@ def train_epoch(model, train_loader, optimizer, criterion, device, score_type, s
                 optimizer.score = scores_list
         
         optimizer.step()
-        
-        # Update learning rate after each batch
         scheduler.step()
         
         train_loss += loss.item()
@@ -69,9 +69,13 @@ def train_epoch(model, train_loader, optimizer, criterion, device, score_type, s
         correct += pred.eq(target.view_as(pred)).sum().item()
         total += target.size(0)
         
-        if batch_idx % 100 == 0:
-            current_lr = scheduler.get_last_lr()[0]
-            print(f'Batch [{batch_idx}/{len(train_loader)}], LR: {current_lr:.6f}')
+        if pbar is not None:
+            pbar.set_postfix({
+                'loss': f'{train_loss/(batch_idx+1):.4f}',
+                'acc': f'{100.*correct/total:.2f}%',
+                'lr': f'{scheduler.get_last_lr()[0]:.6f}'
+            })
+            pbar.update(1)
     
     return train_loss / len(train_loader), 100. * correct / total
 
@@ -159,7 +163,10 @@ def plot_results(results, score_types):
 
 def main():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print(f"\nUsing device: {device}")
+    
     train_loader, test_loader = load_mnist()
+    print("Dataset loaded: MNIST")
     
     optimizers = {
         'lasso_global': LASSO_Global,
@@ -183,16 +190,27 @@ def main():
         'lasso': {'C_values': [0.001, 0.005, 0.01, 0.05, 0.1]}
     }
     
+    total_experiments = len(score_types) * len(optimizers) * 5  # 5 experiments per combination
+    experiment_count = 0
+    
     for score_type in score_types:
+        print(f"\n{'='*80}")
+        print(f"Score type: {score_type}")
+        print(f"{'='*80}")
+        
         for opt_name, optimizer_class in optimizers.items():
-            # Determine optimizer type (admm, ppercent, or lasso)
             opt_type = next(k for k in pruning_settings.keys() if k in opt_name)
             
-            # Run multiple experiments with different pruning settings
+            print(f"\n{'-'*60}")
+            print(f"Optimizer: {opt_name}")
+            print(f"{'-'*60}")
+            
             for exp_idx, pruning_value in enumerate(
                 pruning_settings[opt_type]['C_values' if opt_type != 'ppercent' else 'p_percent_values']
             ):
-                print(f"\nTraining with {opt_name} optimizer and {score_type} scores - Experiment {exp_idx}")
+                experiment_count += 1
+                print(f"\nExperiment {exp_idx + 1}/5 - Progress: [{experiment_count}/{total_experiments}]")
+                print(f"Pruning {'C' if opt_type != 'ppercent' else 'percent'}: {pruning_value}")
                 
                 model = CNN().to(device)
                 criterion = nn.CrossEntropyLoss()
@@ -261,33 +279,40 @@ def main():
                     base_lr=0.001
                 )
 
-                # Training loop
+                # Training loop with progress bar
                 best_acc = 0
-                for epoch in range(100):
-                    print(f"\nEpoch [{epoch}/100], Current LR: {scheduler.get_last_lr()[0]:.6f}")
-                    
-                    train_loss, train_acc = train_epoch(
-                        model, train_loader, optimizer, criterion, device,
-                        score_type, scheduler, update_interval=100
-                    )
-                    test_loss, test_acc = test(model, test_loader, criterion, device)
-                    
-                    if epoch % 10 == 0:
-                        print(f'Epoch {epoch}: Test Acc: {test_acc:.2f}%, '
-                              f'Train Acc: {train_acc:.2f}%, '
-                              f'Train Loss: {train_loss:.4f}')
-                    
-                    best_acc = max(best_acc, test_acc)
-
-                # Store final results
+                total_batches = len(train_loader) * 100  # 100 epochs
+                
+                with tqdm(total=total_batches, desc='Training', 
+                         file=sys.stdout, dynamic_ncols=True) as pbar:
+                    for epoch in range(100):
+                        train_loss, train_acc = train_epoch(
+                            model, train_loader, optimizer, criterion, device,
+                            score_type, scheduler, epoch, 100, pbar
+                        )
+                        test_loss, test_acc = test(model, test_loader, criterion, device)
+                        
+                        if epoch % 10 == 0:
+                            remaining = calculate_remaining_weights(model)
+                            pbar.write(
+                                f'Epoch {epoch:3d} | '
+                                f'Test Acc: {test_acc:6.2f}% | '
+                                f'Train Acc: {train_acc:6.2f}% | '
+                                f'Remaining: {remaining:6.2f}%'
+                            )
+                        
+                        best_acc = max(best_acc, test_acc)
+                
+                # Store results
                 final_weights = calculate_remaining_weights(model)
                 results[f"{opt_name}_{score_type}_exp{exp_idx}"] = {
                     'final_weights': final_weights,
                     'final_acc': best_acc
                 }
 
-        # Plot results for current score type
-        plot_results(results, score_types)
+    print("\nAll experiments completed! Generating plots...")
+    plot_results(results, score_types)
+    print("Plots saved in results/comparison_all.png")
 
 if __name__ == "__main__":
     main() 
