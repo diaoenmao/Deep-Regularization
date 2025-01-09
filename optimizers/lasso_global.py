@@ -7,7 +7,7 @@ import math
 
 class LASSO_Global(Optimizer):
 
-    def __init__(self, params, lr, N, C, score, model, wk, zk, vk, v0, v1, k, beta=0.9, beta2=0.999):
+    def __init__(self, params, lr, N, C, score, model, wk, zk, vk, v0, v1, k, beta=0.9, beta2=0.999, adam=True):
         defaults = dict(lr=lr, N=N, C=C, beta=beta, beta2=beta2)
         super(LASSO_Global, self).__init__(params, defaults)
         
@@ -20,7 +20,7 @@ class LASSO_Global(Optimizer):
         self.state['v1'] = v1
         self.state['k'] = k
         self.model = model
-
+        self.adam = adam
     @torch.no_grad()
     def step(self, closure=None):
         loss = None
@@ -30,31 +30,34 @@ class LASSO_Global(Optimizer):
 
         epi = 1e-8
         grad = parameters_to_vector([param.grad for param in self.model.parameters()])
-        
-        # Clip gradients to prevent explosion
-        grad = torch.clamp(grad, min=-1.0, max=1.0)
-        
+                
         # Adam-style updates with stability checks
         self.state['v0'] = self.defaults['beta'] * self.state['v0'] + (1 - self.defaults['beta']) * grad
-        self.state['v1'] = self.defaults['beta2'] * self.state['v1'] + (1 - self.defaults['beta2']) * grad.pow(2)
 
-        # Bias correction
         bias_correction1 = 1 - self.defaults['beta'] ** (self.state['k'] + 1)
-        bias_correction2 = 1 - self.defaults['beta2'] ** (self.state['k'] + 1)
-        
+
         v0_corrected = self.state['v0'] / bias_correction1
-        v1_corrected = self.state['v1'] / bias_correction2
+
+        if self.adam:
+            self.state['v1'] = self.defaults['beta2'] * self.state['v1'] + (1 - self.defaults['beta2']) * grad.pow(2)
+
+            # Bias correction
+            bias_correction2 = 1 - self.defaults['beta2'] ** (self.state['k'] + 1)
+            
+            v1_corrected = self.state['v1'] / bias_correction2
 
         # Compute adaptive learning rate
         lr = self.defaults['lr'] * math.sqrt(bias_correction2) / bias_correction1
         lr = lr / (torch.sqrt(v1_corrected) + epi)
+
+        grad = v0_corrected
         
         # Clip learning rate
         lr = torch.clamp(lr, min=1e-8, max=1.0)
         p = 1/lr
         
         # LASSO updates
-        wk_new = self.state['wk'] - self.state['vk'] / p - v0_corrected / p
+        wk_new = self.state['wk'] - self.state['vk'] / p - grad / p
         b = wk_new + self.state['vk'] / p
         u = self.defaults['C'] / self.defaults['N'] / p * torch.abs(self.state['score'])
         zk_new = soft_thresholding(b, u)

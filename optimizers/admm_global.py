@@ -5,7 +5,7 @@ from .utils import soft_thresholding
 
 class ADMM_Global(Optimizer):
 
-    def __init__(self, params, model, lr, N, C, vk, wk, yk, zk, beta, beta2 ,v0, v1, k, score):
+    def __init__(self, params, model, lr, N, C, vk, wk, yk, zk, beta, beta2 ,v0, v1, k, score, adam):
         
         defaults = dict(lr=lr, N=N, C=C, beta=beta, beta2=beta2)
         super(ADMM_Global, self).__init__(params, defaults)
@@ -21,6 +21,7 @@ class ADMM_Global(Optimizer):
         self.state['k'] = k
         
         self.model = model  # This can stay as attribute
+        self.adam = adam
         
     @torch.no_grad()
     def step(self, closure=None):
@@ -34,11 +35,11 @@ class ADMM_Global(Optimizer):
         grad = parameters_to_vector([param.grad for param in self.model.parameters()])
 
         self.state['v0'] = self.defaults['beta'] * self.state['v0'] + (1 - self.defaults['beta']) * grad
-        self.state['v1'] = self.defaults['beta2'] * self.state['v1'] + (1 - self.defaults['beta2']) * torch.mul(grad, grad)
-
-        v1_new = self.state['v1'] / (1 - self.defaults['beta2'] ** (self.state['k'] + 1))
-
-        lr = self.defaults['lr'] / (torch.sqrt(v1_new) + epi) / (1 - self.defaults['beta'] ** (self.state['k'] + 1))
+        
+        if self.adam:
+            self.state['v1'] = self.defaults['beta2'] * self.state['v1'] + (1 - self.defaults['beta2']) * torch.mul(grad, grad)
+            v1_new = self.state['v1'] / (1 - self.defaults['beta2'] ** (self.state['k'] + 1))
+            lr = self.defaults['lr'] / (torch.sqrt(v1_new) + epi) / (1 - self.defaults['beta'] ** (self.state['k'] + 1))
 
         grad = self.state['v0']
 

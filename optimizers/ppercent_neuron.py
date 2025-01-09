@@ -1,9 +1,10 @@
 from torch.optim import Optimizer
 import torch
 import torch.nn as nn
+import math
 
 class P_Percent_Neuron(Optimizer):
-    def __init__(self, params, model, lr, p_percent, score, beta, beta2, v0, v1, k):
+    def __init__(self, params, model, lr, p_percent, score, beta, beta2, v0, v1, k, adam):
         self.model = model
         self.lr = lr
         self.p_percent = p_percent  # percentage of neurons to prune (0-100)
@@ -13,6 +14,7 @@ class P_Percent_Neuron(Optimizer):
         self.v0 = v0
         self.v1 = v1
         self.k = k
+        self.adam = adam
         super(P_Percent_Neuron, self).__init__(params, {})
 
     @torch.no_grad()
@@ -22,93 +24,107 @@ class P_Percent_Neuron(Optimizer):
             with torch.enable_grad():
                 loss = closure()
 
-        total_neurons = 0
-        remaining_neurons = 0
+        epi = 1e-8
+        for group in self.param_groups:
+            for w, v0_temp, v1_temp, score_temp in zip(group['params'], self.v0, self.v1, self.score):
+                if w.grad is None:
+                    continue
 
-        for name, module in self.model.named_modules():
-            if isinstance(module, nn.Conv2d):
-                total_neurons += module.weight.size(0)  # Count output channels
-                remaining_neurons += self._handle_conv_layer(module, name)
-            elif isinstance(module, nn.Linear):
-                total_neurons += module.weight.size(0)  # Count output features
-                remaining_neurons += self._handle_linear_layer(module, name)
+                grad = w.grad
+                epi = 1e-8
+
+                v0_temp = self.beta * v0_temp + (1 - self.beta) * grad
+                bias_1 = 1 - self.beta ** (self.k + 1)
+                v0_corrected = v0_temp / bias_1
+
+                if self.adam:
+                    v1_temp = self.beta2 * v1_temp + (1 - self.beta2) * grad.pow(2)
+                    bias_2 = 1 - self.beta2 ** (self.k + 1)
+                    v1_corrected = v1_temp / bias_2
+
+                grad = v0_corrected
+                lr = self.lr * math.sqrt(bias_2) / bias_1
+                lr = lr / (torch.sqrt(v1_corrected) + epi)
+
+                p = 1 / lr
+
+                w_len = len(w.shape)
+                if w_len == 4:
+                    self._handle_conv_layer(w, score_temp, grad, p)
+                elif w_len == 2:
+                    self._handle_linear_layer(w, score_temp, grad, p)
+                elif w_len == 1:
+                    self._handle_bias_layer(w, score_temp, grad, p)
+
 
         # Store pruning ratio for logging
-        self.remaining_ratio = 100.0 * remaining_neurons / total_neurons
-
+        self.k += 1
         return loss
 
-    def _handle_conv_layer(self, layer, name):
+    def _handle_conv_layer(self, w, score_temp, grad, p):
         """Handle convolutional layer neuron-wise pruning"""
-        if layer.weight.grad is None:
-            return layer.weight.size(0)  # Return all neurons as remaining if no grad
 
-        # Shape: [out_channels, in_channels, kernel_h, kernel_w]
-        w = layer.weight.data
-        score = self.score[name] if name in self.score else torch.ones(w.size(0))
+        shape0, _, _, _ = w.shape
 
-        # Calculate L2 norm for each output channel (neuron)
-        neuron_norms = torch.norm(w.view(w.size(0), -1), p=2, dim=1)
+        # Calculate importance per neuron
+        w_temp = w.clone()
+        w_temp = w_temp.view(shape0, -1)
         
-        # Apply importance scores
-        neuron_norms = neuron_norms * score
+        # Expand score to match tensor dimensions if needed
+        if len(score_temp.shape) == 1:
+            score_temp = score_temp.view(shape0, 1).expand_as(w_temp)
+            
+        # Calculate neuron importance using L2 norm and score
+        importance = torch.norm(w_temp, p=2, dim=1) * torch.abs(score_temp[:, 0])
 
         # Calculate number of neurons to prune
-        k = int(w.size(0) * (self.p_percent / 100.0))
-        remaining = w.size(0)  # Default to all neurons
+        k = int(shape0 * (self.p_percent / 100.0))
 
         if k > 0:
             # Find threshold
-            threshold = torch.kthvalue(neuron_norms, k).values
+            threshold = torch.kthvalue(importance, k).values
 
             # Create pruning mask
-            mask = (neuron_norms > threshold).float()
-
-            # Reshape mask to match weights and apply
+            mask = (importance > threshold).float()
             mask = mask.view(-1, 1, 1, 1).expand_as(w)
-            w.data.mul_(mask)  # Use mul_ instead of direct assignment
-            
-            remaining = int(mask.sum().item() / (w.size(1) * w.size(2) * w.size(3)))
 
-        return remaining
+            # Update weights with gradient step and pruning
+            w_new = mask * (w - grad / p)
+            w.copy_(w_new)
 
-    def _handle_linear_layer(self, layer, name):
+    def _handle_linear_layer(self, w, score_temp, grad, p):
         """Handle linear layer neuron-wise pruning"""
-        if layer.weight.grad is None:
-            return layer.weight.size(0)  # Return all neurons as remaining if no grad
+        shape0, shape1 = w.shape
 
-        # Shape: [out_features, in_features]
-        w = layer.weight.data
-        score = self.score[name] if name in self.score else torch.ones(w.size(0))
-
-        # Calculate L2 norm for each output neuron
-        neuron_norms = torch.norm(w, p=2, dim=1)
+        # Calculate importance per neuron
+        w_temp = w.clone()
         
-        # Apply importance scores
-        neuron_norms = neuron_norms * score
+        # Expand score to match tensor dimensions if needed
+        if len(score_temp.shape) == 1:
+            score_temp = score_temp.view(shape0, 1).expand_as(w_temp)
+            
+        # Calculate neuron importance using L2 norm and score
+        importance = torch.norm(w_temp, p=2, dim=1) * torch.abs(score_temp[:, 0])
 
         # Calculate number of neurons to prune
-        k = int(w.size(0) * (self.p_percent / 100.0))
-        remaining = w.size(0)  # Default to all neurons
+        k = int(shape0 * (self.p_percent / 100.0))
 
         if k > 0:
             # Find threshold
-            threshold = torch.kthvalue(neuron_norms, k).values
+            threshold = torch.kthvalue(importance, k).values
 
             # Create pruning mask
-            mask = (neuron_norms > threshold).float()
-
-            # Reshape mask to match weights and apply
+            mask = (importance > threshold).float()
             mask = mask.view(-1, 1).expand_as(w)
-            w.data.mul_(mask)  # Use mul_ instead of direct assignment
-            
-            remaining = int(mask.sum().item() / w.size(1))
 
-        return remaining
+            # Update weights with gradient step and pruning
+            w_new = mask * (w - grad / p)
+            w.copy_(w_new)
+
+    def _handle_bias_layer(self, w, score_temp, grad, p):
+        """Handle bias layer (no pruning, just update)"""
+        w.add_(-grad / p)
+
 
     def update_base_learning_rate(self, new_lr):
         self.lr = new_lr
-
-    def update_p_percent(self, new_p_percent):
-        """Update the pruning percentage"""
-        self.p_percent = new_p_percent

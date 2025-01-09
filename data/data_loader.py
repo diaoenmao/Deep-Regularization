@@ -27,6 +27,7 @@ def get_dataset(dataset_name):
             test_dataset = datasets.MNIST(root=data_dir, train=False, download=True, transform=transform)
         
         return train_dataset, test_dataset
+    
     elif dataset_name == 'cifar10':
         transform_train = transforms.Compose([
             transforms.RandomCrop(32, padding=4),
@@ -44,6 +45,7 @@ def get_dataset(dataset_name):
         train_dataset = datasets.CIFAR10(root='data/cifar10/train', train=True, download=True, transform=transform_train)
         test_dataset = datasets.CIFAR10(root='data/cifar10/test', train=False, download=True, transform=transform_test)
         return train_dataset, test_dataset
+    
     elif dataset_name == 'cifar100':
         transform_train = transforms.Compose([
             transforms.RandomCrop(32, padding=4),
@@ -61,6 +63,7 @@ def get_dataset(dataset_name):
         train_dataset = datasets.CIFAR100(root='data/cifar100/train', train=True, download=True, transform=transform_train)
         test_dataset = datasets.CIFAR100(root='data/cifar100/test', train=False, download=True, transform=transform_test)
         return train_dataset, test_dataset
+    
     elif dataset_name == 'fashion_mnist':
         transform = transforms.Compose([
             transforms.ToTensor(),
@@ -72,6 +75,7 @@ def get_dataset(dataset_name):
         train_dataset = datasets.FashionMNIST(root='data/fashion_mnist/train', train=True, download=True, transform=transform)
         test_dataset = datasets.FashionMNIST(root='data/fashion_mnist/test', train=False, transform=transform)
         return train_dataset, test_dataset
+    
     elif dataset_name == 'tiny_imagenet':
         transform = transforms.Compose([
             transforms.Resize(256),
@@ -85,6 +89,7 @@ def get_dataset(dataset_name):
         train_dataset = datasets.ImageFolder(root='data/tiny_imagenet/train', transform=transform)
         test_dataset = datasets.ImageFolder(root='data/tiny_imagenet/val', transform=transform)
         return train_dataset, test_dataset
+        
     else:
         raise ValueError(f"Unsupported dataset: {dataset_name}")
     
