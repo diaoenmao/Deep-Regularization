@@ -5,17 +5,14 @@ import math
 
 class P_Percent_Neuron(Optimizer):
     def __init__(self, params, model, lr, p_percent, score, beta, beta2, v0, v1, k, adam):
+        self.defaults = dict(lr=lr, p_percent=p_percent, beta=beta, beta2=beta2)
+        super(P_Percent_Neuron, self).__init__(params, self.defaults)
         self.model = model
-        self.lr = lr
-        self.p_percent = p_percent  # percentage of neurons to prune (0-100)
         self.score = score  # Score per neuron for each layer
-        self.beta = beta
-        self.beta2 = beta2
         self.v0 = v0
         self.v1 = v1
         self.k = k
         self.adam = adam
-        super(P_Percent_Neuron, self).__init__(params, {})
 
     @torch.no_grad()
     def step(self, closure=None):
@@ -33,18 +30,19 @@ class P_Percent_Neuron(Optimizer):
                 grad = w.grad
                 epi = 1e-8
 
-                v0_temp = self.beta * v0_temp + (1 - self.beta) * grad
-                bias_1 = 1 - self.beta ** (self.k + 1)
+                v0_temp = self.defaults['beta'] * v0_temp + (1 - self.defaults['beta']) * grad
+                bias_1 = 1 - self.defaults['beta'] ** (self.k + 1)
                 v0_corrected = v0_temp / bias_1
+                lr = self.defaults['lr']
 
                 if self.adam:
-                    v1_temp = self.beta2 * v1_temp + (1 - self.beta2) * grad.pow(2)
-                    bias_2 = 1 - self.beta2 ** (self.k + 1)
+                    v1_temp = self.defaults['beta2'] * v1_temp + (1 - self.defaults['beta2']) * grad.pow(2)
+                    bias_2 = 1 - self.defaults['beta2'] ** (self.k + 1)
                     v1_corrected = v1_temp / bias_2
+                    lr = lr * math.sqrt(bias_2) / bias_1
+                    lr = lr / (torch.sqrt(v1_corrected) + epi)
 
                 grad = v0_corrected
-                lr = self.lr * math.sqrt(bias_2) / bias_1
-                lr = lr / (torch.sqrt(v1_corrected) + epi)
 
                 p = 1 / lr
 
@@ -78,7 +76,7 @@ class P_Percent_Neuron(Optimizer):
         importance = torch.norm(w_temp, p=2, dim=1) * torch.abs(score_temp[:, 0])
 
         # Calculate number of neurons to prune
-        k = int(shape0 * (self.p_percent / 100.0))
+        k = int(shape0 * (self.defaults['p_percent'] / 100.0))
 
         if k > 0:
             # Find threshold
@@ -107,7 +105,7 @@ class P_Percent_Neuron(Optimizer):
         importance = torch.norm(w_temp, p=2, dim=1) * torch.abs(score_temp[:, 0])
 
         # Calculate number of neurons to prune
-        k = int(shape0 * (self.p_percent / 100.0))
+        k = int(shape0 * (self.defaults['p_percent'] / 100.0))
 
         if k > 0:
             # Find threshold
@@ -127,4 +125,4 @@ class P_Percent_Neuron(Optimizer):
 
 
     def update_base_learning_rate(self, new_lr):
-        self.lr = new_lr
+        self.defaults['lr'] = new_lr
