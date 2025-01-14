@@ -3,7 +3,7 @@ from torch.optim.lr_scheduler import _LRScheduler
 
 class CosineScheduler(_LRScheduler):
     def __init__(self, optimizer, warmup_epochs=5, max_epochs=100, 
-                 min_lr=1e-6, last_epoch=-1, verbose=False):
+                min_lr=1e-6, last_epoch=-1, verbose=False):
         """
         Args:
             optimizer: optimizer
@@ -19,7 +19,7 @@ class CosineScheduler(_LRScheduler):
         self.verbose = verbose
         
         # Store initial learning rate
-        self.initial_lr = optimizer.lr
+        self.initial_lr = optimizer.defaults['lr']
         
         super().__init__(optimizer, last_epoch)
 

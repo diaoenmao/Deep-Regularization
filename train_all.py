@@ -13,6 +13,7 @@ from scores.magnitude import MagnitudeScore
 from schedulers.lr_scheduler import CosineScheduler
 from tqdm import tqdm
 import sys
+import os
 
 # Import optimizers
 from optimizers.lasso_global import LASSO_Global
@@ -145,10 +146,10 @@ def plot_results(results, score_types):
                 
                 if weights_list:
                     plt.scatter(weights_list, accs_list, 
-                              marker=markers[opt_type],
-                              c=colors[opt_type],
-                              label=f"{opt_type}",
-                              s=100)  # Increased marker size
+                            marker=markers[opt_type],
+                            c=colors[opt_type],
+                            label=f"{opt_type}",
+                            s=100)  # Increased marker size
             
             plt.xlabel('Remaining Weights (%)')
             plt.ylabel('Accuracy (%)')
@@ -160,6 +161,17 @@ def plot_results(results, score_types):
     plt.tight_layout()
     plt.savefig('results/comparison_all.png', dpi=300, bbox_inches='tight')
     plt.close()
+
+def save_checkpoint(state, filename='checkpoint.pth'):
+    os.makedirs('checkpoints', exist_ok=True)
+    torch.save(state, f'checkpoints/{filename}')
+    print(f"Checkpoint saved: {filename}")
+
+def load_checkpoint(filename='checkpoint.pth'):
+    try:
+        return torch.load(f'checkpoints/{filename}')
+    except FileNotFoundError:
+        return None
 
 def main():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -193,20 +205,27 @@ def main():
     total_experiments = len(score_types) * len(optimizers) * 5  # 5 experiments per combination
     experiment_count = 0
     
-    for score_type in score_types:
-        print(f"\n{'='*80}")
-        print(f"Score type: {score_type}")
-        print(f"{'='*80}")
-        
-        for opt_name, optimizer_class in optimizers.items():
+    # Load previous progress if exists
+    checkpoint = load_checkpoint()
+    if checkpoint:
+        results = checkpoint['results']
+        start_score_idx = checkpoint['score_idx']
+        start_opt_idx = checkpoint['opt_idx']
+        start_exp_idx = checkpoint['exp_idx']
+        print("Resuming from previous checkpoint...")
+    else:
+        results = {}
+        start_score_idx = 0
+        start_opt_idx = 0
+        start_exp_idx = 0
+    
+    for score_idx, score_type in enumerate(score_types[start_score_idx:], start_score_idx):
+        for opt_idx, (opt_name, optimizer_class) in enumerate(list(optimizers.items())[start_opt_idx:], start_opt_idx):
             opt_type = next(k for k in pruning_settings.keys() if k in opt_name)
             
-            print(f"\n{'-'*60}")
-            print(f"Optimizer: {opt_name}")
-            print(f"{'-'*60}")
-            
             for exp_idx, pruning_value in enumerate(
-                pruning_settings[opt_type]['C_values' if opt_type != 'ppercent' else 'p_percent_values']
+                pruning_settings[opt_type]['C_values' if opt_type != 'ppercent' else 'p_percent_values'][start_exp_idx:],
+                start_exp_idx
             ):
                 experiment_count += 1
                 print(f"\nExperiment {exp_idx + 1}/5 - Progress: [{experiment_count}/{total_experiments}]")
@@ -227,32 +246,42 @@ def main():
                 for name, param in model.named_parameters():
                     scores_list.append(scores_dict.get(name, torch.zeros_like(param)))
 
-                # Initialize auxiliary variables
-                vk = [p.clone() for p in model.parameters()]
-                wk = [p.clone() for p in model.parameters()]
-                yk = [p.clone() for p in model.parameters()]
-                zk = [p.clone() for p in model.parameters()]
+                v0 = torch.zeros(1).to(device)
+                v1 = torch.zeros(1).to(device)
+                k = 0
+                beta = 0.9
+                beta2 = 0.999
+                lr = 0.001
 
-                if 'global' in opt_name:
+                # Initialize auxiliary variables based on optimizer type
+                if opt_type == 'admm':
+                    vk = [p.clone() for p in model.parameters()]
+                    wk = [p.clone() for p in model.parameters()]
+                    yk = [p.clone() for p in model.parameters()]
+                    zk = [p.clone() for p in model.parameters()]
+                elif opt_type == 'lasso':
+                    vk = [p.clone() for p in model.parameters()]
+                    wk = [p.clone() for p in model.parameters()]
+                    zk = [p.clone() for p in model.parameters()]
+                else:  
+                    continue
+
+                if 'global' in opt_name and (opt_type in ['admm', 'lasso']):
                     vk = parameters_to_vector(vk)
                     wk = parameters_to_vector(wk)
-                    yk = parameters_to_vector(yk)
                     zk = parameters_to_vector(zk)
+                    if opt_type == 'admm':
+                        yk = parameters_to_vector(yk)
                     scores_list = parameters_to_vector(scores_list)
 
                 # Initialize optimizer with appropriate parameters
                 optimizer_params = {
                     'model': model,
                     'lr': 0.001,
-                    'beta': 0.9,
-                    'beta2': 0.999,
-                    'v0': torch.zeros(1).to(device),
-                    'v1': torch.zeros(1).to(device),
-                    'k': 0,
                     'score': scores_list,
                 }
 
-                if opt_type in ['admm', 'lasso']:
+                if opt_type == 'admm':
                     optimizer_params.update({
                         'N': 60000,
                         'C': pruning_value,
@@ -260,11 +289,39 @@ def main():
                         'wk': wk,
                         'yk': yk,
                         'zk': zk,
+                        'beta': beta,
+                        'beta2': beta2,
+                        'v0': v0,
+                        'v1': v1,
+                        'k': k,
+                        'lr': lr,
+                        'adam': True
+                    })
+                elif opt_type == 'lasso':
+                    optimizer_params.update({
+                        'N': 60000,
+                        'C': pruning_value,
+                        'vk': vk,
+                        'wk': wk,
+                        'zk': zk,
+                        'beta': beta,
+                        'beta2': beta2,
+                        'v0': v0,
+                        'v1': v1,
+                        'k': k,
+                        'lr': lr,
                         'adam': True
                     })
                 else:  # ppercent
                     optimizer_params.update({
                         'p_percent': pruning_value,
+                        'v0': v0,
+                        'v1': v1,
+                        'k': k,
+                        'beta': beta,
+                        'beta2': beta2,
+                        'lr': lr,
+                        'adam': True
                     })
 
                 optimizer = optimizer_class(model.parameters(), **optimizer_params)
@@ -275,8 +332,7 @@ def main():
                     warmup_epochs=5,
                     max_epochs=100,
                     min_lr=1e-6,
-                    warmup_start_lr=1e-6,
-                    base_lr=0.001
+                    verbose=False
                 )
 
                 # Training loop with progress bar
@@ -284,13 +340,17 @@ def main():
                 total_batches = len(train_loader) * 100  # 100 epochs
                 
                 with tqdm(total=total_batches, desc='Training', 
-                         file=sys.stdout, dynamic_ncols=True) as pbar:
+                        file=sys.stdout, dynamic_ncols=True) as pbar:
                     for epoch in range(100):
                         train_loss, train_acc = train_epoch(
                             model, train_loader, optimizer, criterion, device,
                             score_type, scheduler, epoch, 100, pbar
                         )
                         test_loss, test_acc = test(model, test_loader, criterion, device)
+
+                        scheduler.step()
+                        updated_lr = scheduler.get_lr()[0]
+                        optimizer.update_base_learning_rate(updated_lr)
                         
                         if epoch % 10 == 0:
                             remaining = calculate_remaining_weights(model)
@@ -302,6 +362,27 @@ def main():
                             )
                         
                         best_acc = max(best_acc, test_acc)
+                        
+                        # Save checkpoint every 10 epochs
+                        if epoch % 10 == 0:
+                            checkpoint = {
+                                'results': results,
+                                'score_idx': score_idx,
+                                'opt_idx': opt_idx,
+                                'exp_idx': exp_idx,
+                                'epoch': epoch,
+                                'model_state_dict': model.state_dict(),
+                                'optimizer_state_dict': optimizer.state_dict(),
+                                'scheduler_state_dict': scheduler.state_dict(),
+                                'best_acc': best_acc
+                            }
+                            save_checkpoint(checkpoint, 
+                                f'checkpoint_{score_type}_{opt_name}_exp{exp_idx}.pth')
+                    
+                    # After experiment completes, remove its checkpoint
+                    checkpoint_file = f'checkpoints/checkpoint_{score_type}_{opt_name}_exp{exp_idx}.pth'
+                    if os.path.exists(checkpoint_file):
+                        os.remove(checkpoint_file)
                 
                 # Store results
                 final_weights = calculate_remaining_weights(model)
@@ -309,6 +390,12 @@ def main():
                     'final_weights': final_weights,
                     'final_acc': best_acc
                 }
+            
+            # Reset exp_idx when moving to next optimizer
+            start_exp_idx = 0
+        
+        # Reset opt_idx when moving to next score type
+        start_opt_idx = 0
 
     print("\nAll experiments completed! Generating plots...")
     plot_results(results, score_types)

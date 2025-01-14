@@ -5,21 +5,17 @@ import math
 
 class LASSO_Layer(Optimizer):
     def __init__(self, params, lr, N, C, score, model, wk, zk, vk, beta, beta2, v0, v1, k, adam):
-        self.lr = lr
-        self.N = N  # NUMBER OF SAMPLES
-        self.C = C  # REGULARIZATION CONSTANT
+        defaults = dict(lr=lr, N=N, C=C, beta=beta, beta2=beta2)
+        super(LASSO_Layer, self).__init__(params, defaults)
         self.score = score 
         self.model = model
         self.wk = wk
         self.zk = zk
         self.vk = vk
-        self.beta = beta
-        self.beta2 = beta2
         self.v0 = v0
         self.v1 = v1
         self.k = k
         self.adam = adam
-        super(LASSO_Layer, self).__init__(params, {})
 
     @torch.no_grad()
     def step(self, closure=None):
@@ -35,27 +31,28 @@ class LASSO_Layer(Optimizer):
                     continue
 
                 epi = 1e-8
-                p = 1 / self.lr
-                
                 grad = w.grad
 
-                v0_temp = self.beta * v0_temp + (1 - self.beta) * grad
-                bias_1 = 1 - self.beta ** (self.k + 1)
+                v0_temp = self.defaults['beta'] * v0_temp + (1 - self.defaults['beta']) * grad
+                bias_1 = 1 - self.defaults['beta'] ** (self.k + 1)
                 v0_corrected = v0_temp / bias_1
+                lr = self.defaults['lr']
 
                 if self.adam:
-                    v1_temp = self.beta2 * v1_temp + (1 - self.beta2) * grad.pow(2)
-                    bias_2 = 1 - self.beta2 ** (self.k + 1)
+                    v1_temp = self.defaults['beta2'] * v1_temp + (1 - self.defaults['beta2']) * grad.pow(2)
+                    bias_2 = 1 - self.defaults['beta2'] ** (self.k + 1)
                     v1_corrected = v1_temp / bias_2
+                    lr = lr * math.sqrt(bias_2) / bias_1
+                    lr = lr / (torch.sqrt(v1_corrected) + epi)
+
 
                 grad = v0_corrected
+                p = 1 / lr
 
-                lr = self.lr * math.sqrt(bias_2) / bias_1
-                lr = lr / (torch.sqrt(v1_corrected) + epi)
 
                 wk_new = wk_temp - vk_temp / p - grad / p
                 b = wk_new + vk_temp / p
-                u = self.C / self.N / p * torch.abs(score_temp)
+                u = self.defaults['C'] / self.defaults['N'] / p * torch.abs(score_temp)
                 zk_new = soft_thresholding(b, u)
                 vk_new = vk_temp + (wk_new - zk_new) * p
 
@@ -69,4 +66,4 @@ class LASSO_Layer(Optimizer):
 
 
     def update_base_learning_rate(self, new_lr):
-        self.lr = new_lr
+        self.defaults['lr'] = new_lr

@@ -6,21 +6,17 @@ import math
 
 class LASSO_Neuron(Optimizer):
     def __init__(self, params, model, lr, N, C, score, wk, zk, vk, beta, beta2, v0, v1, k, adam):
+        defaults = dict(lr=lr, N=N, C=C, beta=beta, beta2=beta2)
+        super(LASSO_Neuron, self).__init__(params, defaults)
         self.model = model
-        self.lr = lr
-        self.N = N  # NUMBER OF SAMPLES
-        self.C = C  # REGULARIZATION CONSTANT
         self.score = score  # Score per neuron
         self.wk = wk
         self.zk = zk
         self.vk = vk
-        self.beta = beta
-        self.beta2 = beta2
         self.v0 = v0
         self.v1 = v1
         self.k = k
         self.adam = adam
-        super(LASSO_Neuron, self).__init__(params, {})
 
     @torch.no_grad()
     def step(self, closure=None):
@@ -36,18 +32,19 @@ class LASSO_Neuron(Optimizer):
 
                 epi = 1e-8
                 grad = w.grad
-                v0_temp = self.beta * v0_temp + (1 - self.beta) * grad
-                bias_1 = 1 - self.beta ** (self.k + 1)
+                v0_temp = self.defaults['beta'] * v0_temp + (1 - self.defaults['beta']) * grad
+                bias_1 = 1 - self.defaults['beta'] ** (self.k + 1)
                 v0_corrected = v0_temp / bias_1
+                lr = self.defaults['lr']
 
                 if self.adam:
-                    v1_temp = self.beta2 * v1_temp + (1 - self.beta2) * grad.pow(2)
-                    bias_2 = 1 - self.beta2 ** (self.k + 1)
+                    v1_temp = self.defaults['beta2'] * v1_temp + (1 - self.defaults['beta2']) * grad.pow(2)
+                    bias_2 = 1 - self.defaults['beta2'] ** (self.k + 1)
                     v1_corrected = v1_temp / bias_2
+                    lr = lr * math.sqrt(bias_2) / bias_1
+                    lr = lr / (torch.sqrt(v1_corrected) + epi)
 
                 grad = v0_corrected
-                lr = self.lr * math.sqrt(bias_2) / bias_1
-                lr = lr / (torch.sqrt(v1_corrected) + epi)
 
                 p = 1 / lr
 
@@ -74,7 +71,7 @@ class LASSO_Neuron(Optimizer):
         if len(score_temp.shape) == 1:
             score_temp = score_temp.view(shape0, 1, 1, 1).expand_as(w)
             
-        u = (self.C/self.N)/self.lr * torch.abs(score_temp)
+        u = (self.defaults['C']/self.defaults['N'])/p * torch.abs(score_temp)
         zk_new = soft_thresholding(b, u)
 
         # Update main variables
@@ -120,4 +117,4 @@ class LASSO_Neuron(Optimizer):
         w.copy_(zk_new)
 
     def update_base_learning_rate(self, new_lr):
-        self.lr = new_lr
+        self.defaults['lr'] = new_lr
