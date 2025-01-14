@@ -14,6 +14,9 @@ from schedulers.lr_scheduler import CosineScheduler
 from tqdm import tqdm
 import sys
 import os
+import json
+import glob
+import re
 
 # Import optimizers
 from optimizers.lasso_global import LASSO_Global
@@ -162,15 +165,64 @@ def plot_results(results, score_types):
     plt.savefig('results/comparison_all.png', dpi=300, bbox_inches='tight')
     plt.close()
 
-def save_checkpoint(state, filename='checkpoint.pth'):
+def save_checkpoint(state, score_type, opt_name, exp_idx):
+    """
+    Save checkpoint with informative filename
+    """
     os.makedirs('checkpoints', exist_ok=True)
-    torch.save(state, f'checkpoints/{filename}')
+    filename = f'checkpoint_{score_type}_{opt_name}_exp{exp_idx}.pth'
+    torch.save(state, os.path.join('checkpoints', filename))
     print(f"Checkpoint saved: {filename}")
 
-def load_checkpoint(filename='checkpoint.pth'):
+def load_checkpoint(checkpoint_dir='checkpoints'):
+    """
+    Load the most recent checkpoint and extract experiment information from filename.
+    Filename format: checkpoint_<score_type>_<opt_type>_<granularity>_exp<exp_idx>.pth
+    """
     try:
-        return torch.load(f'checkpoints/{filename}')
-    except FileNotFoundError:
+        # Get all checkpoint files
+        checkpoint_files = glob.glob(os.path.join(checkpoint_dir, 'checkpoint_*.pth'))
+        if not checkpoint_files:
+            return None
+        
+        # Sort by modification time to get the most recent
+        latest_checkpoint = max(checkpoint_files, key=os.path.getmtime)
+        
+        # Parse filename to get experiment details
+        filename = os.path.basename(latest_checkpoint)
+        pattern = r'checkpoint_(\w+)_(\w+)_(\w+)_exp(\d+).pth'
+        match = re.match(pattern, filename)
+        
+        if not match:
+            print(f"Warning: Checkpoint filename {filename} doesn't match expected pattern")
+            return None
+            
+        score_type, opt_type, granularity, exp_idx = match.groups()
+        exp_idx = int(exp_idx)
+        
+        # Load checkpoint data
+        checkpoint = torch.load(latest_checkpoint)
+        
+        # Add parsed information to checkpoint
+        checkpoint.update({
+            'score_type': score_type,
+            'opt_type': opt_type,
+            'granularity': granularity,
+            'exp_idx': exp_idx,
+            'checkpoint_file': latest_checkpoint
+        })
+        
+        print(f"\nLoaded checkpoint from {latest_checkpoint}")
+        print(f"Score type: {score_type}")
+        print(f"Optimizer: {opt_type}_{granularity}")
+        print(f"Experiment: {exp_idx}")
+        print(f"Epoch: {checkpoint['epoch']}")
+        print(f"Best accuracy: {checkpoint['best_acc']:.2f}%")
+        
+        return checkpoint
+        
+    except Exception as e:
+        print(f"Error loading checkpoint: {str(e)}")
         return None
 
 def main():
@@ -209,15 +261,17 @@ def main():
     checkpoint = load_checkpoint()
     if checkpoint:
         results = checkpoint['results']
-        start_score_idx = checkpoint['score_idx']
-        start_opt_idx = checkpoint['opt_idx']
+        start_score_idx = score_types.index(checkpoint['score_type'])
+        start_opt_idx = list(optimizers.keys()).index(f"{checkpoint['opt_type']}_{checkpoint['granularity']}")
         start_exp_idx = checkpoint['exp_idx']
-        print("Resuming from previous checkpoint...")
+        start_epoch = checkpoint['epoch'] + 1
+        print(f"Resuming from epoch {start_epoch}")
     else:
         results = {}
         start_score_idx = 0
         start_opt_idx = 0
         start_exp_idx = 0
+        start_epoch = 0
     
     for score_idx, score_type in enumerate(score_types[start_score_idx:], start_score_idx):
         for opt_idx, (opt_name, optimizer_class) in enumerate(list(optimizers.items())[start_opt_idx:], start_opt_idx):
@@ -277,7 +331,7 @@ def main():
                 # Initialize optimizer with appropriate parameters
                 optimizer_params = {
                     'model': model,
-                    'lr': 0.001,
+                    'lr': lr,
                     'score': scores_list,
                 }
 
@@ -294,7 +348,6 @@ def main():
                         'v0': v0,
                         'v1': v1,
                         'k': k,
-                        'lr': lr,
                         'adam': True
                     })
                 elif opt_type == 'lasso':
@@ -309,7 +362,6 @@ def main():
                         'v0': v0,
                         'v1': v1,
                         'k': k,
-                        'lr': lr,
                         'adam': True
                     })
                 else:  # ppercent
@@ -320,7 +372,6 @@ def main():
                         'k': k,
                         'beta': beta,
                         'beta2': beta2,
-                        'lr': lr,
                         'adam': True
                     })
 
@@ -390,6 +441,10 @@ def main():
                     'final_weights': final_weights,
                     'final_acc': best_acc
                 }
+
+                # save the results to a json file
+                with open(f'results/results_all.json', 'w') as f:
+                    json.dump(results, f)
             
             # Reset exp_idx when moving to next optimizer
             start_exp_idx = 0
