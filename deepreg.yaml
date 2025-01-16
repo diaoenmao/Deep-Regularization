@@ -1,0 +1,10 @@
+description: deepreg
+resources:
+    slots: 1
+    resource_pool: 128c256t_768_4090
+    shm_size: 24G
+bind_mounts:
+    - host_path: /labdata0/yifanzhang/
+      container_path: /run/determined/workdir/labdata0/yifanzhang
+environment:
+    image: harbor.lins.lab/library/polypep:v1.3

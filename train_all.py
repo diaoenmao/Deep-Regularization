@@ -232,26 +232,31 @@ def main():
     train_loader, test_loader = load_mnist()
     print("Dataset loaded: MNIST")
     
+    if os.path.exists('results/results_all.json'):
+        with open('results/results_all.json', 'r') as f:
+            results = json.load(f)
+    else:
+        results = {}
+    
     optimizers = {
-        'lasso_global': LASSO_Global,
-        'lasso_layer': LASSO_Layer,
-        'lasso_neuron': LASSO_Neuron,
+        # 'admm_global': ADMM_Global,
+        # 'admm_layer': ADMM_Layer,
+        # 'admm_neuron': ADMM_Neuron,
+        # 'lasso_global': LASSO_Global,
+        # 'lasso_layer': LASSO_Layer,
+        # 'lasso_neuron': LASSO_Neuron,
         'ppercent_global': P_Percent_Global,
         'ppercent_layer': P_Percent_Layer,
-        'ppercent_neuron': P_Percent_Neuron,
-        'admm_global': ADMM_Global,
-        'admm_layer': ADMM_Layer,
-        'admm_neuron': ADMM_Neuron
+        'ppercent_neuron': P_Percent_Neuron
     }
     
     score_types = ['magnitude', 'wanda', 'lora']
-    results = {}
     
     # Different pruning settings for each optimizer type
     pruning_settings = {
-        'admm': {'C_values': [0.001, 0.005, 0.01, 0.05, 0.1]},
-        'ppercent': {'p_percent_values': [10, 30, 50, 70, 90]},
-        'lasso': {'C_values': [0.001, 0.005, 0.01, 0.05, 0.1]}
+        # 'admm': {'C_values': [0.001, 0.005, 0.01, 0.05, 0.1]},
+        # 'lasso': {'C_values': [0.001, 0.005, 0.01, 0.05, 0.1]},
+        'ppercent': {'p_percent_values': [10, 30, 50, 70, 90]}
     }
     
     total_experiments = len(score_types) * len(optimizers) * 5  # 5 experiments per combination
@@ -281,9 +286,15 @@ def main():
                 pruning_settings[opt_type]['C_values' if opt_type != 'ppercent' else 'p_percent_values'][start_exp_idx:],
                 start_exp_idx
             ):
+                # Skip if experiment already exists in results
+                exp_key = f"{opt_name}_{score_type}_exp{exp_idx}"
+                if exp_key in results:
+                    print(f"Skipping existing experiment: {exp_key}")
+                    continue
+                
                 experiment_count += 1
                 print(f"\nExperiment {exp_idx + 1}/5 - Progress: [{experiment_count}/{total_experiments}]")
-                print(f"Pruning {'C' if opt_type != 'ppercent' else 'percent'}: {pruning_value}")
+                print(f"Pruning percent: {pruning_value}")
                 
                 model = CNN().to(device)
                 criterion = nn.CrossEntropyLoss()
@@ -317,15 +328,20 @@ def main():
                     vk = [p.clone() for p in model.parameters()]
                     wk = [p.clone() for p in model.parameters()]
                     zk = [p.clone() for p in model.parameters()]
-                else:  
-                    continue
+                elif opt_type == 'ppercent':
+                    # ppercent doesn't need auxiliary variables
+                    vk = None
+                    wk = None
+                    zk = None
 
-                if 'global' in opt_name and (opt_type in ['admm', 'lasso']):
-                    vk = parameters_to_vector(vk)
-                    wk = parameters_to_vector(wk)
-                    zk = parameters_to_vector(zk)
-                    if opt_type == 'admm':
-                        yk = parameters_to_vector(yk)
+
+                if 'global' in opt_name:
+                    if 'ppercent' not in opt_name:
+                        vk = parameters_to_vector(vk)
+                        wk = parameters_to_vector(wk)
+                        zk = parameters_to_vector(zk)
+                        if 'admm' in opt_name:
+                            yk = parameters_to_vector(yk)
                     scores_list = parameters_to_vector(scores_list)
 
                 # Initialize optimizer with appropriate parameters
@@ -427,8 +443,7 @@ def main():
                                 'scheduler_state_dict': scheduler.state_dict(),
                                 'best_acc': best_acc
                             }
-                            save_checkpoint(checkpoint, 
-                                f'checkpoint_{score_type}_{opt_name}_exp{exp_idx}.pth')
+                            save_checkpoint(checkpoint, score_type, opt_name, exp_idx)
                     
                     # After experiment completes, remove its checkpoint
                     checkpoint_file = f'checkpoints/checkpoint_{score_type}_{opt_name}_exp{exp_idx}.pth'
