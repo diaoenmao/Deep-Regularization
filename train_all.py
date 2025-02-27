@@ -48,22 +48,20 @@ def train_epoch(model, train_loader, optimizer, criterion, device, score_type, s
         loss = criterion(output, target)
         loss.backward()
         
-        # Update scores periodically
-        if batch_idx % 100 == 0:
-            if score_type == 'wanda':
-                scores_dict = choose_score(WandaScoreCalculator, score_type, model)
-            elif score_type == 'lora':
-                scores_dict = choose_score(LoraScore, score_type, model)
-            else:  # magnitude
-                scores_dict = choose_score(MagnitudeScore, score_type, model)
-            
-            scores_list = []
-            for name, param in model.named_parameters():
-                score_new = scores_dict.get(name, torch.zeros_like(param))
-                scores_list.append(score_new)
-            
-            if hasattr(optimizer, 'score'):
-                optimizer.score = scores_list
+        if score_type == 'wanda':
+            scores_dict = choose_score(WandaScoreCalculator, score_type, model)
+        elif score_type == 'lora':
+            scores_dict = choose_score(LoraScore, score_type, model)
+        else:  # magnitude
+            scores_dict = choose_score(MagnitudeScore, score_type, model)
+        
+        scores_list = []
+        for name, param in model.named_parameters():
+            score_new = scores_dict.get(name, torch.zeros_like(param))
+            scores_list.append(score_new)
+        
+        if hasattr(optimizer, 'score'):
+            optimizer.score = scores_list
         
         optimizer.step()
         scheduler.step()
@@ -471,5 +469,108 @@ def main():
     plot_results(results, score_types)
     print("Plots saved in results/comparison_all.png")
 
+
+def test():
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print(f"\nUsing device: {device}")
+    
+    train_loader, test_loader = load_mnist()
+    print("Dataset loaded: MNIST")
+    
+    # Single experiment setup with WANDA score
+    C = 0.01  # LASSO hyperparameter
+    
+    print(f"\nRunning LASSO Layer with:")
+    print(f"Score type: WANDA")
+    print(f"C value: {C}")
+    
+    model = CNN().to(device)
+    criterion = nn.CrossEntropyLoss()
+    
+    # Initialize WANDA scores
+    scores_dict = choose_score(WandaScoreCalculator, 'wanda', model)
+    scores_list = []
+    for name, param in model.named_parameters():
+        scores_list.append(scores_dict.get(name, torch.zeros_like(param)))
+
+    # Initialize auxiliary variables
+    vk = []
+    wk = []
+    zk = []
+    for name, parameters in model.named_parameters():
+        vk.append(torch.zeros_like(parameters))
+    for name, parameters in model.named_parameters():
+        wk.append(torch.zeros_like(parameters))
+    for name, parameters in model.named_parameters():
+        zk.append(parameters.clone())
+
+    v0 = torch.zeros(1).to(device)
+    v1 = torch.zeros(1).to(device)
+    k = 0
+    beta = 0.9
+    beta2 = 0.999
+    lr = 0.001
+
+    # Initialize optimizer
+    optimizer = LASSO_Layer(
+        model.parameters(),
+        model=model,
+        lr=lr,
+        N=60000,
+        C=C,
+        vk=vk,
+        wk=wk,
+        zk=zk,
+        beta=beta,
+        beta2=beta2,
+        v0=v0,
+        v1=v1,
+        k=k,
+        score=scores_list,
+        adam=True
+    )
+
+        # Initialize scheduler
+    scheduler = CosineScheduler(
+        optimizer,
+        warmup_epochs=5,
+        max_epochs=100,
+        min_lr=1e-6,
+        verbose=False
+    )
+
+    # Training loop
+    best_acc = 0
+    total_batches = len(train_loader) * 100  # 100 epochs
+    
+    with tqdm(total=total_batches, desc='Training', 
+            file=sys.stdout, dynamic_ncols=True) as pbar:
+        for epoch in range(100):
+            train_loss, train_acc = train_epoch(
+                model, train_loader, optimizer, criterion, device,
+                'wanda', scheduler, epoch, 100, pbar
+            )
+            test_loss, test_acc = test(model, test_loader, criterion, device)
+            
+            if epoch % 10 == 0:
+                remaining = calculate_remaining_weights(model)
+                pbar.write(
+                    f'Epoch {epoch:3d} | '
+                    f'Test Acc: {test_acc:6.2f}% | '
+                    f'Train Acc: {train_acc:6.2f}% | '
+                    f'Remaining: {remaining:6.2f}% | '
+                    f'LR: {scheduler.get_last_lr()[0]:.6f}'
+                )
+            
+            best_acc = max(best_acc, test_acc)
+
+        # Print final results
+    final_weights = calculate_remaining_weights(model)
+    print("\nTraining completed!")
+    print(f"Final test accuracy: {test_acc:.2f}%")
+    print(f"Best test accuracy: {best_acc:.2f}%")
+    print(f"Remaining weights: {final_weights:.2f}%")
+
+
 if __name__ == "__main__":
-    main() 
+    test() 
