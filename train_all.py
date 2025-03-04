@@ -64,7 +64,7 @@ def train_epoch(model, train_loader, optimizer, criterion, device, score_type, s
             optimizer.score = scores_list
         
         optimizer.step()
-        scheduler.step()
+        # scheduler.step()
         
         train_loss += loss.item()
         pred = output.argmax(dim=1, keepdim=True)
@@ -74,8 +74,7 @@ def train_epoch(model, train_loader, optimizer, criterion, device, score_type, s
         if pbar is not None:
             pbar.set_postfix({
                 'loss': f'{train_loss/(batch_idx+1):.4f}',
-                'acc': f'{100.*correct/total:.2f}%',
-                'lr': f'{scheduler.get_last_lr()[0]:.6f}'
+                'acc': f'{100.*correct/total:.2f}%'
             })
             pbar.update(1)
     
@@ -470,25 +469,26 @@ def main():
     print("Plots saved in results/comparison_all.png")
 
 
-def test():
+def test_lasso():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"\nUsing device: {device}")
     
     train_loader, test_loader = load_mnist()
     print("Dataset loaded: MNIST")
     
-    # Single experiment setup with WANDA score
-    C = 0.01  # LASSO hyperparameter
+    # Single experiment setup with magnitude score
+    C = 1  # LASSO hyperparameter
+    lr = 0.1
     
     print(f"\nRunning LASSO Layer with:")
-    print(f"Score type: WANDA")
+    print(f"Score type: Magnitude")
     print(f"C value: {C}")
     
     model = CNN().to(device)
     criterion = nn.CrossEntropyLoss()
     
-    # Initialize WANDA scores
-    scores_dict = choose_score(WandaScoreCalculator, 'wanda', model)
+    # Initialize Magnitude scores
+    scores_dict = choose_score(MagnitudeScore, 'magnitude', model)
     scores_list = []
     for name, param in model.named_parameters():
         scores_list.append(scores_dict.get(name, torch.zeros_like(param)))
@@ -516,7 +516,7 @@ def test():
         model.parameters(),
         model=model,
         lr=lr,
-        N=60000,
+        N=600,
         C=C,
         vk=vk,
         wk=wk,
@@ -527,7 +527,7 @@ def test():
         v1=v1,
         k=k,
         score=scores_list,
-        adam=True
+        adam=False
     )
 
         # Initialize scheduler
@@ -541,28 +541,27 @@ def test():
 
     # Training loop
     best_acc = 0
-    total_batches = len(train_loader) * 100  # 100 epochs
+    # total_batches = len(train_loader) * 100  # 100 epochs
     
-    with tqdm(total=total_batches, desc='Training', 
-            file=sys.stdout, dynamic_ncols=True) as pbar:
-        for epoch in range(100):
-            train_loss, train_acc = train_epoch(
-                model, train_loader, optimizer, criterion, device,
-                'wanda', scheduler, epoch, 100, pbar
-            )
-            test_loss, test_acc = test(model, test_loader, criterion, device)
-            
-            if epoch % 10 == 0:
-                remaining = calculate_remaining_weights(model)
-                pbar.write(
-                    f'Epoch {epoch:3d} | '
-                    f'Test Acc: {test_acc:6.2f}% | '
-                    f'Train Acc: {train_acc:6.2f}% | '
-                    f'Remaining: {remaining:6.2f}% | '
-                    f'LR: {scheduler.get_last_lr()[0]:.6f}'
-                )
-            
-            best_acc = max(best_acc, test_acc)
+    # with tqdm(total=total_batches, desc='Training', 
+    #         file=sys.stdout, dynamic_ncols=True) as pbar:
+    
+    for epoch in range(100):
+        train_loss, train_acc = train_epoch(
+            model, train_loader, optimizer, criterion, device,
+            'magnitude', scheduler, epoch, 100, pbar=None
+        )
+        test_loss, test_acc = test(model, test_loader, criterion, device)
+        
+        if epoch % 10 == 0:
+            remaining = calculate_remaining_weights(model)
+            print(f"Epoch {epoch}, Remaining weights: {remaining:.2f}%")
+            print(f"Train Loss: {train_loss:.2f}, 
+                  Train Acc: {train_acc:.2f}%, 
+                  Test Loss: {test_loss:.2f}, 
+                  Test Acc: {test_acc:.2f}%")
+    
+        best_acc = max(best_acc, test_acc)
 
         # Print final results
     final_weights = calculate_remaining_weights(model)
@@ -573,4 +572,4 @@ def test():
 
 
 if __name__ == "__main__":
-    test() 
+    test_lasso() 
