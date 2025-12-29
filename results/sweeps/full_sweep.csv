@@ -1,0 +1,361 @@
+optimizer,score,lr,C,p,val_acc,sparsity,train_steps
+ADMM_global,first order,0.001,0.01,,0.096,0.0023484017194264524,16
+ADMM_global,first order,0.001,0.05,,0.125,0.012803821111555305,16
+ADMM_global,first order,0.001,0.1,,0.13,0.025906166563368742,16
+ADMM_global,first order,0.001,0.2,,0.169,0.05239724417324429,16
+ADMM_global,first order,0.001,0.5,,0.127,0.13525672325057517,16
+ADMM_global,first order,0.001,1.0,,0.122,0.2872400280118156,16
+ADMM_global,first order,0.001,2.0,,0.146,0.6464668269244065,16
+ADMM_global,first order,0.001,5.0,,0.089,0.99479387685556,16
+ADMM_global,first order,0.0005,0.01,,0.152,0.0025542805747768905,16
+ADMM_global,first order,0.0005,0.05,,0.067,0.012859131848813632,16
+ADMM_global,first order,0.0005,0.1,,0.137,0.02592782993546159,16
+ADMM_global,first order,0.0005,0.2,,0.123,0.05226572753131894,16
+ADMM_global,first order,0.0005,0.5,,0.096,0.13537226123507032,16
+ADMM_global,first order,0.0005,1.0,,0.084,0.2876142973339303,16
+ADMM_global,first order,0.0005,2.0,,0.093,0.648299456018899,16
+ADMM_global,first order,0.0005,5.0,,0.087,0.9948433492372188,16
+ADMM_global,second order,0.001,0.01,,0.138,0.0023843536986443647,16
+ADMM_global,second order,0.001,0.05,,0.147,0.012878797888727702,16
+ADMM_global,second order,0.001,0.1,,0.198,0.025846400238942385,16
+ADMM_global,second order,0.001,0.2,,0.214,0.052285700853106666,16
+ADMM_global,second order,0.001,0.5,,0.185,0.13539177363404756,16
+ADMM_global,second order,0.001,1.0,,0.088,0.2875026003728558,16
+ADMM_global,second order,0.001,2.0,,0.122,0.6463316228999972,16
+ADMM_global,second order,0.001,5.0,,0.094,0.9948488803109446,16
+ADMM_global,second order,0.0005,0.01,,0.13,0.0025301589476947866,16
+ADMM_global,second order,0.0005,0.05,,0.103,0.012839773090773216,16
+ADMM_global,second order,0.0005,0.1,,0.111,0.02583272619556463,16
+ADMM_global,second order,0.0005,0.2,,0.174,0.052321038268577265,16
+ADMM_global,second order,0.0005,0.5,,0.135,0.13549286937048086,16
+ADMM_global,second order,0.0005,1.0,,0.078,0.28770556005040654,16
+ADMM_global,second order,0.0005,2.0,,0.102,0.6462174676839335,16
+ADMM_global,second order,0.0005,5.0,,0.085,0.9947637632319416,16
+ADMM_global,first order + second order,0.001,0.01,,0.099,0.002390499336117512,16
+ADMM_global,first order + second order,0.001,0.05,,0.147,0.012899693056136403,16
+ADMM_global,first order + second order,0.001,0.1,,0.174,0.025850241262363103,16
+ADMM_global,first order + second order,0.001,0.2,,0.23,0.05225819912541433,16
+ADMM_global,first order + second order,0.001,0.5,,0.156,0.135416509824877,16
+ADMM_global,first order + second order,0.001,1.0,,0.121,0.28768143842332444,16
+ADMM_global,first order + second order,0.001,2.0,,0.106,0.6461672270975906,16
+ADMM_global,first order + second order,0.001,5.0,,0.099,0.9948012516205278,16
+ADMM_global,first order + second order,0.0005,0.01,,0.095,0.002581782302469225,16
+ADMM_global,first order + second order,0.0005,0.05,,0.158,0.012953928306836929,16
+ADMM_global,first order + second order,0.0005,0.1,,0.095,0.025866373560730113,16
+ADMM_global,first order + second order,0.0005,0.2,,0.097,0.05221978889120716,16
+ADMM_global,first order + second order,0.0005,0.5,,0.098,0.13546014385093633,16
+ADMM_global,first order + second order,0.0005,1.0,,0.142,0.2867307083062285,16
+ADMM_global,first order + second order,0.0005,2.0,,0.09,0.6456732714856863,16
+ADMM_global,first order + second order,0.0005,5.0,,0.089,0.9947785127618771,16
+ADMM_layer,first order,0.001,0.01,,0.134,0.0004192861166054817,16
+ADMM_layer,first order,0.001,0.05,,0.18,0.0015188943014883812,16
+ADMM_layer,first order,0.001,0.1,,0.158,0.003357976315327742,16
+ADMM_layer,first order,0.001,0.2,,0.266,0.007100054972727197,16
+ADMM_layer,first order,0.001,0.5,,0.265,0.01761155330679852,16
+ADMM_layer,first order,0.001,1.0,,0.134,0.035410702197464866,16
+ADMM_layer,first order,0.001,2.0,,0.178,0.07281643195965021,16
+ADMM_layer,first order,0.001,5.0,,0.085,0.19980128081230578,16
+ADMM_layer,first order,0.0005,0.01,,0.093,0.000535745946721625,16
+ADMM_layer,first order,0.0005,0.05,,0.081,0.0017103309087769228,16
+ADMM_layer,first order,0.0005,0.1,,0.1,0.003561089633815264,16
+ADMM_layer,first order,0.0005,0.2,,0.173,0.007093294771506735,16
+ADMM_layer,first order,0.0005,0.5,,0.135,0.017553784314550933,16
+ADMM_layer,first order,0.0005,1.0,,0.104,0.03569524521247159,16
+ADMM_layer,first order,0.0005,2.0,,0.082,0.07297084110116303,16
+ADMM_layer,first order,0.0005,5.0,,0.085,0.20022732713013172,16
+ADMM_layer,second order,0.001,0.01,,0.218,0.000426968163446916,16
+ADMM_layer,second order,0.001,0.05,,0.191,0.001524425375214214,16
+ADMM_layer,second order,0.001,0.1,,0.209,0.0033533670872228816,16
+ADMM_layer,second order,0.001,0.2,,0.155,0.007074396936276807,16
+ADMM_layer,second order,0.001,0.5,,0.124,0.017691753875823092,16
+ADMM_layer,second order,0.001,1.0,,0.13,0.0352893258573702,16
+ADMM_layer,second order,0.001,2.0,,0.121,0.07285453491198372,16
+ADMM_layer,second order,0.001,5.0,,0.085,0.19990191562592857,16
+ADMM_layer,second order,0.0005,0.01,,0.092,0.0005265274905119039,16
+ADMM_layer,second order,0.0005,0.05,,0.202,0.0016716133926960941,16
+ADMM_layer,second order,0.0005,0.1,,0.16,0.0035311296511336705,16
+ADMM_layer,second order,0.0005,0.2,,0.144,0.0071115780429893485,16
+ADMM_layer,second order,0.0005,0.5,,0.071,0.017611706947735346,16
+ADMM_layer,second order,0.0005,1.0,,0.079,0.0355174826485608,16
+ADMM_layer,second order,0.0005,2.0,,0.103,0.07278708654071592,16
+ADMM_layer,second order,0.0005,5.0,,0.085,0.19966039207323388,16
+ADMM_layer,first order + second order,0.001,0.01,,0.133,0.000424048985647171,16
+ADMM_layer,first order + second order,0.001,0.05,,0.178,0.0015314928583083334,16
+ADMM_layer,first order + second order,0.001,0.1,,0.164,0.0033544425737806823,16
+ADMM_layer,first order + second order,0.001,0.2,,0.125,0.007077008832202894,16
+ADMM_layer,first order + second order,0.001,0.5,,0.132,0.01764182057135377,16
+ADMM_layer,first order + second order,0.001,1.0,,0.134,0.03556465041616721,16
+ADMM_layer,first order + second order,0.001,2.0,,0.108,0.07286021962664638,16
+ADMM_layer,first order + second order,0.001,5.0,,0.085,0.1998678073379526,16
+ADMM_layer,first order + second order,0.0005,0.01,,0.085,0.0005414306613842864,16
+ADMM_layer,first order + second order,0.0005,0.05,,0.143,0.0017353743814799987,16
+ADMM_layer,first order + second order,0.0005,0.1,,0.177,0.003530822369260013,16
+ADMM_layer,first order + second order,0.0005,0.2,,0.201,0.0071244838816829584,16
+ADMM_layer,first order + second order,0.0005,0.5,,0.164,0.01766409850719393,16
+ADMM_layer,first order + second order,0.0005,1.0,,0.105,0.03556080939274649,16
+ADMM_layer,first order + second order,0.0005,2.0,,0.089,0.07285837593540444,16
+ADMM_layer,first order + second order,0.0005,5.0,,0.085,0.1996470253117298,16
+ADMM_neuron,first order,0.001,0.01,,0.189,0.0008505562262836009,16
+ADMM_neuron,first order,0.001,0.05,,0.23,0.005398635238286338,16
+ADMM_neuron,first order,0.001,0.1,,0.172,0.011006222150659687,16
+ADMM_neuron,first order,0.001,0.2,,0.109,0.022174842771547295,16
+ADMM_neuron,first order,0.001,0.5,,0.224,0.05688371316957873,16
+ADMM_neuron,first order,0.001,1.0,,0.191,0.11897093758767135,16
+ADMM_neuron,first order,0.001,2.0,,0.112,0.2653650923489579,16
+ADMM_neuron,first order,0.001,5.0,,0.085,0.9895453488125553,16
+ADMM_neuron,first order,0.0005,0.01,,0.138,0.0009957469115867083,16
+ADMM_neuron,first order,0.0005,0.05,,0.091,0.00551294409528688,16
+ADMM_neuron,first order,0.0005,0.1,,0.218,0.010969041043947147,16
+ADMM_neuron,first order,0.0005,0.2,,0.136,0.022170540825316092,16
+ADMM_neuron,first order,0.0005,0.5,,0.057,0.05668736005231167,16
+ADMM_neuron,first order,0.0005,1.0,,0.085,0.11858652796372599,16
+ADMM_neuron,first order,0.0005,2.0,,0.145,0.266573939239926,16
+ADMM_neuron,first order,0.0005,5.0,,0.085,0.9895780743320998,16
+ADMM_neuron,second order,0.001,0.01,,0.084,0.0008534754040833459,16
+ADMM_neuron,second order,0.001,0.05,,0.215,0.0054269051706628164,16
+ADMM_neuron,second order,0.001,0.1,,0.103,0.010972574785494207,16
+ADMM_neuron,second order,0.001,0.2,,0.083,0.022135357050782324,16
+ADMM_neuron,second order,0.001,0.5,,0.183,0.05659563641302494,16
+ADMM_neuron,second order,0.001,1.0,,0.196,0.11862078989263879,16
+ADMM_neuron,second order,0.001,2.0,,0.121,0.26541471837155356,16
+ADMM_neuron,second order,0.001,5.0,,0.085,0.9895508798862811,16
+ADMM_neuron,second order,0.0005,0.01,,0.159,0.0009700888751363179,16
+ADMM_neuron,second order,0.0005,0.05,,0.112,0.005447032133387374,16
+ADMM_neuron,second order,0.0005,0.1,,0.105,0.010951218695275019,16
+ADMM_neuron,second order,0.0005,0.2,,0.129,0.022129365054246005,16
+ADMM_neuron,second order,0.0005,0.5,,0.142,0.0566752224183022,16
+ADMM_neuron,second order,0.0005,1.0,,0.136,0.11874692910177513,16
+ADMM_neuron,second order,0.0005,2.0,,0.096,0.26612146668096553,16
+ADMM_neuron,second order,0.0005,5.0,,0.085,0.9895654757752799,16
+ADMM_neuron,first order + second order,0.001,0.01,,0.095,0.0008284319313802702,16
+ADMM_neuron,first order + second order,0.001,0.05,,0.177,0.005456096948660266,16
+ADMM_neuron,first order + second order,0.001,0.1,,0.103,0.011024966344952787,16
+ADMM_neuron,first order + second order,0.001,0.2,,0.147,0.02213796894670841,16
+ADMM_neuron,first order + second order,0.001,0.5,,0.13,0.05667967800547023,16
+ADMM_neuron,first order + second order,0.001,1.0,,0.164,0.11863031563072217,16
+ADMM_neuron,first order + second order,0.001,2.0,,0.122,0.2655344046613431,16
+ADMM_neuron,first order + second order,0.001,5.0,,0.085,0.9895553354734492,16
+ADMM_neuron,first order + second order,0.0005,0.01,,0.134,0.0010329280182992502,16
+ADMM_neuron,first order + second order,0.0005,0.05,,0.112,0.00554336500077896,16
+ADMM_neuron,first order + second order,0.0005,0.1,,0.148,0.010908352873899815,16
+ADMM_neuron,first order + second order,0.0005,0.2,,0.108,0.02210770168215316,16
+ADMM_neuron,first order + second order,0.0005,0.5,,0.086,0.05677170892663062,16
+ADMM_neuron,first order + second order,0.0005,1.0,,0.094,0.11874308807835442,16
+ADMM_neuron,first order + second order,0.0005,2.0,,0.124,0.26622932261861926,16
+ADMM_neuron,first order + second order,0.0005,5.0,,0.085,0.9895791498186576,16
+Ppercent_global,first order,0.001,,10,0.197,0.09999996927181264,16
+Ppercent_global,first order,0.001,,20,0.149,0.19999993854362527,16
+Ppercent_global,first order,0.001,,40,0.184,0.39999987708725054,16
+Ppercent_global,first order,0.001,,50,0.228,0.5,16
+Ppercent_global,first order,0.0005,,10,0.15,0.09999996927181264,16
+Ppercent_global,first order,0.0005,,20,0.085,0.19999993854362527,16
+Ppercent_global,first order,0.0005,,40,0.1,0.39999987708725054,16
+Ppercent_global,first order,0.0005,,50,0.123,0.5,16
+Ppercent_global,second order,0.001,,10,0.327,0.09999996927181264,16
+Ppercent_global,second order,0.001,,20,0.22,0.19999993854362527,16
+Ppercent_global,second order,0.001,,40,0.166,0.39999987708725054,16
+Ppercent_global,second order,0.001,,50,0.099,0.5,16
+Ppercent_global,second order,0.0005,,10,0.167,0.09999996927181264,16
+Ppercent_global,second order,0.0005,,20,0.151,0.19999993854362527,16
+Ppercent_global,second order,0.0005,,40,0.204,0.39999987708725054,16
+Ppercent_global,second order,0.0005,,50,0.099,0.5,16
+Ppercent_global,first order + second order,0.001,,10,0.203,0.09999996927181264,16
+Ppercent_global,first order + second order,0.001,,20,0.197,0.19999993854362527,16
+Ppercent_global,first order + second order,0.001,,40,0.213,0.39999987708725054,16
+Ppercent_global,first order + second order,0.001,,50,0.211,0.5,16
+Ppercent_global,first order + second order,0.0005,,10,0.133,0.09999996927181264,16
+Ppercent_global,first order + second order,0.0005,,20,0.224,0.19999993854362527,16
+Ppercent_global,first order + second order,0.0005,,40,0.308,0.39999987708725054,16
+Ppercent_global,first order + second order,0.0005,,50,0.182,0.5,16
+Ppercent_layer,first order,0.001,,10,0.231,0.09999474547996046,16
+Ppercent_layer,first order,0.001,,20,0.234,0.19999179557397334,16
+Ppercent_layer,first order,0.001,,40,0.214,0.3999862030438728,16
+Ppercent_layer,first order,0.001,,50,0.103,0.49998371406069614,16
+Ppercent_layer,first order,0.0005,,10,0.094,0.09999474547996046,16
+Ppercent_layer,first order,0.0005,,20,0.152,0.19999179557397334,16
+Ppercent_layer,first order,0.0005,,40,0.085,0.3999862030438728,16
+Ppercent_layer,first order,0.0005,,50,0.147,0.49998371406069614,16
+Ppercent_layer,second order,0.001,,10,0.142,0.10257145763151433,16
+Ppercent_layer,second order,0.001,,20,0.256,0.06557579552972476,16
+Ppercent_layer,second order,0.001,,40,0.176,0.21734338841565773,16
+Ppercent_layer,second order,0.001,,50,0.092,0.33757648629937675,16
+Ppercent_layer,second order,0.0005,,10,0.262,0.023114357100254706,16
+Ppercent_layer,second order,0.0005,,20,0.14,0.07095922031526505,16
+Ppercent_layer,second order,0.0005,,40,0.125,0.21650665987368872,16
+Ppercent_layer,second order,0.0005,,50,0.102,0.3367064176741159,16
+Ppercent_layer,first order + second order,0.001,,10,0.208,0.11120684648597058,16
+Ppercent_layer,first order + second order,0.001,,20,0.304,0.21531532804951908,16
+Ppercent_layer,first order + second order,0.001,,40,0.247,0.45266568561807136,16
+Ppercent_layer,first order + second order,0.001,,50,0.178,0.5803612774444964,16
+Ppercent_layer,first order + second order,0.0005,,10,0.151,0.10995436556894314,16
+Ppercent_layer,first order + second order,0.0005,,20,0.146,0.21725120385356053,16
+Ppercent_layer,first order + second order,0.0005,,40,0.129,0.4568725281093776,16
+Ppercent_layer,first order + second order,0.0005,,50,0.133,0.5808810447337879,16
+Ppercent_neuron,first order,0.001,,10,0.222,0.09994665586673308,16
+Ppercent_neuron,first order,0.001,,20,0.159,0.19992327171614777,16
+Ppercent_neuron,first order,0.001,,40,0.11,0.3998589883481786,16
+Ppercent_neuron,first order,0.001,,50,0.07,0.4999950834900215,16
+Ppercent_neuron,first order,0.0005,,10,0.109,0.09994665586673308,16
+Ppercent_neuron,first order,0.0005,,20,0.115,0.19992327171614777,16
+Ppercent_neuron,first order,0.0005,,40,0.097,0.3998589883481786,16
+Ppercent_neuron,first order,0.0005,,50,0.096,0.4999950834900215,16
+Ppercent_neuron,second order,0.001,,10,0.247,0.16457448681622486,16
+Ppercent_neuron,second order,0.001,,20,0.091,0.3505718976591574,16
+Ppercent_neuron,second order,0.001,,40,0.036,0.6550209397232803,16
+Ppercent_neuron,second order,0.001,,50,0.107,0.8032676969008472,16
+Ppercent_neuron,second order,0.0005,,10,0.141,0.1485042593876917,16
+Ppercent_neuron,second order,0.0005,,20,0.089,0.4060113860225465,16
+Ppercent_neuron,second order,0.0005,,40,0.11,0.6279604688015177,16
+Ppercent_neuron,second order,0.0005,,50,0.126,0.8752873469621039,16
+Ppercent_neuron,first order + second order,0.001,,10,0.223,0.11178837743186716,16
+Ppercent_neuron,first order + second order,0.001,,20,0.336,0.21238431989763826,16
+Ppercent_neuron,first order + second order,0.001,,40,0.202,0.4520277684483587,16
+Ppercent_neuron,first order + second order,0.001,,50,0.225,0.5763126851181237,16
+Ppercent_neuron,first order + second order,0.0005,,10,0.108,0.11237359576024762,16
+Ppercent_neuron,first order + second order,0.0005,,20,0.155,0.21394147079239698,16
+Ppercent_neuron,first order + second order,0.0005,,40,0.177,0.45376037729297575,16
+Ppercent_neuron,first order + second order,0.0005,,50,0.11,0.5762950164103885,16
+Lasso_global,first order,0.001,0.01,,0.3,0.11536052921313408,16
+Lasso_global,first order,0.001,0.05,,0.206,0.2970529210061269,16
+Lasso_global,first order,0.001,0.1,,0.156,0.4265929722791803,16
+Lasso_global,first order,0.001,0.2,,0.136,0.6027298614373847,16
+Lasso_global,first order,0.001,0.5,,0.173,0.9529423929452998,16
+Lasso_global,first order,0.001,1.0,,0.085,0.9925398106713463,16
+Lasso_global,first order,0.001,2.0,,0.085,0.9947731353290882,16
+Lasso_global,first order,0.001,5.0,,0.085,0.9989664574179534,16
+Lasso_global,first order,0.0005,0.01,,0.16,0.06288170170243376,16
+Lasso_global,first order,0.0005,0.05,,0.168,0.2045116046535996,16
+Lasso_global,first order,0.0005,0.1,,0.18,0.2975645453257664,16
+Lasso_global,first order,0.0005,0.2,,0.154,0.42644901072137187,16
+Lasso_global,first order,0.0005,0.5,,0.115,0.674000051008791,16
+Lasso_global,first order,0.0005,1.0,,0.107,0.9530236690008822,16
+Lasso_global,first order,0.0005,2.0,,0.085,0.9925064705880545,16
+Lasso_global,first order,0.0005,5.0,,0.126,0.9957118814531114,16
+Lasso_global,second order,0.001,0.01,,0.247,0.00510979027704841,16
+Lasso_global,second order,0.001,0.05,,0.228,0.02607809077168004,16
+Lasso_global,second order,0.001,0.1,,0.171,0.05153516487669854,16
+Lasso_global,second order,0.001,0.2,,0.19,0.08057622111511978,16
+Lasso_global,second order,0.001,0.5,,0.137,0.15970913926967087,16
+Lasso_global,second order,0.001,1.0,,0.101,0.2472571251752659,16
+Lasso_global,second order,0.001,2.0,,0.087,0.4206844027715596,16
+Lasso_global,second order,0.001,5.0,,0.085,0.9999705009401288,16
+Lasso_global,second order,0.0005,0.01,,0.104,0.003083419961214882,16
+Lasso_global,second order,0.0005,0.05,,0.154,0.013728432269390332,16
+Lasso_global,second order,0.0005,0.1,,0.131,0.02705632261646828,16
+Lasso_global,second order,0.0005,0.2,,0.191,0.05292945637841886,16
+Lasso_global,second order,0.0005,0.5,,0.097,0.10014316262493697,16
+Lasso_global,second order,0.0005,1.0,,0.166,0.15449564136026311,16
+Lasso_global,second order,0.0005,2.0,,0.122,0.2594142715837093,16
+Lasso_global,second order,0.0005,5.0,,0.094,0.7871799544055156,16
+Lasso_global,first order + second order,0.001,0.01,,0.206,0.004791138974065717,16
+Lasso_global,first order + second order,0.001,0.05,,0.214,0.017429642437593356,16
+Lasso_global,first order + second order,0.001,0.1,,0.311,0.030111472645306683,16
+Lasso_global,first order + second order,0.001,0.2,,0.245,0.05407146946186647,16
+Lasso_global,first order + second order,0.001,0.5,,0.281,0.13580307042193795,16
+Lasso_global,first order + second order,0.001,1.0,,0.237,0.20769028199564826,16
+Lasso_global,first order + second order,0.001,2.0,,0.27,0.3610359209437487,16
+Lasso_global,first order + second order,0.001,5.0,,0.185,0.6620675276499912,16
+Lasso_global,first order + second order,0.0005,0.01,,0.117,0.0033753377411893837,16
+Lasso_global,first order + second order,0.0005,0.05,,0.139,0.011253430418017043,16
+Lasso_global,first order + second order,0.0005,0.1,,0.183,0.018881242008750774,16
+Lasso_global,first order + second order,0.0005,0.2,,0.107,0.03064476033703905,16
+Lasso_global,first order + second order,0.0005,0.5,,0.143,0.07301616517752749,16
+Lasso_global,first order + second order,0.0005,1.0,,0.121,0.1288177852290218,16
+Lasso_global,first order + second order,0.0005,2.0,,0.145,0.2160807671967996,16
+Lasso_global,first order + second order,0.0005,5.0,,0.149,0.4142728128367617,16
+Lasso_layer,first order,0.001,0.01,,0.314,0.11545148464773666,16
+Lasso_layer,first order,0.001,0.05,,0.319,0.2977461489130979,16
+Lasso_layer,first order,0.001,0.1,,0.316,0.42637726040387286,16
+Lasso_layer,first order,0.001,0.2,,0.201,0.6026593402473803,16
+Lasso_layer,first order,0.001,0.5,,0.205,0.9530711440503623,16
+Lasso_layer,first order,0.001,1.0,,0.085,0.992502475923697,16
+Lasso_layer,first order,0.001,2.0,,0.126,0.9948192276101367,16
+Lasso_layer,first order,0.001,5.0,,0.085,0.9989661501360798,16
+Lasso_layer,first order,0.0005,0.01,,0.177,0.06279489457312555,16
+Lasso_layer,first order,0.0005,0.05,,0.203,0.20421707497769903,16
+Lasso_layer,first order,0.0005,0.1,,0.125,0.2975580924064196,16
+Lasso_layer,first order,0.0005,0.2,,0.09,0.42604278408439683,16
+Lasso_layer,first order,0.0005,0.5,,0.164,0.6736107248748672,16
+Lasso_layer,first order,0.0005,1.0,,0.207,0.952921651418828,16
+Lasso_layer,first order,0.0005,2.0,,0.126,0.9925081606383597,16
+Lasso_layer,first order,0.0005,5.0,,0.094,0.9957230972414999,16
+Lasso_layer,second order,0.001,0.01,,0.296,0.005520626142128314,16
+Lasso_layer,second order,0.001,0.05,,0.168,0.026540549991534386,16
+Lasso_layer,second order,0.001,0.1,,0.169,0.04585705677432082,16
+Lasso_layer,second order,0.001,0.2,,0.257,0.08200415998200557,16
+Lasso_layer,second order,0.001,0.5,,0.229,0.1491962581671681,16
+Lasso_layer,second order,0.001,1.0,,0.099,0.25026218825869817,16
+Lasso_layer,second order,0.001,2.0,,0.126,0.4178996607915397,16
+Lasso_layer,second order,0.001,5.0,,0.085,0.9999705009401288,16
+Lasso_layer,second order,0.0005,0.01,,0.107,0.0029279353331442526,16
+Lasso_layer,second order,0.0005,0.05,,0.131,0.012972057937382713,16
+Lasso_layer,second order,0.0005,0.1,,0.16,0.02535859026451131,16
+Lasso_layer,second order,0.0005,0.2,,0.175,0.05032155511668875,16
+Lasso_layer,second order,0.0005,0.5,,0.171,0.0842013790195926,16
+Lasso_layer,second order,0.0005,1.0,,0.12,0.15185562914273582,16
+Lasso_layer,second order,0.0005,2.0,,0.075,0.25123335262039226,16
+Lasso_layer,second order,0.0005,5.0,,0.099,0.8196905302794022,16
+Lasso_layer,first order + second order,0.001,0.01,,0.239,0.004589715705883311,16
+Lasso_layer,first order + second order,0.001,0.05,,0.293,0.019596286928751473,16
+Lasso_layer,first order + second order,0.001,0.1,,0.251,0.03447641166060963,16
+Lasso_layer,first order + second order,0.001,0.2,,0.273,0.05607417907342838,16
+Lasso_layer,first order + second order,0.001,0.5,,0.233,0.12917546132995897,16
+Lasso_layer,first order + second order,0.001,1.0,,0.298,0.21653262519201277,16
+Lasso_layer,first order + second order,0.001,2.0,,0.298,0.3637255591838716,16
+Lasso_layer,first order + second order,0.001,5.0,,0.14,0.6628679969308686,16
+Lasso_layer,first order + second order,0.0005,0.01,,0.162,0.0032919107124914078,16
+Lasso_layer,first order + second order,0.0005,0.05,,0.197,0.010244316744926239,16
+Lasso_layer,first order + second order,0.0005,0.1,,0.131,0.019902493315851044,16
+Lasso_layer,first order + second order,0.0005,0.2,,0.204,0.03175819620623653,16
+Lasso_layer,first order + second order,0.0005,0.5,,0.15,0.07184311662484048,16
+Lasso_layer,first order + second order,0.0005,1.0,,0.189,0.12350119425100196,16
+Lasso_layer,first order + second order,0.0005,2.0,,0.209,0.2071923317193865,16
+Lasso_layer,first order + second order,0.0005,5.0,,0.25,0.4172941618594978,16
+Lasso_neuron,first order,0.001,0.01,,0.254,0.4259997646220848,16
+Lasso_neuron,first order,0.001,0.05,,0.201,0.4259361572742377,16
+Lasso_neuron,first order,0.001,0.1,,0.267,0.42607182222145745,16
+Lasso_neuron,first order,0.001,0.2,,0.251,0.42622561679922294,16
+Lasso_neuron,first order,0.001,0.5,,0.136,0.42655732758183607,16
+Lasso_neuron,first order,0.001,1.0,,0.138,0.4263141139788363,16
+Lasso_neuron,first order,0.001,2.0,,0.179,0.5953274411009787,16
+Lasso_neuron,first order,0.001,5.0,,0.19,0.9416178267735311,16
+Lasso_neuron,first order,0.0005,0.01,,0.119,0.4261423434114618,16
+Lasso_neuron,first order,0.0005,0.05,,0.234,0.42610685235505436,16
+Lasso_neuron,first order,0.0005,0.1,,0.117,0.42590143442251444,16
+Lasso_neuron,first order,0.0005,0.2,,0.112,0.4260060639004948,16
+Lasso_neuron,first order,0.0005,0.5,,0.147,0.4262727845668294,16
+Lasso_neuron,first order,0.0005,1.0,,0.148,0.42637987229979896,16
+Lasso_neuron,first order,0.0005,2.0,,0.103,0.42588545576508424,16
+Lasso_neuron,first order,0.0005,5.0,,0.104,0.6659732339051132,16
+Lasso_neuron,second order,0.001,0.01,,0.218,0.061569915383790454,16
+Lasso_neuron,second order,0.001,0.05,,0.231,0.05416058120522711,16
+Lasso_neuron,second order,0.001,0.1,,0.199,0.0518681047868063,16
+Lasso_neuron,second order,0.001,0.2,,0.275,0.0528080800383242,16
+Lasso_neuron,second order,0.001,0.5,,0.229,0.04984311723940423,16
+Lasso_neuron,second order,0.001,1.0,,0.325,0.045994258130908836,16
+Lasso_neuron,second order,0.001,2.0,,0.188,0.08649877194799192,16
+Lasso_neuron,second order,0.001,5.0,,0.222,0.15133155990721317,16
+Lasso_neuron,second order,0.0005,0.01,,0.218,0.05232426472825066,16
+Lasso_neuron,second order,0.0005,0.05,,0.127,0.06277000474135931,16
+Lasso_neuron,second order,0.0005,0.1,,0.145,0.04955335043254533,16
+Lasso_neuron,second order,0.0005,0.2,,0.218,0.04975999749257991,16
+Lasso_neuron,second order,0.0005,0.5,,0.133,0.050142256143409676,16
+Lasso_neuron,second order,0.0005,1.0,,0.241,0.05966968427709327,16
+Lasso_neuron,second order,0.0005,2.0,,0.125,0.04823234565769229,16
+Lasso_neuron,second order,0.0005,5.0,,0.212,0.09277254596245446,16
+Lasso_neuron,first order + second order,0.001,0.01,,0.252,0.03626847954777941,16
+Lasso_neuron,first order + second order,0.001,0.05,,0.121,0.03446581043596845,16
+Lasso_neuron,first order + second order,0.001,0.1,,0.155,0.029559748041154875,16
+Lasso_neuron,first order + second order,0.001,0.2,,0.273,0.03463635187584829,16
+Lasso_neuron,first order + second order,0.001,0.5,,0.225,0.03473944494446034,16
+Lasso_neuron,first order + second order,0.001,1.0,,0.229,0.033125139621201345,16
+Lasso_neuron,first order + second order,0.001,2.0,,0.273,0.05381473545642574,16
+Lasso_neuron,first order + second order,0.001,5.0,,0.295,0.1259785007164277,16
+Lasso_neuron,first order + second order,0.0005,0.01,,0.133,0.029749340957201473,16
+Lasso_neuron,first order + second order,0.0005,0.05,,0.157,0.03666825326540765,16
+Lasso_neuron,first order + second order,0.0005,0.1,,0.138,0.035730428987005354,16
+Lasso_neuron,first order + second order,0.0005,0.2,,0.126,0.03275517224531787,16
+Lasso_neuron,first order + second order,0.0005,0.5,,0.118,0.032530241913800675,16
+Lasso_neuron,first order + second order,0.0005,1.0,,0.214,0.036488032446507605,16
+Lasso_neuron,first order + second order,0.0005,2.0,,0.119,0.03509727468633435,16
+Lasso_neuron,first order + second order,0.0005,5.0,,0.127,0.06871083884571408,16

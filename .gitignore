@@ -1,0 +1,56 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+venv/
+ENV/
+env/
+.venv/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Data files (large)
+data/MNIST/
+*.pt
+*.pth
+*.ckpt
+
+# Results (can be regenerated)
+# results/metrics/*.json
+# results/plots/*.png
+# results/plots/*.pdf
+# results/sweeps/*.csv
+
+# Temp files
+*.tmp
+*.log
+.DS_Store
+Thumbs.db
+
+# Analysis scripts (temporary)
+analyze_results.py
+DIAGNOSIS_REPORT.py
+ISSUES_LIST.py
