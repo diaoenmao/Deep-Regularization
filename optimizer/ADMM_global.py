@@ -3,7 +3,7 @@ import torch
 from torch.optim import Optimizer
 from torch.nn.utils import parameters_to_vector, vector_to_parameters
 
-from .utils import safe_norm, soft_thresholding
+from .utils import safe_norm, soft_thresholding, solve_cubic_ratio_norm, safe_cbrt
 
 
 class ADMM_Adam_global(Optimizer):
@@ -12,12 +12,14 @@ class ADMM_Adam_global(Optimizer):
     The update follows a scaled ADMM formulation:
 
         q_k = 0.5 * (y_k + z_k - v_k/p - w_k/p)/score - grad/(score * p * 2)
-        y_k <- lambda * (score * q_k + v_k/p)
-        z_k <- soft_threshold(score * q_k + w_k/p, (C/N)/(p * ||y_k||_2))
+        y_k <- τ * (score * q_k + v_k/p)    where τ solves τ³ - τ - D_k = 0
+        z_k <- soft_threshold(score * q_k + w_k/p, threshold)
         v_k <- v_k + p * (score*q_k - y_k)
         w_k <- w_k + p * (score*q_k - z_k)
 
-    where p = 1/lr.
+    where p = 1/lr (penalty parameter).
+
+    The cubic equation arises from the proximal operator of the Ratio Norm (L1/L2).
     """
 
     def __init__(self, params, lr, N, C, vk, wk, yk, zk, score):
@@ -43,36 +45,42 @@ class ADMM_Adam_global(Optimizer):
         grad_vec = parameters_to_vector([p.grad for p in self.param_groups[0]["params"]])
         p_scale = 1.0 / self.lr
 
+        # q_k update: combines primal variables and gradient
         qk = 0.5 * (yk_vec + zk_vec - vk_vec / p_scale - wk_vec / p_scale) / score_vec
         qk -= grad_vec / (score_vec * p_scale * 2.0)
 
-        u = score_vec * qk + vk_vec / p_scale
-        r = safe_norm(u)
-        gamma = (self.C / self.N * torch.norm(zk_vec, p=1)) / (p_scale * torch.clamp(r**3, min=1e-10))
-        delta = torch.sqrt(torch.clamp(((gamma + 2.0 / 27.0) ** 2) / 4.0 - 1.0 / 729.0, min=0.0))
-        lam = 1.0 / 3.0 + torch.pow((gamma + 2.0 / 27.0) / 2.0 + delta, 1.0 / 3.0)
-        lam += torch.pow((gamma + 2.0 / 27.0) / 2.0 - delta, 1.0 / 3.0)
+        # y_k update: solve cubic equation for Ratio Norm proximal
+        dk = score_vec * qk + vk_vec / p_scale
+        ck = torch.norm(score_vec * zk_vec, p=1)
+        yita = safe_norm(dk)
+        miu = self.C * ck / self.N
 
-        if torch.allclose(u, torch.zeros_like(u)):
-            ck = torch.norm(zk_vec, p=1)
-            fangsuo = (ck / p_scale) ** (1.0 / 3.0)
+        # D_k for cubic solver: τ³ - τ - D_k = 0
+        D_k = (miu * score_vec * score_vec) / (p_scale * torch.clamp(yita ** 3, min=1e-10))
+        tao_k = solve_cubic_ratio_norm(D_k)
+
+        # Handle edge case when dk ≈ 0
+        if torch.allclose(dk, torch.zeros_like(dk)):
+            fangsuo = safe_cbrt(ck / p_scale)
             random_tensor = torch.randn_like(yk_vec)
-            yk_vec.copy_(random_tensor * (fangsuo / torch.norm(random_tensor, p=2)))
+            yk_vec.copy_(random_tensor * (fangsuo / safe_norm(random_tensor)))
         else:
-            yk_vec.copy_(lam * (score_vec * qk + vk_vec / p_scale))
+            yk_vec.copy_(tao_k * dk)
 
-        # Use weight-magnitude-based threshold for stability
-        weight_scale = safe_norm(params_vec) + 1e-8
-        # Scale threshold by C (sparsity control) and inversely by weight magnitude
-        base_thresh = self.C * 0.01  # C controls pruning strength
-        thresh = torch.clamp(base_thresh / weight_scale, min=1e-6, max=0.5)
-        
+        # z_k update: soft-thresholding for sparsity
+        # Threshold scales with lr*C (matching Lasso) and inversely with score
+        base_thresh = self.lr * self.C * 0.01
+        thresh = base_thresh / score_vec
+        thresh = torch.clamp(thresh, min=1e-6, max=0.1)
+
         update_vec = score_vec * qk + wk_vec / p_scale
         zk_vec.copy_(soft_thresholding(update_vec, thresh))
 
+        # Dual variable updates
         vk_vec.add_(p_scale * (score_vec * qk - yk_vec))
         wk_vec.add_(p_scale * (score_vec * qk - zk_vec))
 
+        # Write back to parameter buffers
         vector_to_parameters(zk_vec, self.param_groups[0]["params"])
         vector_to_parameters(vk_vec, self.vk)
         vector_to_parameters(wk_vec, self.wk)

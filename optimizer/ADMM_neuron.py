@@ -1,11 +1,33 @@
+"""Neuron-wise ADMM pruning optimizer.
 
+This optimizer applies ADMM pruning at the neuron (output channel) level,
+providing the finest granularity of control. Each neuron's weights are
+treated as a group for the Ratio Norm regularization.
+"""
 import torch
 from torch.optim import Optimizer
 
-def soft_thresholding(b, u):
-    return torch.sign(b) * torch.max(torch.zeros_like(b), torch.abs(b) - u)
+from .utils import safe_norm, soft_thresholding, solve_cubic_ratio_norm, safe_cbrt
+
 
 class ADMM_Adam_neuron(Optimizer):
+    """Neuron-wise ADMM pruning with Wanda scores.
+
+    Each output neuron (channel) is treated independently for pruning.
+    This provides the finest-grained control but is more computationally
+    expensive than layer-wise or global pruning.
+
+    The update follows the same ADMM formulation, but applied per-neuron:
+
+        q_k = 0.5 * (y_k + z_k - v_k/p - w_k/p)/score - grad/(score * p * 2)
+        y_k <- τ * (score * q_k + v_k/p)    where τ solves τ³ - τ - D_k = 0
+        z_k <- soft_threshold(score * q_k + w_k/p, threshold)
+        v_k <- v_k + p * (score*q_k - y_k)
+        w_k <- w_k + p * (score*q_k - z_k)
+
+    where p = 1/lr (penalty parameter).
+    """
+
     def __init__(self, params, lr, N, C, vk, wk, yk, zk, score):
         self.lr = lr
         self.N = N
@@ -15,144 +37,188 @@ class ADMM_Adam_neuron(Optimizer):
         self.yk = yk
         self.zk = zk
         self.score = score
-
         super(ADMM_Adam_neuron, self).__init__(params, {})
 
     @torch.no_grad()
     def step(self, closure=None):
-
         loss = None
         if closure is not None:
             with torch.enable_grad():
                 loss = closure()
 
+        p_scale = 1.0 / self.lr
+
         for group in self.param_groups:
-            for w, vk_temp, yk_temp, zk_temp, wk_temp, wanda_score_1 in zip(
+            for w, vk_temp, yk_temp, zk_temp, wk_temp, score_temp in zip(
                 group["params"], self.vk, self.yk, self.zk, self.wk, self.score
             ):
+                grad = w.grad
+                if grad is None:
+                    continue
 
-                w_len = len(w.shape)
+                w_dim = len(w.shape)
 
-                if w_len == 4: #判断该prune哪一层，该层是CNN层，如果加了别的模型，如果多了一些别的层，这个地方可能需要重新调整，不够robust
-                     #进入该层后使用cnn_neuronwise_pruning函数执行ADMM更新
-                    w.data, vk_temp.data, yk_temp.data, zk_temp.data, wk_temp.data = self.cnn_neuronwise_pruning(
-                        w, vk_temp, yk_temp, zk_temp, wk_temp, self.lr, self.N, self.C, wanda_score_1
-                    )
-                elif w_len == 2: #同上，此是全连接层
-                    w.data, vk_temp.data, yk_temp.data, zk_temp.data, wk_temp.data = self.fullycont(
-                        w, vk_temp, yk_temp, zk_temp, wk_temp, self.lr, self.N, self.C, wanda_score_1
-                    )
-                elif w_len == 1:#同上，此是所有bias参数以及batchnorm的参数
-                    w.data, vk_temp.data, yk_temp.data, zk_temp.data, wk_temp.data = self.batchnorm_and_bias_pruning(
-                        w, vk_temp, yk_temp, zk_temp, wk_temp, self.lr, self.N, self.C, wanda_score_1
-                    )
+                if w_dim == 4:
+                    # Conv2d layer: [out_channels, in_channels, kH, kW]
+                    w.data, vk_temp.data, yk_temp.data, zk_temp.data, wk_temp.data = \
+                        self._conv_neuronwise_update(
+                            w, vk_temp, yk_temp, zk_temp, wk_temp, grad, score_temp, p_scale
+                        )
+                elif w_dim == 2:
+                    # Linear layer: [out_features, in_features]
+                    w.data, vk_temp.data, yk_temp.data, zk_temp.data, wk_temp.data = \
+                        self._linear_neuronwise_update(
+                            w, vk_temp, yk_temp, zk_temp, wk_temp, grad, score_temp, p_scale
+                        )
+                elif w_dim == 1:
+                    # Bias or BatchNorm parameters: [num_features]
+                    w.data, vk_temp.data, yk_temp.data, zk_temp.data, wk_temp.data = \
+                        self._vector_update(
+                            w, vk_temp, yk_temp, zk_temp, wk_temp, grad, score_temp, p_scale
+                        )
 
         return loss
 
-    def cnn_neuronwise_pruning(self, w, vk_temp, yk_temp, zk_temp, wk_temp, lr, N, C,wanda_score_1):
-        shape0, _, _, _ = w.shape
-        p = 1 / lr
-        grad = w.grad
+    def _conv_neuronwise_update(self, w, vk, yk, zk, wk, grad, score, p_scale):
+        """ADMM update for Conv2d layers, per output channel (neuron)."""
+        out_channels = w.shape[0]
+        score_safe = score + 1e-8
 
-        qk = 0.5 * (yk_temp + zk_temp - vk_temp / p - wk_temp / p - grad / p)
+        # q_k update (consistent with global/layer formulation)
+        qk = 0.5 * (yk + zk - vk / p_scale - wk / p_scale) / score_safe
+        qk -= grad / (score_safe * p_scale * 2.0)
 
-        ck = torch.norm((wanda_score_1 * zk_temp).view(shape0, -1), p=1, dim=1).view(shape0, 1, 1, 1).expand_as(w)
+        # Compute per-neuron norms for y_k update
+        # ck = ||score * zk||_1 per neuron
+        ck = torch.norm((score_safe * zk).view(out_channels, -1), p=1, dim=1)
+        ck = ck.view(out_channels, 1, 1, 1).expand_as(w)
 
-        dk = qk + vk_temp / p
-        yita = torch.norm((wanda_score_1 * dk).view(shape0, -1), p=2, dim=1).view(shape0, 1, 1, 1).expand_as(w) + 1e-8
+        # dk = score * qk + vk / p
+        dk = score_safe * qk + vk / p_scale
+
+        # yita = ||score * dk||_2 per neuron
+        yita = torch.norm((score_safe * dk).view(out_channels, -1), p=2, dim=1) + 1e-8
+        yita = yita.view(out_channels, 1, 1, 1).expand_as(w)
+
+        # D_k for cubic solver
         miu = self.C * ck / self.N
-        # ✅ P5修复：添加epsilon避免除法产生Inf
-        D_k = (miu * torch.mul(wanda_score_1, wanda_score_1)) / (p * torch.clamp((yita) ** 3, min=1e-10))
-        C_K = ((27 * D_k + 2 + ((27 * D_k + 2) ** 2 - 4) ** (1 / 2)) / 2) ** (1 / 3)
-        tao_k = 1 / 3 + (1 / 3) * (C_K + 1 / C_K)
+        D_k = (miu * score_safe * score_safe) / (p_scale * torch.clamp(yita ** 3, min=1e-10))
+        tao_k = solve_cubic_ratio_norm(D_k)
 
-        if torch.all(dk == 0):
-            fangsuo = (ck / p) ** (1 / 3)
-            random_tensor = torch.randn_like(yk_temp)
-            yk_temp = random_tensor * (fangsuo / torch.norm(random_tensor.view(shape0, -1), p=2, dim=1).view(shape0, 1, 1, 1).expand_as(w))
+        # y_k update
+        if torch.allclose(dk, torch.zeros_like(dk)):
+            fangsuo = safe_cbrt(ck / p_scale)
+            random_tensor = torch.randn_like(yk)
+            norm_per_neuron = torch.norm(random_tensor.view(out_channels, -1), p=2, dim=1) + 1e-8
+            norm_per_neuron = norm_per_neuron.view(out_channels, 1, 1, 1).expand_as(w)
+            yk = random_tensor * (fangsuo / norm_per_neuron)
         else:
-            yk_temp = torch.mul(tao_k, dk)
+            yk = tao_k * dk
 
-        b = qk + wk_temp / p
-        # Use weight-magnitude-based threshold for stability
-        weight_scale = torch.norm(w.view(shape0, -1), p=2, dim=1).view(shape0, 1, 1, 1).expand_as(w) + 1e-8
-        base_thresh = C * 0.0001  # C controls pruning strength (smaller for per-neuron)
-        u = torch.clamp(base_thresh / weight_scale, min=1e-6, max=0.1)
+        # z_k update: soft-thresholding
+        # Threshold scales with lr*C (matching Lasso) and inversely with score
+        base_thresh = self.lr * self.C * 0.0001
+        thresh = base_thresh / score_safe
+        thresh = torch.clamp(thresh, min=1e-6, max=0.1)
 
-        zk_temp = soft_thresholding(b=b,
-                                    u=u)
-        vk_temp = vk_temp + p * (qk - yk_temp)
-        wk_temp = wk_temp + p * (qk - zk_temp)
-        w = zk_temp
+        update_val = score_safe * qk + wk / p_scale
+        zk = soft_thresholding(update_val, thresh)
 
-        return w, vk_temp, yk_temp, zk_temp, wk_temp
+        # Dual variable updates
+        vk = vk + p_scale * (score_safe * qk - yk)
+        wk = wk + p_scale * (score_safe * qk - zk)
 
-    def fullycont(self, w, vk_temp, yk_temp, zk_temp, wk_temp, lr, N, C, wanda_score_1): #此处同cnn_neuronwise_pruning的改动
-        shape0, shape1 = w.shape
-        p = 1 / lr
-        grad = w.grad
+        # Update weights to pruned values
+        w = zk
 
-        qk = 0.5 * (yk_temp + zk_temp - vk_temp / p - wk_temp / p - grad / p)
+        return w, vk, yk, zk, wk
 
-        ck = torch.norm(wanda_score_1 * zk_temp, p=1, dim=1).unsqueeze(1).expand_as(w)
-        dk = qk + vk_temp / p
-        yita = torch.norm(wanda_score_1 * dk, p=2, dim=1).unsqueeze(1).expand_as(w) + 1e-8
+    def _linear_neuronwise_update(self, w, vk, yk, zk, wk, grad, score, p_scale):
+        """ADMM update for Linear layers, per output neuron."""
+        out_features = w.shape[0]
+        score_safe = score + 1e-8
+
+        # q_k update (consistent with global/layer formulation)
+        qk = 0.5 * (yk + zk - vk / p_scale - wk / p_scale) / score_safe
+        qk -= grad / (score_safe * p_scale * 2.0)
+
+        # Compute per-neuron norms for y_k update
+        ck = torch.norm(score_safe * zk, p=1, dim=1, keepdim=True).expand_as(w)
+        dk = score_safe * qk + vk / p_scale
+        yita = torch.norm(score_safe * dk, p=2, dim=1, keepdim=True) + 1e-8
+        yita = yita.expand_as(w)
+
+        # D_k for cubic solver
         miu = self.C * ck / self.N
-        # ✅ P5修复：添加epsilon避免除法产生Inf
-        D_k = (miu * torch.mul(wanda_score_1, wanda_score_1)) / (p * torch.clamp((yita) ** 3, min=1e-10))
-        C_K = ((27 * D_k + 2 + ((27 * D_k + 2) ** 2 - 4) ** 0.5) / 2) ** (1 / 3)
-        tao_k = 1 / 3 + (1 / 3) * (C_K + 1 / C_K)
+        D_k = (miu * score_safe * score_safe) / (p_scale * torch.clamp(yita ** 3, min=1e-10))
+        tao_k = solve_cubic_ratio_norm(D_k)
 
-        if torch.all(dk == 0):
-            fangsuo = (ck / p) ** (1 / 3)
-            random_tensor = torch.randn_like(yk_temp)
-            yk_temp = random_tensor * (fangsuo / torch.norm(random_tensor, p=2, dim=1).unsqueeze(1).expand_as(w))
+        # y_k update
+        if torch.allclose(dk, torch.zeros_like(dk)):
+            fangsuo = safe_cbrt(ck / p_scale)
+            random_tensor = torch.randn_like(yk)
+            norm_per_neuron = torch.norm(random_tensor, p=2, dim=1, keepdim=True) + 1e-8
+            norm_per_neuron = norm_per_neuron.expand_as(w)
+            yk = random_tensor * (fangsuo / norm_per_neuron)
         else:
-            yk_temp = torch.mul(tao_k, dk)
+            yk = tao_k * dk
 
-        b = qk + wk_temp / p
-        # Use weight-magnitude-based threshold for stability
-        weight_scale = torch.norm(w, p=2, dim=1).unsqueeze(1).expand_as(w) + 1e-8
-        base_thresh = C * 0.0001  # C controls pruning strength (smaller for per-neuron)
-        u = torch.clamp(base_thresh / weight_scale, min=1e-6, max=0.1)
-        zk_temp = soft_thresholding(b, u)
+        # z_k update: soft-thresholding
+        # Threshold scales with lr*C (matching Lasso) and inversely with score
+        base_thresh = self.lr * self.C * 0.0001
+        thresh = base_thresh / score_safe
+        thresh = torch.clamp(thresh, min=1e-6, max=0.1)
 
-        vk_temp = vk_temp + p * (qk - yk_temp)
-        wk_temp = wk_temp + p * (qk - zk_temp)
-        w = zk_temp
+        update_val = score_safe * qk + wk / p_scale
+        zk = soft_thresholding(update_val, thresh)
 
-        return w, vk_temp, yk_temp, zk_temp, wk_temp
+        # Dual variable updates
+        vk = vk + p_scale * (score_safe * qk - yk)
+        wk = wk + p_scale * (score_safe * qk - zk)
 
-    def batchnorm_and_bias_pruning(self, w, vk_temp, yk_temp, zk_temp, wk_temp, lr, N, C, wanda_score_1):
-        p = 1 / lr
-        grad = w.grad
+        w = zk
 
-        qk = 0.5 * (yk_temp + zk_temp - vk_temp / p - wk_temp / p - grad / p)
+        return w, vk, yk, zk, wk
 
-        ck = torch.norm(wanda_score_1 * zk_temp, p=1)
-        dk = qk + vk_temp / p
-        yita = torch.norm(wanda_score_1 * dk, p=2) + 1e-8
+    def _vector_update(self, w, vk, yk, zk, wk, grad, score, p_scale):
+        """ADMM update for 1D parameters (bias, BatchNorm)."""
+        score_safe = score + 1e-8
+
+        # q_k update (consistent with global/layer formulation)
+        qk = 0.5 * (yk + zk - vk / p_scale - wk / p_scale) / score_safe
+        qk -= grad / (score_safe * p_scale * 2.0)
+
+        # Compute norms for y_k update
+        ck = torch.norm(score_safe * zk, p=1)
+        dk = score_safe * qk + vk / p_scale
+        yita = safe_norm(score_safe * dk)
+
+        # D_k for cubic solver
         miu = self.C * ck / self.N
-        D_k = (miu * torch.mul(wanda_score_1, wanda_score_1)) / (p * torch.clamp((yita) ** 3, min=1e-10))
-        C_K = ((27 * D_k + 2 + torch.sqrt(torch.clamp((27 * D_k + 2) ** 2 - 4, min=0.0))) / 2) ** (1 / 3)
-        tao_k = 1 / 3 + (1 / 3) * (C_K + 1 / C_K)
+        D_k = (miu * score_safe * score_safe) / (p_scale * torch.clamp(yita ** 3, min=1e-10))
+        tao_k = solve_cubic_ratio_norm(D_k)
 
-        if torch.all(dk == 0):
-            fangsuo = (ck / p) ** (1 / 3)
-            random_tensor = torch.randn_like(yk_temp)
-            yk_temp = random_tensor * (fangsuo / (torch.norm(random_tensor, p=2) + 1e-8))
+        # y_k update
+        if torch.allclose(dk, torch.zeros_like(dk)):
+            fangsuo = safe_cbrt(ck / p_scale)
+            random_tensor = torch.randn_like(yk)
+            yk = random_tensor * (fangsuo / safe_norm(random_tensor))
         else:
-            yk_temp = torch.mul(tao_k, dk)
+            yk = tao_k * dk
 
-        b = qk + wk_temp / p
-        # Use weight-magnitude-based threshold for stability
-        weight_scale = torch.norm(w, p=2) + 1e-8
-        base_thresh = C * 0.0001  # C controls pruning strength (smaller for per-neuron)
-        u = torch.clamp(base_thresh / weight_scale, min=1e-6, max=0.1)
-        zk_temp = soft_thresholding(b, u)
+        # z_k update: soft-thresholding
+        # Threshold scales with lr*C (matching Lasso) and inversely with score
+        base_thresh = self.lr * self.C * 0.0001
+        thresh = base_thresh / score_safe
+        thresh = torch.clamp(thresh, min=1e-6, max=0.1)
 
-        vk_temp = vk_temp + p * (qk - yk_temp)
-        wk_temp = wk_temp + p * (qk - zk_temp)
-        w = zk_temp
+        update_val = score_safe * qk + wk / p_scale
+        zk = soft_thresholding(update_val, thresh)
 
-        return w, vk_temp, yk_temp, zk_temp, wk_temp
+        # Dual variable updates
+        vk = vk + p_scale * (score_safe * qk - yk)
+        wk = wk + p_scale * (score_safe * qk - zk)
+
+        w = zk
+
+        return w, vk, yk, zk, wk
