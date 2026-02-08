@@ -1,0 +1,4 @@
+Device: cuda | Epochs: 10 | Experiments: 120
+Score types: ['magnitude', 'first order + second order']
+Bug-fixed run ¡ª ADMM threshold=C/(N*||y||), Lasso threshold=lr*C/N
+======================================================================

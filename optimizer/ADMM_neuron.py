@@ -96,8 +96,8 @@ class ADMM_Adam_neuron(Optimizer):
         # dk = score * qk + vk / p
         dk = score_safe * qk + vk / p_scale
 
-        # yita = ||score * dk||_2 per neuron
-        yita = torch.norm((score_safe * dk).view(out_channels, -1), p=2, dim=1) + 1e-8
+        # yita = ||dk||_2 per neuron (NOT score*dk — dk already contains score)
+        yita = torch.norm(dk.view(out_channels, -1), p=2, dim=1) + 1e-8
         yita = yita.view(out_channels, 1, 1, 1).expand_as(w)
 
         # D_k for cubic solver
@@ -116,7 +116,7 @@ class ADMM_Adam_neuron(Optimizer):
             yk = tao_k * dk
 
         # z_k update: soft-thresholding
-        # Threshold scales with lr*C (matching Lasso) and inversely with score
+        # Heuristic threshold scaled per-neuron
         base_thresh = self.lr * self.C * 0.0001
         thresh = base_thresh / score_safe
         thresh = torch.clamp(thresh, min=1e-6, max=0.1)
@@ -145,7 +145,7 @@ class ADMM_Adam_neuron(Optimizer):
         # Compute per-neuron norms for y_k update
         ck = torch.norm(score_safe * zk, p=1, dim=1, keepdim=True).expand_as(w)
         dk = score_safe * qk + vk / p_scale
-        yita = torch.norm(score_safe * dk, p=2, dim=1, keepdim=True) + 1e-8
+        yita = torch.norm(dk, p=2, dim=1, keepdim=True) + 1e-8
         yita = yita.expand_as(w)
 
         # D_k for cubic solver
@@ -164,7 +164,7 @@ class ADMM_Adam_neuron(Optimizer):
             yk = tao_k * dk
 
         # z_k update: soft-thresholding
-        # Threshold scales with lr*C (matching Lasso) and inversely with score
+        # Heuristic threshold per-neuron
         base_thresh = self.lr * self.C * 0.0001
         thresh = base_thresh / score_safe
         thresh = torch.clamp(thresh, min=1e-6, max=0.1)
@@ -191,7 +191,7 @@ class ADMM_Adam_neuron(Optimizer):
         # Compute norms for y_k update
         ck = torch.norm(score_safe * zk, p=1)
         dk = score_safe * qk + vk / p_scale
-        yita = safe_norm(score_safe * dk)
+        yita = safe_norm(dk)  # dk already contains score, don't double-multiply
 
         # D_k for cubic solver
         miu = self.C * ck / self.N
@@ -207,7 +207,7 @@ class ADMM_Adam_neuron(Optimizer):
             yk = tao_k * dk
 
         # z_k update: soft-thresholding
-        # Threshold scales with lr*C (matching Lasso) and inversely with score
+        # Heuristic threshold for 1D params
         base_thresh = self.lr * self.C * 0.0001
         thresh = base_thresh / score_safe
         thresh = torch.clamp(thresh, min=1e-6, max=0.1)

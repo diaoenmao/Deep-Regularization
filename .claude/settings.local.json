@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python debug_convergence.py:*)",
+      "Bash(python run_full_experiment.py:*)",
+      "Bash(python tune_hyperparameters.py:*)",
+      "Bash(python:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
+    ]
+  }
+}

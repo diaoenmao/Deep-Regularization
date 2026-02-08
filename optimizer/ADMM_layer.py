@@ -73,7 +73,9 @@ class ADMM_Adam_layer(Optimizer):
                     yk_temp.copy_(tao_k * dk)
 
                 # z_k update: soft-thresholding for sparsity
-                # Threshold scales with lr*C (matching Lasso) and inversely with score
+                # Heuristic threshold: lr * C * 0.001 / score  
+                # Note: mathematically C/(N*||y||_2*rho) but current C values
+                # are tuned for this heuristic.
                 base_thresh = self.lr * self.C * 0.001
                 thresh = base_thresh / score_safe
                 thresh = torch.clamp(thresh, min=1e-6, max=0.1)

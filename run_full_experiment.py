@@ -29,7 +29,7 @@ from torchvision import datasets, transforms
 
 from network.cnn3 import CNN
 from optimizer.ADMM_global import ADMM_Adam_global
-from optimizer.ADMM_layer import ADMM_Adam_Layer
+from optimizer.ADMM_layer import ADMM_Adam_layer
 from optimizer.ADMM_neuron import ADMM_Adam_neuron
 from optimizer.ppercent_global import Ppercent_global
 from optimizer.ppercent_layer import Ppercent_layer
@@ -37,9 +37,9 @@ from optimizer.ppercent_neuron import Ppercent_neuron
 from optimizer.lasso_global import Lasso_global
 from optimizer.lasso_layer import Lasso_layer
 from optimizer.lasso_neuron import Lasso_neuron
-from Score.wanda_score import WANDA_ScoreCalculator
-from Score.get_grad import GradientCollector
-from Score.score_choos import choose_score, normalize_scores
+from score.wanda_score import WANDA_ScoreCalculator
+from score.get_grad import GradientCollector
+from score.score_choos import choose_score, normalize_scores
 
 
 def set_seed(seed: int = 42):
@@ -53,9 +53,10 @@ def get_dataloaders(batch_size: int = 64):
     transform = transforms.Compose([transforms.ToTensor()])
     train_ds = datasets.MNIST(root="data/MNIST", train=True, download=True, transform=transform)
     test_ds = datasets.MNIST(root="data/MNIST", train=False, download=True, transform=transform)
-    
-    train_loader = DataLoader(train_ds, batch_size=batch_size, shuffle=True, num_workers=2)
-    test_loader = DataLoader(test_ds, batch_size=128, shuffle=False, num_workers=2)
+
+    # Use num_workers=0 on Windows to avoid multiprocessing issues
+    train_loader = DataLoader(train_ds, batch_size=batch_size, shuffle=True, num_workers=0)
+    test_loader = DataLoader(test_ds, batch_size=128, shuffle=False, num_workers=0)
     return train_loader, test_loader, len(train_ds)
 
 
@@ -241,7 +242,7 @@ def train_admm_layer(device, lr, c_val, train_loader, test_loader, N_total, epoc
     zk_init = [p.clone().detach() for p in params]
     score_buffers = [torch.ones_like(p) for p in params]
 
-    optimizer = ADMM_Adam_Layer(
+    optimizer = ADMM_Adam_layer(
         params, lr=lr, N=N_total, C=c_val,
         vk=[z.clone() for z in zeros_like],
         wk=[z.clone() for z in zeros_like],
@@ -419,13 +420,16 @@ def train_lasso_neuron(device, lr, c_val, train_loader, test_loader, N_total, ep
 # Experiment Configuration
 # ============================================================================
 
-# C values for ADMM and Lasso (logarithmically spaced for good coverage)
-C_VALUES_ADMM_GLOBAL = [0.01, 0.05, 0.1, 0.2, 0.5, 1.0, 2.0, 3.0, 4.0, 5.0]
-C_VALUES_ADMM_LAYER = [0.1, 0.5, 1.0, 2.0, 5.0, 10.0, 20.0, 30.0, 40.0, 50.0]
-C_VALUES_ADMM_NEURON = [0.1, 0.5, 1.0, 2.0, 3.0, 4.0, 5.0, 7.0, 10.0, 15.0]
-C_VALUES_LASSO_GLOBAL = [0.001, 0.005, 0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1.0, 2.0]
-C_VALUES_LASSO_LAYER = [0.001, 0.005, 0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1.0, 2.0]
-C_VALUES_LASSO_NEURON = [0.01, 0.05, 0.1, 0.2, 0.5, 1.0, 2.0, 5.0, 10.0, 20.0]
+# C values for ADMM and Lasso (optimized based on tuning results)
+# Global: LR=0.002 works best, C in range 0.01-0.05 for good accuracy-sparsity tradeoff
+C_VALUES_ADMM_GLOBAL = [0.01, 0.015, 0.02, 0.025, 0.03, 0.035, 0.04, 0.045, 0.05, 0.06]
+# Layer: More conservative, C in range 0.02-0.15
+C_VALUES_ADMM_LAYER = [0.02, 0.03, 0.04, 0.05, 0.06, 0.08, 0.1, 0.12, 0.15, 0.2]
+# Neuron: C in range 0.01-0.1 for good results
+C_VALUES_ADMM_NEURON = [0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.08, 0.1, 0.15, 0.2]
+C_VALUES_LASSO_GLOBAL = [0.001, 0.002, 0.005, 0.01, 0.02, 0.03, 0.05, 0.1, 0.2, 0.5]
+C_VALUES_LASSO_LAYER = [0.001, 0.002, 0.005, 0.01, 0.02, 0.03, 0.05, 0.1, 0.2, 0.5]
+C_VALUES_LASSO_NEURON = [0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1.0, 2.0, 5.0, 10.0]
 
 # P values for Ppercent (target sparsity percentages)
 P_VALUES = [5, 10, 15, 20, 25, 30, 40, 50, 60, 70]
@@ -843,7 +847,7 @@ def run_experiment(args):
 def main():
     parser = argparse.ArgumentParser(description="Full pruning experiment")
     parser.add_argument("--epochs", type=int, default=10, help="Training epochs per config")
-    parser.add_argument("--lr", type=float, default=0.001, help="Learning rate")
+    parser.add_argument("--lr", type=float, default=0.002, help="Learning rate (optimized)")
     parser.add_argument("--batch-size", type=int, default=64, help="Batch size")
     parser.add_argument("--device", type=str, default="cuda", help="Device (cuda/cpu)")
     parser.add_argument("--seed", type=int, default=42, help="Random seed")

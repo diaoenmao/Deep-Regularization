@@ -1,0 +1,612 @@
+{
+  "all_results": [
+    {
+      "optimizer": "ADMM_global",
+      "lr": 0.001,
+      "C": 0.005,
+      "accuracy": 90.01,
+      "sparsity": 0.05474672137922854,
+      "score": 67.74733606896143
+    },
+    {
+      "optimizer": "ADMM_global",
+      "lr": 0.001,
+      "C": 0.01,
+      "accuracy": 89.45,
+      "sparsity": 0.1243176421893096,
+      "score": 70.66588210946549
+    },
+    {
+      "optimizer": "ADMM_global",
+      "lr": 0.001,
+      "C": 0.015,
+      "accuracy": 89.98,
+      "sparsity": 0.20139883927345045,
+      "score": 75.04994196367252
+    },
+    {
+      "optimizer": "ADMM_global",
+      "lr": 0.001,
+      "C": 0.02,
+      "accuracy": 89.3,
+      "sparsity": 0.2823130704495933,
+      "score": 78.41565352247966
+    },
+    {
+      "optimizer": "ADMM_global",
+      "lr": 0.001,
+      "C": 0.025,
+      "accuracy": 88.48,
+      "sparsity": 0.36433413093465006,
+      "score": 81.69670654673251
+    },
+    {
+      "optimizer": "ADMM_global",
+      "lr": 0.001,
+      "C": 0.03,
+      "accuracy": 87.88,
+      "sparsity": 0.45214653289252726,
+      "score": 85.48732664462636
+    },
+    {
+      "optimizer": "ADMM_global",
+      "lr": 0.001,
+      "C": 0.04,
+      "accuracy": 84.63,
+      "sparsity": 0.6390072521595002,
+      "score": 84.63
+    },
+    {
+      "optimizer": "ADMM_global",
+      "lr": 0.001,
+      "C": 0.05,
+      "accuracy": 83.72,
+      "sparsity": 0.8394481401918238,
+      "score": 83.72
+    },
+    {
+      "optimizer": "ADMM_global",
+      "lr": 0.0005,
+      "C": 0.005,
+      "accuracy": 86.77,
+      "sparsity": 0.05896063135362889,
+      "score": 64.71803156768144
+    },
+    {
+      "optimizer": "ADMM_global",
+      "lr": 0.0005,
+      "C": 0.01,
+      "accuracy": 85.48,
+      "sparsity": 0.13182438472182234,
+      "score": 67.07121923609112
+    },
+    {
+      "optimizer": "ADMM_global",
+      "lr": 0.0005,
+      "C": 0.015,
+      "accuracy": 85.31,
+      "sparsity": 0.20456322800837404,
+      "score": 70.5381614004187
+    },
+    {
+      "optimizer": "ADMM_global",
+      "lr": 0.0005,
+      "C": 0.02,
+      "accuracy": 83.44,
+      "sparsity": 0.28272974467027273,
+      "score": 72.57648723351363
+    },
+    {
+      "optimizer": "ADMM_global",
+      "lr": 0.0005,
+      "C": 0.025,
+      "accuracy": 82.15,
+      "sparsity": 0.36393927372700036,
+      "score": 75.34696368635002
+    },
+    {
+      "optimizer": "ADMM_global",
+      "lr": 0.0005,
+      "C": 0.03,
+      "accuracy": 81.66,
+      "sparsity": 0.4532836294659963,
+      "score": 79.32418147329982
+    },
+    {
+      "optimizer": "ADMM_global",
+      "lr": 0.0005,
+      "C": 0.04,
+      "accuracy": 81.09,
+      "sparsity": 0.639138307878615,
+      "score": 81.09
+    },
+    {
+      "optimizer": "ADMM_global",
+      "lr": 0.0005,
+      "C": 0.05,
+      "accuracy": 79.03,
+      "sparsity": 0.8388833561080415,
+      "score": 79.03
+    },
+    {
+      "optimizer": "ADMM_global",
+      "lr": 0.002,
+      "C": 0.005,
+      "accuracy": 93.22,
+      "sparsity": 0.04665737241426144,
+      "score": 70.55286862071307
+    },
+    {
+      "optimizer": "ADMM_global",
+      "lr": 0.002,
+      "C": 0.01,
+      "accuracy": 92.81,
+      "sparsity": 0.11845224578493772,
+      "score": 73.73261228924689
+    },
+    {
+      "optimizer": "ADMM_global",
+      "lr": 0.002,
+      "C": 0.015,
+      "accuracy": 92.94,
+      "sparsity": 0.18807386810417223,
+      "score": 77.34369340520861
+    },
+    {
+      "optimizer": "ADMM_global",
+      "lr": 0.002,
+      "C": 0.02,
+      "accuracy": 92.3,
+      "sparsity": 0.2783939974329672,
+      "score": 81.21969987164836
+    },
+    {
+      "optimizer": "ADMM_global",
+      "lr": 0.002,
+      "C": 0.025,
+      "accuracy": 92.39,
+      "sparsity": 0.3595932325469273,
+      "score": 85.36966162734637
+    },
+    {
+      "optimizer": "ADMM_global",
+      "lr": 0.002,
+      "C": 0.03,
+      "accuracy": 90.87,
+      "sparsity": 0.44796012464581925,
+      "score": 88.26800623229097
+    },
+    {
+      "optimizer": "ADMM_global",
+      "lr": 0.002,
+      "C": 0.04,
+      "accuracy": 90.4,
+      "sparsity": 0.6379363748298043,
+      "score": 90.4
+    },
+    {
+      "optimizer": "ADMM_global",
+      "lr": 0.002,
+      "C": 0.05,
+      "accuracy": 89.31,
+      "sparsity": 0.832808700747709,
+      "score": 89.31
+    },
+    {
+      "optimizer": "ADMM_layer",
+      "lr": 0.001,
+      "C": 0.05,
+      "accuracy": 86.75,
+      "sparsity": 0.08725483899812589,
+      "score": 66.1127419499063
+    },
+    {
+      "optimizer": "ADMM_layer",
+      "lr": 0.001,
+      "C": 0.1,
+      "accuracy": 79.82,
+      "sparsity": 0.15258542359267208,
+      "score": 62.4492711796336
+    },
+    {
+      "optimizer": "ADMM_layer",
+      "lr": 0.001,
+      "C": 0.15,
+      "accuracy": 78.4,
+      "sparsity": 0.17439813467611415,
+      "score": 62.11990673380571
+    },
+    {
+      "optimizer": "ADMM_layer",
+      "lr": 0.001,
+      "C": 0.2,
+      "accuracy": 71.81,
+      "sparsity": 0.1524629717660196,
+      "score": 54.43314858830098
+    },
+    {
+      "optimizer": "ADMM_layer",
+      "lr": 0.001,
+      "C": 0.3,
+      "accuracy": 9.8,
+      "sparsity": 0.11127245116599643,
+      "score": -9.636377441700176
+    },
+    {
+      "optimizer": "ADMM_layer",
+      "lr": 0.001,
+      "C": 0.5,
+      "accuracy": 9.8,
+      "sparsity": 0.19710196319316262,
+      "score": -5.344901840341869
+    },
+    {
+      "optimizer": "ADMM_layer",
+      "lr": 0.001,
+      "C": 1.0,
+      "accuracy": 9.8,
+      "sparsity": 0.5166795673839957,
+      "score": 9.8
+    },
+    {
+      "optimizer": "ADMM_layer",
+      "lr": 0.001,
+      "C": 2.0,
+      "accuracy": 9.8,
+      "sparsity": 0.9998858447839363,
+      "score": 9.8
+    },
+    {
+      "optimizer": "ADMM_layer",
+      "lr": 0.0005,
+      "C": 0.05,
+      "accuracy": 81.49,
+      "sparsity": 0.09053676304972343,
+      "score": 61.016838152486166
+    },
+    {
+      "optimizer": "ADMM_layer",
+      "lr": 0.0005,
+      "C": 0.1,
+      "accuracy": 75.3,
+      "sparsity": 0.11150537082622872,
+      "score": 55.875268541311435
+    },
+    {
+      "optimizer": "ADMM_layer",
+      "lr": 0.0005,
+      "C": 0.15,
+      "accuracy": 66.65,
+      "sparsity": 0.11110513618579,
+      "score": 47.20525680928951
+    },
+    {
+      "optimizer": "ADMM_layer",
+      "lr": 0.0005,
+      "C": 0.2,
+      "accuracy": 61.4,
+      "sparsity": 0.15242256419963365,
+      "score": 44.02112820998168
+    },
+    {
+      "optimizer": "ADMM_layer",
+      "lr": 0.0005,
+      "C": 0.3,
+      "accuracy": 9.8,
+      "sparsity": 0.1112406474920729,
+      "score": -9.637967625396353
+    },
+    {
+      "optimizer": "ADMM_layer",
+      "lr": 0.0005,
+      "C": 0.5,
+      "accuracy": 9.8,
+      "sparsity": 0.19703205656690556,
+      "score": -5.348397171654721
+    },
+    {
+      "optimizer": "ADMM_layer",
+      "lr": 0.0005,
+      "C": 1.0,
+      "accuracy": 9.8,
+      "sparsity": 0.5178063700146973,
+      "score": 9.8
+    },
+    {
+      "optimizer": "ADMM_layer",
+      "lr": 0.0005,
+      "C": 2.0,
+      "accuracy": 9.8,
+      "sparsity": 0.9998879957570519,
+      "score": 9.8
+    },
+    {
+      "optimizer": "ADMM_layer",
+      "lr": 0.002,
+      "C": 0.05,
+      "accuracy": 91.58,
+      "sparsity": 0.07869918978988373,
+      "score": 70.51495948949419
+    },
+    {
+      "optimizer": "ADMM_layer",
+      "lr": 0.002,
+      "C": 0.1,
+      "accuracy": 85.22,
+      "sparsity": 0.19717140889660917,
+      "score": 70.07857044483046
+    },
+    {
+      "optimizer": "ADMM_layer",
+      "lr": 0.002,
+      "C": 0.15,
+      "accuracy": 79.37,
+      "sparsity": 0.17447587699014946,
+      "score": 63.09379384950748
+    },
+    {
+      "optimizer": "ADMM_layer",
+      "lr": 0.002,
+      "C": 0.2,
+      "accuracy": 79.7,
+      "sparsity": 0.1524999992317953,
+      "score": 62.32499996158977
+    },
+    {
+      "optimizer": "ADMM_layer",
+      "lr": 0.002,
+      "C": 0.3,
+      "accuracy": 67.79,
+      "sparsity": 0.24578693505075222,
+      "score": 55.07934675253762
+    },
+    {
+      "optimizer": "ADMM_layer",
+      "lr": 0.002,
+      "C": 0.5,
+      "accuracy": 9.8,
+      "sparsity": 0.19671217613642825,
+      "score": -5.364391193178587
+    },
+    {
+      "optimizer": "ADMM_layer",
+      "lr": 0.002,
+      "C": 1.0,
+      "accuracy": 9.8,
+      "sparsity": 0.5168573299479065,
+      "score": 9.8
+    },
+    {
+      "optimizer": "ADMM_layer",
+      "lr": 0.002,
+      "C": 2.0,
+      "accuracy": 9.8,
+      "sparsity": 0.9998859984248731,
+      "score": 9.8
+    },
+    {
+      "optimizer": "ADMM_neuron",
+      "lr": 0.001,
+      "C": 0.01,
+      "accuracy": 90.46,
+      "sparsity": 0.04626973633064267,
+      "score": 67.77348681653213
+    },
+    {
+      "optimizer": "ADMM_neuron",
+      "lr": 0.001,
+      "C": 0.02,
+      "accuracy": 90.15,
+      "sparsity": 0.11119593797945575,
+      "score": 70.7097968989728
+    },
+    {
+      "optimizer": "ADMM_neuron",
+      "lr": 0.001,
+      "C": 0.05,
+      "accuracy": 88.35,
+      "sparsity": 0.356287801431995,
+      "score": 81.16439007159974
+    },
+    {
+      "optimizer": "ADMM_neuron",
+      "lr": 0.001,
+      "C": 0.1,
+      "accuracy": 84.06,
+      "sparsity": 0.9889091216931477,
+      "score": 84.06
+    },
+    {
+      "optimizer": "ADMM_neuron",
+      "lr": 0.001,
+      "C": 0.15,
+      "accuracy": 79.63,
+      "sparsity": 0.9892477463179181,
+      "score": 79.63
+    },
+    {
+      "optimizer": "ADMM_neuron",
+      "lr": 0.001,
+      "C": 0.2,
+      "accuracy": 76.97,
+      "sparsity": 0.9889467637226708,
+      "score": 76.97
+    },
+    {
+      "optimizer": "ADMM_neuron",
+      "lr": 0.001,
+      "C": 0.3,
+      "accuracy": 76.78,
+      "sparsity": 0.9902241344714644,
+      "score": 76.78
+    },
+    {
+      "optimizer": "ADMM_neuron",
+      "lr": 0.001,
+      "C": 0.5,
+      "accuracy": 9.8,
+      "sparsity": 0.9894991028905699,
+      "score": 9.8
+    },
+    {
+      "optimizer": "ADMM_neuron",
+      "lr": 0.0005,
+      "C": 0.01,
+      "accuracy": 85.73,
+      "sparsity": 0.05000444022307435,
+      "score": 63.23022201115372
+    },
+    {
+      "optimizer": "ADMM_neuron",
+      "lr": 0.0005,
+      "C": 0.02,
+      "accuracy": 85.76,
+      "sparsity": 0.11472307296623187,
+      "score": 66.4961536483116
+    },
+    {
+      "optimizer": "ADMM_neuron",
+      "lr": 0.0005,
+      "C": 0.05,
+      "accuracy": 84.86,
+      "sparsity": 0.35660875734903014,
+      "score": 77.69043786745151
+    },
+    {
+      "optimizer": "ADMM_neuron",
+      "lr": 0.0005,
+      "C": 0.1,
+      "accuracy": 79.96,
+      "sparsity": 0.9889042051831692,
+      "score": 79.96
+    },
+    {
+      "optimizer": "ADMM_neuron",
+      "lr": 0.0005,
+      "C": 0.15,
+      "accuracy": 76.59,
+      "sparsity": 0.989217325412426,
+      "score": 76.59
+    },
+    {
+      "optimizer": "ADMM_neuron",
+      "lr": 0.0005,
+      "C": 0.2,
+      "accuracy": 71.52,
+      "sparsity": 0.988942000853629,
+      "score": 71.52
+    },
+    {
+      "optimizer": "ADMM_neuron",
+      "lr": 0.0005,
+      "C": 0.3,
+      "accuracy": 66.87,
+      "sparsity": 0.9902123041193286,
+      "score": 66.87
+    },
+    {
+      "optimizer": "ADMM_neuron",
+      "lr": 0.0005,
+      "C": 0.5,
+      "accuracy": 9.8,
+      "sparsity": 0.9895067849374113,
+      "score": 9.8
+    },
+    {
+      "optimizer": "ADMM_neuron",
+      "lr": 0.002,
+      "C": 0.01,
+      "accuracy": 92.96,
+      "sparsity": 0.03748838858619917,
+      "score": 69.83441942930995
+    },
+    {
+      "optimizer": "ADMM_neuron",
+      "lr": 0.002,
+      "C": 0.02,
+      "accuracy": 93.18,
+      "sparsity": 0.09956777731651355,
+      "score": 73.15838886582569
+    },
+    {
+      "optimizer": "ADMM_neuron",
+      "lr": 0.002,
+      "C": 0.05,
+      "accuracy": 92.51,
+      "sparsity": 0.3547615323655388,
+      "score": 85.24807661827694
+    },
+    {
+      "optimizer": "ADMM_neuron",
+      "lr": 0.002,
+      "C": 0.1,
+      "accuracy": 88.5,
+      "sparsity": 0.9888450534224902,
+      "score": 88.5
+    },
+    {
+      "optimizer": "ADMM_neuron",
+      "lr": 0.002,
+      "C": 0.15,
+      "accuracy": 84.76,
+      "sparsity": 0.9891826025607028,
+      "score": 84.76
+    },
+    {
+      "optimizer": "ADMM_neuron",
+      "lr": 0.002,
+      "C": 0.2,
+      "accuracy": 82.41,
+      "sparsity": 0.9889051270287902,
+      "score": 82.41
+    },
+    {
+      "optimizer": "ADMM_neuron",
+      "lr": 0.002,
+      "C": 0.3,
+      "accuracy": 78.99,
+      "sparsity": 0.990164368147038,
+      "score": 78.99
+    },
+    {
+      "optimizer": "ADMM_neuron",
+      "lr": 0.002,
+      "C": 0.5,
+      "accuracy": 9.8,
+      "sparsity": 0.9895299847188724,
+      "score": 9.8
+    }
+  ],
+  "best_results": {
+    "ADMM_global": {
+      "optimizer": "ADMM_global",
+      "lr": 0.002,
+      "C": 0.04,
+      "accuracy": 90.4,
+      "sparsity": 0.6379363748298043,
+      "score": 90.4
+    },
+    "ADMM_layer": {
+      "optimizer": "ADMM_layer",
+      "lr": 0.002,
+      "C": 0.05,
+      "accuracy": 91.58,
+      "sparsity": 0.07869918978988373,
+      "score": 70.51495948949419
+    },
+    "ADMM_neuron": {
+      "optimizer": "ADMM_neuron",
+      "lr": 0.002,
+      "C": 0.1,
+      "accuracy": 88.5,
+      "sparsity": 0.9888450534224902,
+      "score": 88.5
+    }
+  },
+  "config": {
+    "epochs": 5,
+    "batch_size": 64,
+    "subset_size": 10000,
+    "score": "magnitude"
+  }
+}
