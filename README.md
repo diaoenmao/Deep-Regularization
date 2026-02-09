@@ -169,6 +169,49 @@ python tune_hyperparameters.py
 
 ---
 
+## Feature-Selection-Benchmark Integration (2026-02-09) ✅
+
+- **Summary:** Added ADMM/Lasso feature-selection integration (6 methods) and a lightweight wrapper that uses WANDA-style activation-aware scores for first-layer feature selection.
+
+- **New scripts & locations:**
+  - `run_compact_benchmark.py` (project root) — quick validation across 6 methods, 4 synthetic datasets, 3 feature sizes (8 / 32 / 128).
+  - `diagnose_xor128.py` (project root) — deep diagnostic for the XOR (m=128) failure case. Saves figures & a CSV to `results/diagnostics/`:
+    - `A_death_valley_xor128.png` — Wanda score histogram (signal vs noise)
+    - `B_evolution_xor128.png` — Loss & sparsity vs epoch
+    - `C_top10_xor128.csv` / `C_top10_xor128.png` — Top-10 score table with ground truth flags
+    - `D_death_valley_comparison_xor128.png` — Comparison across methods
+  - `Feature-Selection-Benchmark/main-benchmark.py` — updated to include the `admm_*` and `lasso_*` methods. Example usage:
+    ```bash
+    python Feature-Selection-Benchmark/main-benchmark.py --method admm_global
+    ```
+
+- **Methods added:** `admm_global`, `admm_layer`, `admm_neuron`, `lasso_global`, `lasso_layer`, `lasso_neuron` (implemented in `Feature-Selection-Benchmark/src/admm_lasso_wrapper.py` and exposed via `src/core.py`).
+
+- **Key algorithmic improvements (added):**
+  - **Lasso warm-start**: optional warm-start of ADMM using `sklearn.linear_model.LogisticRegression(penalty='l1')` to copy first-layer coefficients into the MLP — helps when the signal is linearly separable.
+  - **Data standardization**: a lightweight `_Scaler` (z-score) that fits on the training fold and is applied before training.
+  - **Adaptive rho**: Residual-balancing scheme (Boyd §3.4.1) with `mu=10`, `tau_incr=2`, `tau_decr=2` and **rho_min=50** (prevents NaNs encountered when rho collapsed too low).
+
+- **Notable findings:**
+  - On `ring+xor+sum` (m=128) ADMM_global reaches **~33%** average best-k vs Lasso **~17%** — improvement driven by the linearly separable `sum` component where warm-start helps.
+  - On pure `xor` (m=128) all methods fail to recover the two informative features; the top-10 selected features are all noise — linear warm-starts can "trap" nonlinear feature selection (see `diagnose_xor128.py` for detailed plots and the `C_top10_xor128.csv`).
+
+- **How to reproduce quickly:**
+  - Compact benchmark (quick):
+    ```bash
+    python run_compact_benchmark.py
+    ```
+  - XOR diagnostic (repro of failure case):
+    ```bash
+    python diagnose_xor128.py
+    ```
+  - Full feature-selection benchmark (long):
+    ```bash
+    python Feature-Selection-Benchmark/main-benchmark.py --method admm_global
+    ```
+
+---
+
 ## Key Findings
 
 1. **ADMM achieves extreme compression**: 100× compression (99% sparsity) at 94.66% accuracy via ADMM_neuron.
