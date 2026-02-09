@@ -42,8 +42,14 @@ class ADMM_Adam_global(Optimizer):
         yk_vec = parameters_to_vector(self.yk)
         zk_vec = parameters_to_vector(self.zk)
 
+        # Save z_old for dual residual computation
+        zk_old = zk_vec.clone()
+
         grad_vec = parameters_to_vector([p.grad for p in self.param_groups[0]["params"]])
-        p_scale = 1.0 / self.lr
+        # Use mutable rho if set externally (adaptive rho), else default 1/lr
+        if not hasattr(self, 'rho'):
+            self.rho = 1.0 / self.lr
+        p_scale = self.rho
 
         # q_k update: combines primal variables and gradient
         qk = 0.5 * (yk_vec + zk_vec - vk_vec / p_scale - wk_vec / p_scale) / score_vec
@@ -88,5 +94,9 @@ class ADMM_Adam_global(Optimizer):
         vector_to_parameters(wk_vec, self.wk)
         vector_to_parameters(yk_vec, self.yk)
         vector_to_parameters(zk_vec, self.zk)
+
+        # Track primal/dual residuals for adaptive rho (Boyd §3.4.1)
+        self.r_norm = torch.norm(score_vec * qk - zk_vec).item()
+        self.s_norm = p_scale * torch.norm(zk_vec - zk_old).item()
 
         return None

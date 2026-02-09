@@ -1,4 +1,5 @@
 import torch
+import numpy as np
 from torch.optim import Optimizer
 
 from .utils import safe_norm, soft_thresholding, solve_cubic_ratio_norm, safe_cbrt
@@ -40,7 +41,13 @@ class ADMM_Adam_layer(Optimizer):
             with torch.enable_grad():
                 loss = closure()
 
-        p_scale = 1.0 / self.lr
+        # Use mutable rho if set externally (adaptive rho), else default 1/lr
+        if not hasattr(self, 'rho'):
+            self.rho = 1.0 / self.lr
+        p_scale = self.rho
+
+        r_norms = []
+        s_norms = []
         for group in self.param_groups:
             for w, vk_temp, yk_temp, zk_temp, wk_temp, score_temp in zip(
                 group["params"], self.vk, self.yk, self.zk, self.wk, self.score
@@ -49,6 +56,9 @@ class ADMM_Adam_layer(Optimizer):
                 if grad is None:
                     continue
                 score_safe = score_temp + 1e-8
+
+                # Save z_old for dual residual
+                zk_old = zk_temp.clone()
 
                 # q_k update: combines primal variables and gradient
                 qk = 0.5 * (yk_temp + zk_temp - vk_temp / p_scale - wk_temp / p_scale) / score_safe
@@ -89,5 +99,13 @@ class ADMM_Adam_layer(Optimizer):
 
                 # Update weights to pruned values
                 w.copy_(zk_temp)
+
+                # Track per-layer residuals
+                r_norms.append(torch.norm(score_safe * qk - zk_temp).item())
+                s_norms.append(p_scale * torch.norm(zk_temp - zk_old).item())
+
+        # Store averaged residuals for adaptive rho
+        self.r_norm = float(np.mean(r_norms)) if r_norms else 0.0
+        self.s_norm = float(np.mean(s_norms)) if s_norms else 0.0
 
         return loss

@@ -5,6 +5,7 @@ providing the finest granularity of control. Each neuron's weights are
 treated as a group for the Ratio Norm regularization.
 """
 import torch
+import numpy as np
 from torch.optim import Optimizer
 
 from .utils import safe_norm, soft_thresholding, solve_cubic_ratio_norm, safe_cbrt
@@ -46,7 +47,13 @@ class ADMM_Adam_neuron(Optimizer):
             with torch.enable_grad():
                 loss = closure()
 
-        p_scale = 1.0 / self.lr
+        # Use mutable rho if set externally (adaptive rho), else default 1/lr
+        if not hasattr(self, 'rho'):
+            self.rho = 1.0 / self.lr
+        p_scale = self.rho
+
+        r_norms = []
+        s_norms = []
 
         for group in self.param_groups:
             for w, vk_temp, yk_temp, zk_temp, wk_temp, score_temp in zip(
@@ -60,22 +67,35 @@ class ADMM_Adam_neuron(Optimizer):
 
                 if w_dim == 4:
                     # Conv2d layer: [out_channels, in_channels, kH, kW]
+                    zk_old = zk_temp.clone()
                     w.data, vk_temp.data, yk_temp.data, zk_temp.data, wk_temp.data = \
                         self._conv_neuronwise_update(
                             w, vk_temp, yk_temp, zk_temp, wk_temp, grad, score_temp, p_scale
                         )
+                    r_norms.append(torch.norm(w.data - zk_old).item())
+                    s_norms.append(p_scale * torch.norm(zk_temp.data - zk_old).item())
                 elif w_dim == 2:
                     # Linear layer: [out_features, in_features]
+                    zk_old = zk_temp.clone()
                     w.data, vk_temp.data, yk_temp.data, zk_temp.data, wk_temp.data = \
                         self._linear_neuronwise_update(
                             w, vk_temp, yk_temp, zk_temp, wk_temp, grad, score_temp, p_scale
                         )
+                    r_norms.append(torch.norm(w.data - zk_old).item())
+                    s_norms.append(p_scale * torch.norm(zk_temp.data - zk_old).item())
                 elif w_dim == 1:
                     # Bias or BatchNorm parameters: [num_features]
+                    zk_old = zk_temp.clone()
                     w.data, vk_temp.data, yk_temp.data, zk_temp.data, wk_temp.data = \
                         self._vector_update(
                             w, vk_temp, yk_temp, zk_temp, wk_temp, grad, score_temp, p_scale
                         )
+                    r_norms.append(torch.norm(w.data - zk_old).item())
+                    s_norms.append(p_scale * torch.norm(zk_temp.data - zk_old).item())
+
+        # Store averaged residuals for adaptive rho
+        self.r_norm = float(np.mean(r_norms)) if r_norms else 0.0
+        self.s_norm = float(np.mean(s_norms)) if s_norms else 0.0
 
         return loss
 
