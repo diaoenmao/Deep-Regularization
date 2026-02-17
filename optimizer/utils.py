@@ -19,6 +19,32 @@ def soft_thresholding(b: Tensor, u: Tensor) -> Tensor:
     return torch.sign(b) * torch.clamp(torch.abs(b) - u, min=0.0)
 
 
+def group_soft_thresholding_column(b: Tensor, lambda_val: float) -> Tensor:
+    """Column-wise (input-feature) group soft-thresholding.
+
+    For a 2-D weight matrix W ∈ R^{out × in}, each column W_{:,j}
+    represents all connections from input feature j.  This function
+    applies the group (block) soft-thresholding operator:
+
+        z_{:,j} = v_{:,j} · max(0, 1 − λ / ‖v_{:,j}‖₂)
+
+    Entire columns are driven to zero together, inducing *input-group*
+    sparsity (= feature selection).
+
+    Args:
+        b: Weight tensor of shape ``(out_features, in_features)``.
+        lambda_val: Non-negative threshold (scalar).
+    Returns:
+        Tensor of same shape with group-thresholded columns.
+    """
+    # Column L2 norms: shape (in_features,)
+    col_norms = torch.norm(b, p=2, dim=0)
+    # Shrinkage factor per column, clamped to ≥ 0  (ReLU)
+    scale = torch.clamp(1.0 - lambda_val / (col_norms + 1e-8), min=0.0)
+    # Broadcast (1, in_features) → (out, in)
+    return b * scale.unsqueeze(0)
+
+
 def safe_norm(x: Tensor, p: float = 2.0, dim=None, keepdim: bool = False, eps: float = 1e-8) -> Tensor:
     """Numerically stable p-norm used in ADMM updates."""
     return torch.norm(x, p=p, dim=dim, keepdim=keepdim) + eps

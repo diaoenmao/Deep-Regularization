@@ -212,6 +212,20 @@ python tune_hyperparameters.py
 
 ---
 
+## Compact comparison (existing result files) ✅
+
+- I aggregated the compact-suite results (datasets: `xor`, `ring`, `ring+xor`, `ring+xor+sum`; feature sizes: `n=8,32,128`) from `Feature-Selection-Benchmark/results/` into a single CSV and a comparison plot:
+  - CSV: `results/compare_methods_compact-20260210.csv`
+  - Plot: `results/figures/compare_methods_compact-20260210.png`
+  - Reproduce: `python scripts/aggregate_fs_results.py`
+
+- High-level takeaways (from those files):
+  - Tree- and classical FS methods (RandomForest, TreeSHAP, mRMR, LassoNet, and the NN wrapper) often lead the compact leaderboard at `n=128` (example: on `ring+xor+sum`, `rf` best-k=0.75, `treeshap` & `mrmr` ≈0.64).
+  - Many saliency/gradient methods (GuidedBackprop, IG variants, SmoothGrad) succeed at small `n` but fail on `n=128` for pure XOR-like nonlinear tasks.
+  - ADMM/Lasso entries in the available result files are **incomplete** for the compact set (ADMM_global appears only for some configs). If you want an apples-to-apples comparison that includes the new ADMM/Lasso wrappers, re-running the compact benchmark with `python run_compact_benchmark.py` and then re-running `scripts/aggregate_fs_results.py` is recommended.
+
+---
+
 ## Key Findings
 
 1. **ADMM achieves extreme compression**: 100× compression (99% sparsity) at 94.66% accuracy via ADMM_neuron.
