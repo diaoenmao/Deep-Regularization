@@ -6,7 +6,13 @@
       "Bash(python tune_hyperparameters.py:*)",
       "Bash(python:*)",
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Skill(ml-paper-writing)",
+      "WebSearch",
+      "WebFetch(domain:www.auai.org)",
+      "WebFetch(domain:openaccess.thecvf.com)",
+      "Bash(tr:*)",
+      "Bash(del \"C:\\\\Users\\\\12425\\\\Documents\\\\Projects\\\\NEW_Pruning_20251110\\\\deep-reg-paper\\\\uai2026\\\\check_refs.py\")"
     ]
   }
 }
