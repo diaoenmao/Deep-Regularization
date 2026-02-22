@@ -1,0 +1,14 @@
+numpy
+scipy
+pandas
+torch
+captum
+shap
+scikit-learn
+xlrd
+optuna
+tensorflow
+keras==2.3.0
+concrete_autoencoder==0.0.1
+lassonet
+python-mnist

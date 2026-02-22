@@ -1,0 +1,2 @@
+Dataset	ADMM_InputGroup_bestK	ADMM_InputGroup_bestK_std	ADMM_InputGroup_best2K	ADMM_InputGroup_best2K_std	ADMM_InputGroup_bestK2	ADMM_InputGroup_bestK2_std	ADMM_InputGroup_best2K2	ADMM_InputGroup_best2K2_std
+dag_2000_1000	0.07777777777777778	0.0	0.08888888888888889	0.0	0.16561181434599156	0.0	0.3238396624472574	0.0

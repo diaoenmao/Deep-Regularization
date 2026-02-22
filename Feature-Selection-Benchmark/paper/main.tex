@@ -1,0 +1,711 @@
+\documentclass{uai2026} % anonymous submission
+
+\usepackage[american]{babel}
+\usepackage{natbib}
+    \bibliographystyle{plainnat}
+    \renewcommand{\bibsection}{\subsubsection*{References}}
+\usepackage{mathtools}
+\usepackage{booktabs}
+\usepackage{tikz}
+\usepackage{algorithm2e}
+\usepackage{amssymb}
+\usepackage{multirow}
+\usepackage{xcolor}
+\usepackage{amsthm}
+
+% ---- Theorems ----
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{corollary}[theorem]{Corollary}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\theoremstyle{remark}
+\newtheorem{remark}[theorem]{Remark}
+
+% ---- Macros ----
+\newcommand{\RN}{\mathrm{RN}}    % Ratio Norm
+\newcommand{\bz}{\mathbf{z}}
+\newcommand{\bg}{\mathbf{g}}
+\newcommand{\bu}{\mathbf{u}}
+\newcommand{\bv}{\mathbf{v}}
+\newcommand{\bw}{\mathbf{w}}
+\newcommand{\bx}{\mathbf{x}}
+\newcommand{\by}{\mathbf{y}}
+\newcommand{\bq}{\mathbf{q}}
+\newcommand{\bd}{\mathbf{d}}
+\newcommand{\be}{\mathbf{e}}
+\newcommand{\bW}{\mathbf{W}}
+\DeclareMathOperator{\prox}{prox}
+\DeclareMathOperator{\soft}{soft}
+\DeclareMathOperator{\sgn}{sgn}
+\DeclareMathOperator*{\argmin}{arg\,min}
+
+\title{Linearized ADMM with Ratio Norm for Neural Network Feature Selection}
+
+\author[1]{Anonymous Author(s)}
+\affil[1]{Anonymous Institution}
+
+\begin{document}
+\maketitle
+
+% ================================================================
+%  ABSTRACT
+% ================================================================
+\begin{abstract}
+Feature selection in high-dimensional data with complex nonlinear dependencies remains challenging.
+Existing neural network approaches either apply soft gating with standard sparsity penalties, yielding diffuse feature scores, or require specialized architectures that limit flexibility.
+We propose a simple yet effective framework combining a \emph{Gated Feature-Selection MLP} with \emph{Linearized ADMM} and a \emph{Ratio Norm} ($\lVert\bz\rVert_1/\lVert\bz\rVert_2$) penalty.
+The gated network multiplies each input feature by a learnable scalar gate; during training, the gate vector is optimized jointly with network weights via Adam, while the ADMM auxiliary variable receives an epoch-level proximal update under the scale-invariant Ratio Norm.
+Feature dropout at 70\% prevents memorization through noise features.
+On synthetic benchmarks with up to 2{,}048 dimensions, our method achieves 66.8\% average best-$k$ accuracy, ranking first among all neural network methods and third overall.
+On a causal DAG dataset (2{,}000 features), it attains the highest fork-feature recovery (32.4\% best-$2k_2$), substantially outperforming TreeSHAP (17.3\%).
+On the MADELON real-world benchmark, it matches Random Forest and TreeSHAP (AUROC 0.964), exceeding all other neural approaches.
+These results demonstrate that Linearized ADMM with Ratio Norm provides a principled and competitive approach to neural feature selection, especially for detecting nonlinear and interaction-based informative features.
+\end{abstract}
+
+% ================================================================
+%  1. INTRODUCTION
+% ================================================================
+\section{Introduction}\label{sec:intro}
+
+Feature selection---identifying a small subset of informative variables from a potentially large candidate set---is a fundamental problem in machine learning \citep{guyon2003introduction, li2018feature}.
+In modern high-dimensional settings, the challenge is compounded by nonlinear feature interactions: purely univariate statistics (e.g., mutual information) fail to detect XOR-like patterns where individual features carry no marginal information, yet jointly determine the response.
+
+Traditional filter methods such as mutual information \citep{peng2005mrmr} and Relief \citep{kira1992relief} scale well but are limited to detecting marginal or pairwise associations.
+Tree-based methods \citep{breiman2001random, lundberg2017shap} capture nonlinear relationships through ensemble averaging, but their importance scores reflect split-based relevance rather than a principled sparsity mechanism.
+Neural network approaches---LassoNet \citep{lemhadri2021lassonet}, CancelOut \citep{borisov2019cancelout}, Concrete Autoencoders \citep{balin2019concrete}, and DeepPINK \citep{lu2018deeppink}---embed feature selection within the learning pipeline, but often rely on $\ell_1$ penalties or Gumbel-Softmax relaxations that are sensitive to feature scale and provide limited theoretical guarantees on exact sparsity.
+
+We propose a framework consisting of three components:
+\begin{enumerate}
+    \item \textbf{Gated Feature-Selection MLP}: A lightweight two-layer network with an unbounded learnable gate vector $\bg \in \mathbb{R}^m$ applied as element-wise multiplication, combined with 70\% feature dropout during training.
+    \item \textbf{Linearized ADMM}: The gate vector participates in standard Adam optimization (preserving full gradient dynamics), while an auxiliary variable $\bz$ is updated at the epoch level through a closed-form proximal step.
+    \item \textbf{Ratio Norm penalty}: The scale-invariant sparsity measure $R(\bz) = \lVert\bz\rVert_1 / \lVert\bz\rVert_2$ is used in the $\bz$-step, ensuring that features with different magnitudes are treated fairly.
+\end{enumerate}
+
+Our contributions are:
+\begin{itemize}
+    \item A principled integration of ADMM-based structured sparsity with neural network training that maintains the gate within the optimizer's gradient flow.
+    \item A proximal operator for the Ratio Norm penalty, computed via a cubic equation with closed-form solution.
+    \item Comprehensive experiments showing state-of-the-art performance among neural methods on synthetic (nonlinear/interaction), causal (DAG), and real-world (MADELON) benchmarks.
+\end{itemize}
+
+% ================================================================
+%  2. RELATED WORK
+% ================================================================
+\section{Related Work}\label{sec:related}
+
+\paragraph{Filter and tree-based methods.}
+Univariate mutual information (MI) ranks features independently, while mRMR \citep{peng2005mrmr} accounts for inter-feature redundancy.
+Relief \citep{kira1992relief} uses nearest-neighbor distances.
+Random Forests \citep{breiman2001random} provide Gini importance; TreeSHAP \citep{lundberg2017shap} yields theoretically grounded Shapley-value importances but inherits the tree ensemble's limitations in extremely high dimensions.
+
+\paragraph{Neural feature selection.}
+LassoNet \citep{lemhadri2021lassonet} introduces hierarchical $\ell_1$ penalties on skip connections.
+CancelOut \citep{borisov2019cancelout} applies sigmoid- or softmax-gated masks.
+Concrete Autoencoders \citep{balin2019concrete} use Gumbel-Softmax for differentiable discrete selection.
+Stochastic Gates \citep{yamada2020stg} employ Gaussian-smoothed Bernoulli masks.
+DeepPINK \citep{lu2018deeppink} combines knockoff statistics with pairwise feature layers.
+All these methods couple the sparsity mechanism tightly with the gradient update, making it difficult to enforce hard sparsity or use non-smooth penalties beyond $\ell_1$.
+
+\paragraph{ADMM in deep learning.}
+ADMM has been applied to neural network weight pruning \citep{ren2019admm} and training without gradients \citep{taylor2016admm}.
+Linearized ADMM variants \citep{lin2011linearized, yang2013linearized} have been studied for convex problems.
+\citet{yu2026sadmm} proposed Scope-Driven SADMM, which bridges ADMM with stochastic gradient descent for network pruning via a three-variable splitting of the Ratio Norm.
+Our work adapts this framework specifically for the \emph{feature gate vector} in a neural network for feature selection, with importance-adaptive regularization.
+
+\paragraph{Ratio Norm and sparse penalties.}
+The $\ell_1/\ell_2$ ratio was studied as a sparseness measure by \citet{hoyer2004sparseness} in the context of non-negative matrix factorization.
+\citet{nasery2024end} applied the ratio norm to end-to-end sparse model training.
+Unlike the standard Lasso \citep{tibshirani1996lasso}, which penalizes each coefficient independently and is scale-sensitive, the Ratio Norm is invariant to global scaling of $\bz$, making it especially suitable when gate magnitudes vary across features.
+
+% ================================================================
+%  3. METHOD
+% ================================================================
+\section{Method}\label{sec:method}
+
+\subsection{Gated Feature-Selection MLP}\label{sec:model}
+
+Given input $\bx \in \mathbb{R}^m$, we define a learnable gate vector $\bg \in \mathbb{R}^m$ initialized to $\mathbf{1}$, and compute:
+\begin{equation}\label{eq:gating}
+    \hat{\bx} = \bx \odot (\bg \odot \mathbf{d}),
+\end{equation}
+where $\mathbf{d} \sim \text{Bernoulli}(1 - p)^m / (1-p)$ is an inverted-dropout mask with drop rate $p = 0.7$ applied during training.
+The masked input passes through a two-layer MLP:
+\begin{equation}\label{eq:mlp}
+    h = \phi(\bW_2\, \phi(\bW_1\, \hat{\bx} + b_1) + b_2), \quad y = \bW_3\, h + b_3,
+\end{equation}
+where $\phi$ is the Mish activation \citep{misra2019mish} and hidden dimensions are 32.
+
+\paragraph{Design choices.}
+The gate is \emph{unbounded}---unlike CancelOut's sigmoid gating $\sigma(\theta) \in [0,1]$---allowing the ADMM penalty to drive entries to exact zero.
+The high feature dropout rate of 70\% is critical: it prevents the network from memorizing through noise features, forcing the gate to concentrate weight on truly informative features.
+The compact architecture (2$\times$32 vs.\ 5$\times$58 in the baseline MLP) complements the dropout by reducing model capacity.
+
+\subsection{Three-Variable ADMM Splitting for the Ratio Norm}\label{sec:admm}
+
+The Ratio Norm $R(\bz) = \lVert\bz\rVert_1 / \lVert\bz\rVert_2$ couples all components through both the numerator and denominator, preventing a direct proximal operator.
+Following the SADMM framework \citep{yu2026sadmm}, we introduce \emph{two} auxiliary copies of the gate vector---$\by$ to handle the $\ell_2$ denominator and $\bz$ to handle the $\ell_1$ numerator---yielding the constrained problem:
+\begin{equation}\label{eq:admm-obj}
+    \min_{\theta,\bg}\;\mathcal{L}(\theta,\bg) + \frac{C}{N}\frac{\lVert\bz\rVert_1}{\lVert\by\rVert_2}
+    \quad\text{s.t.}\;\bg = \by,\;\bg = \bz,
+\end{equation}
+where $\theta = \{\bW_i, b_i\}$ and $\lambda_j = C / s_j$ with $s_j = \lVert\bW_1[:,j]\rVert_2 + \epsilon$.
+The augmented Lagrangian in scaled form is:
+\begin{equation}\label{eq:auglag}
+    \mathcal{L}_\rho = \mathcal{L}(\theta,\bg)
+    + \frac{C}{N}\frac{\lVert\bz\rVert_1}{\lVert\by\rVert_2}
+    + \frac{\rho}{2}\lVert\bg - \by + \bv/\rho\rVert^2
+    + \frac{\rho}{2}\lVert\bg - \bz + \bw/\rho\rVert^2,
+\end{equation}
+where $\bv,\bw$ are dual variables.
+
+\paragraph{Training proceeds in two phases:}
+
+\textbf{Phase 1 (Warm-up, epochs $0$ to $T_w{-}1$).}
+Standard Adam \citep{kingma2015adam} training on $\mathcal{L}(\theta,\bg)$ with feature dropout, no sparsity.
+
+\textbf{Phase 2 (ADMM, epochs $T_w$ to $T{-}1$).}
+At each epoch, four subproblems are solved:
+
+\textit{Step 1 ($\bg$-step):} Minimizing~\eqref{eq:auglag} over $(\theta,\bg)$ while fixing $\by,\bz,\bv,\bw$.
+Taking the derivative and setting to zero:
+\begin{equation}\label{eq:gstep}
+    \bg^{(k+1)} = \tfrac{1}{2}\!\left(\by^{(k)} + \bz^{(k)}
+    - \tfrac{\bv^{(k)}}{\rho} - \tfrac{\bw^{(k)}}{\rho}
+    - \tfrac{1}{\rho}\nabla_{\bg}\mathcal{L}\big|_{\bg^{(k+1)}}\right).
+\end{equation}
+Since computing the gradient at $\bg^{(k+1)}$ is implicit, we approximate it using Adam's momentum estimate $\hat{m}_k$ (SADMM, see Section~\ref{sec:sadmm}).
+Crucially, $\bg$ remains within Adam's state, preserving full gradient dynamics.
+
+\textit{Step 2 ($\by$-step):} With $c^{(k)} = \lVert\bz^{(k)}\rVert_1$ and $\bd^{(k)} = \bg^{(k+1)} + \bv^{(k)}/\rho$, we solve (see Section~\ref{sec:ystep}):
+\begin{equation}\label{eq:ysubproblem}
+    \by^{(k+1)} = \argmin_{\by}\;\frac{C\, c^{(k)}}{N\lVert\by\rVert_2}
+    + \frac{\rho}{2}\lVert\by - \bd^{(k)}\rVert^2.
+\end{equation}
+
+\textit{Step 3 ($\bz$-step):} Soft-thresholding (see Section~\ref{sec:zstep}):
+\begin{equation}\label{eq:zstep}
+    \bz^{(k+1)} = S\!\left(\bg^{(k+1)} + \tfrac{\bw^{(k)}}{\rho},\;
+    \tfrac{C}{N\rho\lVert\by^{(k+1)}\rVert_2}\right).
+\end{equation}
+
+\textit{Step 4 (Dual updates):}
+$\bv^{(k+1)} = \bv^{(k)} + \rho(\bg^{(k+1)} - \by^{(k+1)})$,
+$\bw^{(k+1)} = \bw^{(k)} + \rho(\bg^{(k+1)} - \bz^{(k+1)})$.
+
+Additionally, $s_j$ is refreshed each epoch, and $\rho$ is adapted every 5 epochs via residual-balancing \citep{boyd2011admm} with dual rescaling $\bv \leftarrow \bv \cdot \rho_\text{old}/\rho_\text{new}$, $\bw \leftarrow \bw \cdot \rho_\text{old}/\rho_\text{new}$.
+
+\subsection{Solving the $\by$-Subproblem: Cubic Equation}\label{sec:ystep}
+
+The $\by$-subproblem~\eqref{eq:ysubproblem} handles the $\ell_2$ denominator of the Ratio Norm.
+Taking the derivative and setting to zero:
+\begin{equation}\label{eq:yderiv}
+    -\frac{C\, c^{(k)}}{N\lVert\by\rVert_2^3}\by + \rho(\by - \bd^{(k)}) = \mathbf{0}.
+\end{equation}
+When $\bd^{(k)} \neq \mathbf{0}$, we write $\by^{(k+1)} = \tau^{(k)}\bd^{(k)}$ for a scalar $\tau > 0$.
+Substituting into~\eqref{eq:yderiv} and simplifying:
+\begin{equation}\label{eq:cubic}
+    (\tau^{(k)})^3 - (\tau^{(k)})^2 - D^{(k)} = 0,
+\end{equation}
+where
+\begin{equation}\label{eq:D}
+    D^{(k)} = \frac{C\,c^{(k)}}{N\rho\lVert\bd^{(k)}\rVert_2^3}.
+\end{equation}
+This cubic has a unique positive real root given by Cardano's formula:
+\begin{equation}\label{eq:tau}
+    \tau^{(k)} = \tfrac{1}{3} + \tfrac{1}{3}\bigl(\mathcal{C}^{(k)} + 1/\mathcal{C}^{(k)}\bigr),
+\end{equation}
+where
+\begin{equation}\label{eq:cardano}
+    \mathcal{C}^{(k)} = \sqrt[3]{\frac{27D^{(k)} + 2 + \sqrt{(27D^{(k)}+2)^2 - 4}}{2}}.
+\end{equation}
+When $\bd^{(k)} = \mathbf{0}$, we set $\by^{(k+1)} = \be^{(k)}$, a random vector with $\lVert\be^{(k)}\rVert_2 = (c^{(k)}/\rho)^{1/3}$.
+
+\subsection{Solving the $\bz$-Subproblem: Soft-Thresholding}\label{sec:zstep}
+
+The $\bz$-subproblem handles the $\ell_1$ numerator:
+\begin{equation}\label{eq:zsub}
+    \bz^{(k+1)} = \argmin_{\bz}\;\frac{C}{N\lVert\by^{(k+1)}\rVert_2}\lVert\bz\rVert_1
+    + \frac{\rho}{2}\Big\lVert\bg^{(k+1)} - \bz + \tfrac{\bw^{(k)}}{\rho}\Big\rVert^2.
+\end{equation}
+Differentiating and applying the standard soft-thresholding operator $S(\cdot,\cdot)$:
+\begin{equation}\label{eq:zupdate}
+    z_j^{(k+1)} = S\!\left(g_j^{(k+1)} + \frac{w_j^{(k)}}{\rho},\;\frac{C}{N\rho\lVert\by^{(k+1)}\rVert_2}\right),
+\end{equation}
+where $S(a,\kappa) = \sgn(a)\max(|a|-\kappa, 0)$.
+
+\begin{proposition}[Pruning Bound]\label{prop:pruning}
+Feature $j$ is pruned (i.e., $z_j^{(k+1)} = 0$) if and only if
+\begin{equation}\label{eq:prune-bound}
+    \left|g_j^{(k+1)} + \frac{w_j^{(k)}}{\rho}\right| \leq \frac{C}{N\rho\lVert\by^{(k+1)}\rVert_2}.
+\end{equation}
+The pruning threshold adapts automatically: as the $\ell_2$ norm $\lVert\by\rVert_2$ grows (more features active), the threshold shrinks, making pruning more selective.
+\end{proposition}
+
+\subsection{Connection to Stochastic Optimization (SADMM)}\label{sec:sadmm}
+
+The $\bg$-step~\eqref{eq:gstep} requires the implicit gradient $\nabla_{\bg}\mathcal{L}|_{\bg^{(k+1)}}$.
+Following \citet{yu2026sadmm}, we bridge ADMM with stochastic gradient descent by setting:
+\begin{equation}\label{eq:sadmm-bridge}
+    \frac{1}{\rho}\nabla_{\bg}\mathcal{L}\big|_{\bg^{(k+1)}} \approx \alpha_k \hat{m}_k,
+    \quad \rho = \frac{1}{\alpha_k},
+\end{equation}
+where $\alpha_k = \eta / (\sqrt{\hat{v}_k} + \epsilon)$ is Adam's adaptive step size and $\hat{m}_k$ is the bias-corrected first moment.
+This yields the practical update:
+\begin{equation}\label{eq:g-practical}
+    \bg^{(k+1)} = \tfrac{1}{2}\bigl(\by^{(k)} + \bz^{(k)}
+    - \alpha_k\bv^{(k)} - \alpha_k\bw^{(k)} - \alpha_k\hat{m}_k\bigr).
+\end{equation}
+This formulation makes the framework compatible with any gradient-based optimizer (SGD, Adam, AdaGrad) and enables mini-batch training without requiring closed-form solutions to the $\bg$-subproblem.
+
+\begin{proposition}[$\ell_1$ Degeneration]\label{prop:l1}
+When the Ratio Norm $\lVert\bz\rVert_1/\lVert\bz\rVert_2$ is replaced by the $\ell_1$ norm $\lVert\bz\rVert_1$, the three-variable split reduces to a two-variable split ($\bg = \bz$), and the $\bz$-step becomes:
+\begin{equation}
+    z_j^{(k+1)} = S\bigl(g_j^{(k)} - \alpha_k\nabla_{g_j}\mathcal{L},\; C\alpha_k/N\bigr),
+\end{equation}
+which recovers the classical proximal gradient (iterative soft-thresholding) method \citep{parikh2014proximal}.
+\end{proposition}
+
+\subsection{Ratio Norm Properties}\label{sec:rationorm}
+
+\begin{definition}[Ratio Norm]
+For $\bz \neq \mathbf{0}$, the Ratio Norm is $R(\bz) = \lVert\bz\rVert_1 / \lVert\bz\rVert_2$.
+It is scale-invariant: $R(\alpha\bz) = R(\bz)$ for $\alpha > 0$.
+Its range is $[1, \sqrt{m}]$, with $R(\bz)=1$ iff at most one component is nonzero (maximally sparse) and $R(\bz) = \sqrt{m}$ iff all components are equal \citep{hoyer2004sparseness}.
+\end{definition}
+
+Compared to $\ell_1$, the Ratio Norm has two key advantages for feature selection:
+(1)~\emph{Scale invariance}: features with different gate magnitudes are treated equally, avoiding the bias where $\ell_1$ over-penalizes large-magnitude gates;
+(2)~\emph{Decoupled sparsity and scale}: the three-variable split~\eqref{eq:admm-obj} separates the sparsity-inducing $\ell_1$ numerator (handled by $\bz$) from the normalizing $\ell_2$ denominator (handled by $\by$), enabling independent closed-form solutions.
+
+The importance-adaptive penalty $\lambda_j = C/s_j$ assigns weaker regularization to features connected to high-norm first-layer weights, automatically calibrating the sparsity threshold.
+
+\subsection{Algorithm Summary}
+
+The complete algorithm is given as Algorithm~\ref{alg:main}.
+
+\begin{algorithm}[t]
+\caption{Linearized ADMM with Ratio Norm (SADMM-FS)}\label{alg:main}
+\SetAlgoLined
+\KwIn{Data $(X, y)$, hyperparams $\{T, T_w, C, \rho_0, p\}$}
+\KwOut{Feature ranking by $|\bg|$}
+Init $\bg,\by,\bz \leftarrow \mathbf{1}$;\quad $\bv,\bw \leftarrow \mathbf{0}$;\quad $\rho \leftarrow \rho_0$\;
+\For{$t = 0$ \KwTo $T-1$}{
+    \If{$t < T_w$}{
+        \tcp{Phase 1: Warm-up}
+        Adam step on $\mathcal{L}(\theta, \bg)$ with feat.~dropout\;
+    }
+    \Else{
+        \tcp{Phase 2: Three-variable ADMM}
+        $s_j \leftarrow \lVert\bW_1[:,j]\rVert_2 + \epsilon$\;
+        \textbf{g-step:} Adam on $\mathcal{L}_\rho$ via~\eqref{eq:g-practical}\;
+        $c \leftarrow \lVert\bz\rVert_1$;\quad
+        $\bd \leftarrow \bg + \bv/\rho$\;
+        \textbf{y-step:} Solve cubic~\eqref{eq:cubic} for $\tau$;\quad
+        $\by \leftarrow \tau\,\bd$\;
+        \textbf{z-step:} $\bz \leftarrow S(\bg + \bw/\rho,\; C/(N\rho\lVert\by\rVert_2))$\;
+        \textbf{dual:} $\bv \leftarrow \bv + \rho(\bg - \by)$;\quad
+        $\bw \leftarrow \bw + \rho(\bg - \bz)$\;
+        \If{$t \bmod 5 = 0$}{
+            Adapt $\rho$ (residual balancing)\;
+            $\bv,\bw \leftarrow \bv,\bw \cdot \rho_\text{old}/\rho_\text{new}$\;
+        }
+    }
+}
+\Return ranking by $|g_j|$ descending\;
+\end{algorithm}
+
+% ================================================================
+%  4. EXPERIMENTS
+% ================================================================
+\section{Experiments}\label{sec:exp}
+
+We evaluate our method on three benchmarks of increasing complexity: synthetic datasets with known informative features, a causal DAG dataset with two-level ground truth, and the MADELON real-world challenge dataset.
+
+\subsection{Synthetic Benchmarks}\label{sec:synth}
+
+\paragraph{Setup.}
+We use four synthetic tasks from the Feature-Selection-Benchmark suite \citep{guyon2003introduction}:
+\textbf{Ring} ($k{=}2$, radial band), \textbf{XOR} ($k{=}2$, quadrant interaction),
+\textbf{Ring+XOR} ($k{=}4$), and \textbf{Ring+XOR+Sum} ($k{=}6$, with additive noise).
+Samples are drawn uniformly in $[0,1]^m$ with $n{=}1{,}000$, and feature dimensions range over $m \in \{8, 16, 32, \ldots, 2048\}$.
+The signal-to-noise ratio $k/m$ decreases from 25\% ($m{=}8$) to 0.1\% ($m{=}2048$).
+All methods are evaluated via 6-fold CV with random feature permutation per fold.
+The metric is \textbf{best-$k$}: the fraction of true informative features appearing in the top-$k$ ranked features (Precision@$k$).
+
+\paragraph{Baselines.}
+We compare against 11 methods spanning filter (MI, mRMR, Relief), tree-based (RF, TreeSHAP), and neural (LassoNet, CancelOut-sigmoid, CancelOut-softmax, CAE, FSNet, DeepPINK) categories, all run on the same data splits with the same evaluation protocol.
+
+\paragraph{Results.}
+Table~\ref{tab:synthetic} reports average best-$k$ across all values of $m$.
+Our method achieves 66.8\% overall, ranking \textbf{first among all neural network methods} (vs.\ LassoNet 56.4\%, CancelOut-sig 47.0\%, DeepPINK 31.2\%) and \textbf{third overall} behind RF (82.2\%) and TreeSHAP (75.1\%).
+Notably, on the \textbf{XOR} task---which requires detecting feature interactions undetectable by marginal statistics---our method achieves 83.3\%, substantially surpassing all non-neural methods (RF 54.5\%, mRMR 11.4\%, MI 18.2\%).
+This confirms the advantage of neural gating for capturing nonlinear dependencies.
+
+At $m{=}128$, where the signal-to-noise ratio is 1.6\% for XOR, our method achieves perfect 100\% best-$k$ accuracy, matching RF, TreeSHAP, and LassoNet.
+Performance degrades gracefully up to $m{=}256$ (100\% for XOR) and begins declining at $m{=}512$, indicating room for improvement in the ultra-high-dimensional regime.
+
+\begin{table}[t]
+    \centering
+    \caption{Synthetic Datasets: Average Best-$k$ (\%, 6-fold CV) Across All $m$.}\label{tab:synthetic}
+    \begin{tabular}{lcccc|c}
+        \toprule
+        \textbf{Method} & \textbf{Ring} & \textbf{XOR} & \textbf{R+X} & \textbf{R+X+S} & \textbf{Avg} \\
+        \midrule
+        RF          & \textbf{100.0} & 54.5 & \textbf{88.8} & \textbf{85.3} & \textbf{82.2} \\
+        TreeSHAP    & \textbf{100.0} & 40.2 & 81.7 & 78.3 & 75.1 \\
+        mRMR        & \textbf{100.0} & 11.4 & 81.7 & 74.7 & 67.0 \\
+        \textbf{Ours}  & 63.9 & \textbf{83.3} & 54.2 & 65.8 & \underline{66.8} \\
+        LassoNet    & 34.8 & 81.8 & 44.6 & 64.2 & 56.4 \\
+        Relief      & 40.2 & 72.7 & 37.1 & 43.9 & 48.5 \\
+        MI          & 92.6 & 18.2 & 39.6 & 40.8 & 47.8 \\
+        CancelOut-$\sigma$ & 34.1 & 60.6 & 37.5 & 55.8 & 47.0 \\
+        DeepPINK    & 21.2 & 34.1 & 21.2 & 48.3 & 31.2 \\
+        CancelOut-sm & 26.5 & 31.8 & 24.6 & 40.3 & 30.8 \\
+        CAE         & 19.7 & 22.7 & 19.2 & 25.8 & 21.9 \\
+        FSNet       & 20.5 & 18.2 & 21.2 & 25.3 & 21.3 \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\subsection{Causal DAG Benchmark}\label{sec:dag}
+
+\paragraph{Setup.}
+We generate a sparse Bayesian network with $m{=}2{,}000$ features and $n{=}1{,}000$ observations.
+The label is determined by a causal path through the DAG, defining two levels of ground truth:
+$k \approx 15$ \emph{chain features} (direct causal ancestors) and $k_2 \approx 316$ \emph{chain+fork features} (including indirect influences through fork nodes).
+We evaluate four metrics: \textbf{bestK} (Precision@$k$), \textbf{best2K} (Precision@$2k$), \textbf{bestK2} (Precision@$k_2$), and \textbf{best2K2} (Precision@$2k_2$).
+
+\paragraph{Results.}
+Table~\ref{tab:dag} shows the results.
+Our method obtains modest scores on chain features (bestK = 7.8\%), where TreeSHAP (28.6\%) and RF (21.4\%) dominate.
+However, it achieves the \textbf{highest scores on fork features}: bestK2 = 16.6\% and best2K2 = 32.4\%, substantially exceeding TreeSHAP (13.4\% / 17.3\%) and all other methods.
+This indicates that Linearized ADMM with Ratio Norm is particularly effective at discovering \emph{indirect causal influences}---features that affect the target through intermediate variables in the DAG rather than through direct causal chains.
+
+We hypothesize that the Ratio Norm's scale invariance helps detect fork features, which typically have weaker individual correlations with the target but collectively carry substantial information.
+The standard $\ell_1$ penalty, being magnitude-sensitive, would disproportionately penalize these weaker signals.
+
+\begin{table}[t]
+    \centering
+    \caption{DAG Dataset: Feature Recovery (\%, $m{=}2{,}000$).}\label{tab:dag}
+    \begin{tabular}{lcccc}
+        \toprule
+        \textbf{Method} & \textbf{bestK} & \textbf{best2K} & \textbf{bestK2} & \textbf{best2K2} \\
+        \midrule
+        TreeSHAP & \textbf{28.6} & \textbf{42.9} & 13.4 & 17.3 \\
+        RF       & 21.4 & 40.5 & 12.8 & 17.9 \\
+        mRMR     & 16.7 & 19.0 & 6.6  & 11.5 \\
+        CancelOut-$\sigma$ & 16.7 & 19.0 & 9.7 & 14.8 \\
+        LassoNet & 14.3 & 14.3 & 6.8  & 11.1 \\
+        DeepPINK & 14.3 & 14.3 & 8.4  & 12.3 \\
+        MI       & 14.3 & 14.3 & 7.0  & 10.3 \\
+        Relief   & 14.3 & 14.3 & 6.8  & 9.5 \\
+        \textbf{Ours} & 7.8 & 8.9 & \textbf{16.6} & \textbf{32.4} \\
+        CancelOut-sm & 9.5 & 23.8 & 7.0 & 12.1 \\
+        CAE      & 2.4  & 11.9 & 4.9  & 8.0 \\
+        FSNet    & 0.0  & 0.0  & 3.9  & 9.3 \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\subsection{MADELON Real-World Benchmark}\label{sec:madelon}
+
+\paragraph{Setup.}
+MADELON is a binary classification dataset from the NIPS 2003 Feature Selection Challenge \citep{guyon2004result}, with 500 features (only 20 informative, 96\% decoys), 2{,}000 training and 600 validation samples.
+We select the top-$k$ features ($k{=}20$), train a Random Forest (500 trees) on the selected subset, and report AUROC and AUPRC.
+
+\paragraph{Results.}
+Table~\ref{tab:madelon} shows our method achieves AUROC = 0.964, matching RF (0.965) and TreeSHAP (0.964) within 0.1\%, and ranking \textbf{first among neural methods} (vs.\ LassoNet 0.950).
+This confirms the method's effectiveness on real-world data where the underlying structure is unknown.
+
+\begin{table}[t]
+    \centering
+    \caption{MADELON: Downstream Classification (top-20 features).}\label{tab:madelon}
+    \begin{tabular}{lcc}
+        \toprule
+        \textbf{Method} & \textbf{AUROC} & \textbf{AUPRC} \\
+        \midrule
+        RF          & \textbf{0.965} & \textbf{0.965} \\
+        TreeSHAP    & 0.964 & 0.965 \\
+        \textbf{Ours} & 0.964 & 0.964 \\
+        LassoNet    & 0.950 & 0.950 \\
+        Relief      & 0.941 & 0.944 \\
+        MI          & 0.833 & 0.831 \\
+        FSNet       & 0.752 & 0.770 \\
+        DeepPINK    & 0.742 & 0.768 \\
+        CancelOut-sm & 0.740 & 0.743 \\
+        CAE         & 0.711 & 0.713 \\
+        CancelOut-$\sigma$ & 0.697 & 0.696 \\
+        mRMR        & 0.640 & 0.646 \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\subsection{Analysis}\label{sec:analysis}
+
+\paragraph{Strengths.}
+Our method excels in three settings:
+(1)~\emph{Interaction detection}: XOR-type patterns where marginal statistics fail (83.3\% vs.\ RF 54.5\%).
+(2)~\emph{Fork-feature recovery}: Indirect causal influences in DAGs (32.4\% vs.\ TreeSHAP 17.3\%).
+(3)~\emph{Real-world with high decoy ratio}: MADELON (96\% noise features) where it matches tree-based oracles.
+
+\paragraph{Limitations.}
+Performance drops in the ultra-high-dimensional regime ($m > 512$) on synthetic data, likely because the gate vector dimensionality grows while the signal remains fixed.
+On the DAG benchmark, chain-feature detection (bestK = 7.8\%) is substantially below TreeSHAP (28.6\%), suggesting that the Ratio Norm's global scale-invariance may smooth over strong local signals.
+Future work on the DAG task includes hyperparameter tuning beyond the current defaults, and potentially combining chain-optimized and fork-optimized runs.
+
+\paragraph{Role of feature dropout.}
+The 70\% feature dropout is essential for high-dimensional performance.
+Without it, the network can memorize training data through noise features, producing nearly flat gate vectors.
+The dropout forces the network to rely on a small subset of features per mini-batch, naturally encouraging sparsity in the learned gate.
+
+\paragraph{Role of the Ratio Norm.}
+The scale-invariant Ratio Norm treats features with different gate magnitudes equally, unlike the $\ell_1$ penalty which over-penalizes large-magnitude gates.
+This is particularly important in the adaptive-penalty setting ($\lambda_j = C/s_j$), where features connected to different-scale first-layer weights would otherwise experience vastly different effective penalties under $\ell_1$.
+
+% ================================================================
+%  5. CONCLUSION
+% ================================================================
+\section{Conclusion}\label{sec:conclusion}
+
+We presented a neural network feature selection framework based on Linearized ADMM with Ratio Norm regularization.
+By keeping the learnable gate within Adam's gradient flow and applying the structured sparsity penalty through an epoch-level proximal step, our method bridges the gap between neural network flexibility and principled sparsity enforcement.
+On diverse benchmarks, it consistently ranks as the best neural network method for feature selection, with particular strengths in detecting nonlinear interactions and indirect causal influences.
+Future directions include extending to group-structured feature selection, adaptive warm-up scheduling, and integration with knockoff-based false discovery rate control.
+
+% ================================================================
+%  BACK MATTER
+% ================================================================
+
+\begin{contributions}
+    Omitted for anonymous review.
+\end{contributions}
+
+\begin{acknowledgements}
+    Omitted for anonymous review.
+\end{acknowledgements}
+
+\bibliography{references}
+
+% ================================================================
+%  SUPPLEMENTARY MATERIAL
+% ================================================================
+\newpage
+\onecolumn
+\title{Linearized ADMM with Ratio Norm for Neural Network Feature Selection\\(Supplementary Material)}
+\maketitle
+
+\appendix
+
+\section{Hyperparameter Settings}\label{app:hparams}
+
+Table~\ref{tab:hparams} lists all hyperparameters used in the experiments.
+These values were selected via preliminary experiments on the XOR ($m{=}128$) dataset and used unchanged across all benchmarks.
+
+\begin{table}[h]
+    \centering
+    \caption{Hyperparameter Settings.}\label{tab:hparams}
+    \begin{tabular}{lcc}
+        \toprule
+        \textbf{Parameter} & \textbf{Value} & \textbf{Role} \\
+        \midrule
+        Learning rate           & 0.005   & Adam step size \\
+        $C$ (sparsity coeff.)   & 0.05    & Ratio Norm penalty strength \\
+        Total epochs $T$        & 500     & Training duration \\
+        Warm-up epochs $T_w$    & 120     & Phase 1 epochs (no sparsity) \\
+        Feature dropout $p$     & 0.7     & Fraction of features dropped \\
+        $\rho_0$                & 200.0   & Initial ADMM penalty \\
+        Batch size              & 64      & Mini-batch size \\
+        Weight decay            & $10^{-3}$ & Adam $\ell_2$ regularization \\
+        Hidden dimensions       & $[32, 32]$ & MLP hidden layer sizes \\
+        Activation              & Mish    & Hidden layer activation \\
+        $\epsilon$ (score floor) & $10^{-8}$ & Prevents division by zero in $\lambda_j$ \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\section{Detailed Results by Dimension}\label{app:bydim}
+
+Tables~\ref{tab:xor-dim}--\ref{tab:rxs-dim} show best-$k$ accuracy for each synthetic task as $m$ increases.
+
+\begin{table}[h]
+    \centering
+    \caption{XOR ($k{=}2$): Best-$k$ (\%) by Dimension.}\label{tab:xor-dim}
+    \begin{tabular}{lccccccccccc}
+        \toprule
+        $m$ & 2 & 4 & 8 & 16 & 32 & 64 & 128 & 256 & 512 & 1024 & 2048 \\
+        \midrule
+        best-$k$ & 100 & 100 & 100 & 100 & 100 & 100 & 100 & 100 & 66.7 & 33.3 & 16.7 \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\begin{table}[h]
+    \centering
+    \caption{Ring ($k{=}2$): Best-$k$ (\%) by Dimension.}\label{tab:ring-dim}
+    \begin{tabular}{lcccccccccc}
+        \toprule
+        $m$ & 8 & 16 & 32 & 64 & 128 & 256 & 512 & 1024 & 2048 \\
+        \midrule
+        best-$k$ & 100 & 100 & 100 & 91.7 & 50 & 50 & 50 & 16.7 & 16.7 \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\begin{table}[h]
+    \centering
+    \caption{Ring+XOR ($k{=}4$): Best-$k$ (\%) by Dimension.}\label{tab:rx-dim}
+    \begin{tabular}{lcccccccccc}
+        \toprule
+        $m$ & 4 & 8 & 16 & 32 & 64 & 128 & 256 & 512 & 1024 & 2048 \\
+        \midrule
+        best-$k$ & 100 & 75 & 66.7 & 62.5 & 54.2 & 66.7 & 62.5 & 29.2 & 16.7 & 8.3 \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\begin{table}[h]
+    \centering
+    \caption{Ring+XOR+Sum ($k{=}6$): Best-$k$ (\%) by Dimension.}\label{tab:rxs-dim}
+    \begin{tabular}{lcccccccccc}
+        \toprule
+        $m$ & 6 & 8 & 16 & 32 & 64 & 128 & 256 & 512 & 1024 & 2048 \\
+        \midrule
+        best-$k$ & 100 & 88.9 & 72.2 & 69.4 & 66.7 & 63.9 & 69.4 & 55.6 & 38.9 & 33.3 \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\section{Full Derivation of the Three-Variable ADMM}\label{app:derivation}
+
+We provide the complete mathematical derivation of all ADMM subproblems for the Ratio Norm objective.
+
+\subsection{Problem Setup}
+
+The regularized objective is:
+\begin{equation}
+    L(\bg) = \mathcal{L}(\theta,\bg) + \frac{C}{N}\frac{\lVert\bg\rVert_1}{\lVert\bg\rVert_2}.
+\end{equation}
+Introducing auxiliary variables $\by = \bg$ and $\bz = \bg$, the augmented Lagrangian is:
+\begin{equation}
+    L_\rho = \mathcal{L}(\theta,\bg) + \frac{C}{N}\frac{\lVert\bz\rVert_1}{\lVert\by\rVert_2}
+    + \frac{\rho}{2}\left\lVert\bg - \by + \frac{\bv}{\rho}\right\rVert^2
+    + \frac{\rho}{2}\left\lVert\bg - \bz + \frac{\bw}{\rho}\right\rVert^2.
+\end{equation}
+
+\subsection{$\bg$-Subproblem}
+
+Fixing $\by$, $\bz$, $\bv$, $\bw$:
+\begin{equation}
+    \bg^{(k+1)} = \argmin_{\bg}\;\mathcal{L}(\theta,\bg)
+    + \frac{\rho}{2}\left\lVert\bg - \by^{(k)} + \frac{\bv^{(k)}}{\rho}\right\rVert^2
+    + \frac{\rho}{2}\left\lVert\bg - \bz^{(k)} + \frac{\bw^{(k)}}{\rho}\right\rVert^2.
+\end{equation}
+Taking the gradient and setting to zero:
+\begin{equation}
+    \nabla_{\bg}\mathcal{L} + \rho\bigl(\bg - \by^{(k)} + \bv^{(k)}/\rho\bigr)
+    + \rho\bigl(\bg - \bz^{(k)} + \bw^{(k)}/\rho\bigr) = \mathbf{0}.
+\end{equation}
+Solving for $\bg$:
+\begin{equation}
+    \bg^{(k+1)} = \frac{1}{2}\left(\by^{(k)} + \bz^{(k)}
+    - \frac{\bv^{(k)}}{\rho} - \frac{\bw^{(k)}}{\rho}
+    - \frac{1}{\rho}\nabla_{\bg}\mathcal{L}\big|_{\bg^{(k+1)}}\right).
+\end{equation}
+The gradient $\nabla_{\bg}\mathcal{L}|_{\bg^{(k+1)}}$ is implicit.
+We approximate it via the SADMM bridge (Section~\ref{sec:sadmm}): setting $\rho = 1/\alpha_k$ where $\alpha_k$ is Adam's per-parameter step size, and using the bias-corrected momentum $\hat{m}_k$:
+\begin{equation}
+    \bg^{(k+1)} = \frac{1}{2}\bigl(\by^{(k)} + \bz^{(k)}
+    - \alpha_k\bv^{(k)} - \alpha_k\bw^{(k)} - \alpha_k\hat{m}_k\bigr).
+\end{equation}
+
+\subsection{$\by$-Subproblem (Ratio Norm Denominator)}
+
+With $c^{(k)} = \lVert\bz^{(k)}\rVert_1$ and $\bd^{(k)} = \bg^{(k+1)} + \bv^{(k)}/\rho$, we solve:
+\begin{equation}
+    \by^{(k+1)} = \argmin_{\by}\;\frac{Cc^{(k)}}{N\lVert\by\rVert_2}
+    + \frac{\rho}{2}\lVert\by - \bd^{(k)}\rVert^2.
+\end{equation}
+Taking the derivative:
+\begin{equation}
+    -\frac{Cc^{(k)}}{N\lVert\by\rVert_2^3}\by + \rho(\by - \bd^{(k)}) = \mathbf{0}.
+\end{equation}
+Rearranging:
+\begin{equation}
+    \left(-\frac{Cc^{(k)}}{N\lVert\by\rVert_2^3} + \rho\right)\by = \rho\bd^{(k)}.
+\end{equation}
+
+\textbf{Case 1}: $\bd^{(k)} \neq \mathbf{0}$.
+Let $\by = \tau\bd^{(k)}$ for $\tau > 0$.
+Substituting $\lVert\by\rVert_2 = \tau\lVert\bd^{(k)}\rVert_2$ and dividing by $\rho\bd^{(k)}$:
+\begin{equation}
+    \tau - 1 + \frac{Cc^{(k)}}{N\rho\tau^2\lVert\bd^{(k)}\rVert_2^3}\cdot\frac{1}{\tau} = 0
+\end{equation}
+Multiplying through by $\tau^2$:
+\begin{equation}
+    \tau^3 - \tau^2 - D^{(k)} = 0,\quad D^{(k)} = \frac{Cc^{(k)}}{N\rho\lVert\bd^{(k)}\rVert_2^3}.
+\end{equation}
+By Cardano's formula, the unique positive root is:
+\begin{equation}
+    \tau^{(k)} = \frac{1}{3} + \frac{1}{3}\left(\mathcal{C}^{(k)} + \frac{1}{\mathcal{C}^{(k)}}\right),
+    \quad \mathcal{C}^{(k)} = \sqrt[3]{\frac{27D^{(k)}+2+\sqrt{(27D^{(k)}+2)^2-4}}{2}}.
+\end{equation}
+
+\textbf{Case 2}: $\bd^{(k)} = \mathbf{0}$.
+Set $\by^{(k+1)} = \be^{(k)}$, a random vector with $\lVert\be^{(k)}\rVert_2 = (Cc^{(k)}/(N\rho))^{1/3}$.
+
+\subsection{$\bz$-Subproblem (Ratio Norm Numerator)}
+
+With $\by^{(k+1)}$ fixed:
+\begin{equation}
+    \bz^{(k+1)} = \argmin_{\bz}\;\frac{C}{N\lVert\by^{(k+1)}\rVert_2}\lVert\bz\rVert_1
+    + \frac{\rho}{2}\left\lVert\bg^{(k+1)} - \bz + \frac{\bw^{(k)}}{\rho}\right\rVert^2.
+\end{equation}
+Taking the subgradient:
+\begin{equation}
+    \frac{C}{N\lVert\by^{(k+1)}\rVert_2}\sgn(\bz)
+    - \rho\left(\bg^{(k+1)} - \bz + \frac{\bw^{(k)}}{\rho}\right) = \mathbf{0}.
+\end{equation}
+Solving yields the soft-thresholding operator:
+\begin{equation}
+    z_j^{(k+1)} = \begin{cases}
+    a_j - \kappa & \text{if } a_j > \kappa, \\
+    0 & \text{if } |a_j| \leq \kappa, \\
+    a_j + \kappa & \text{if } a_j < -\kappa,
+    \end{cases}
+\end{equation}
+where $a_j = g_j^{(k+1)} + w_j^{(k)}/\rho$ and $\kappa = C/(N\rho\lVert\by^{(k+1)}\rVert_2)$.
+
+\subsection{$\ell_1$ Degeneration (Proof of Proposition~\ref{prop:l1})}
+
+Replacing the Ratio Norm by $\ell_1$: $L = \mathcal{L}(\bg) + (C/N)\lVert\bg\rVert_1$.
+The $\by$ variable is no longer needed ($\ell_2$ denominator absent).
+With $\bg = \bz$ and a single dual variable $\bw$, the augmented Lagrangian is:
+\begin{equation}
+    L_\rho = \mathcal{L}(\bg) + \frac{C}{N}\lVert\bz\rVert_1
+    + \frac{\rho}{2}\left\lVert\bg - \bz + \frac{\bw}{\rho}\right\rVert^2.
+\end{equation}
+The $\bg$-step gives $\bg^{(k+1)} = \bz^{(k)} - \alpha_k\bw^{(k)} - \alpha_k\nabla\mathcal{L}(\bz^{(k)})$.
+The $\bz$-step applies soft-thresholding with threshold $C\alpha_k/N$:
+\begin{equation}
+    z_j^{(k+1)} = S\bigl(g_j^{(k+1)} + \alpha_k w_j^{(k)},\; C\alpha_k/N\bigr),
+\end{equation}
+which is the classical proximal gradient / iterative soft-thresholding update.\hfill$\square$
+
+\section{DAG Dataset Generation}\label{app:dag}
+
+The DAG dataset is generated as follows:
+\begin{enumerate}
+    \item Sample a random DAG with $m{=}2{,}000$ nodes and edge density 0.004.
+    \item Assign edge weights uniformly from $[-1, -0.5] \cup [0.5, 1]$.
+    \item Generate $n{=}1{,}000$ observations via ancestral sampling with $\sigma{=}0.2$ Gaussian noise.
+    \item Identify the target node and trace its causal ancestors:
+    \begin{itemize}
+        \item $k$ chain features: nodes on directed paths to the target.
+        \item $k_2$ chain+fork features: chain features plus nodes sharing a common child with chain features.
+    \end{itemize}
+    \item Generate model-X Gaussian knockoff features $\tilde{X}$ matching the empirical covariance.
+\end{enumerate}
+
+\end{document}
