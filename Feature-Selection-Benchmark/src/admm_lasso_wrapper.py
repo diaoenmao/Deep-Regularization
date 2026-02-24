@@ -374,9 +374,12 @@ def _train_with_optimizer(
     batch_size: int = 64,
     score_refresh_interval: int = 10,
     rho_update_interval: int = 5,
-    device: str = "cpu",
+    device: str = None,
 ) -> None:
     """Train *model* in-place using the given sparsity optimizer."""
+    if device is None:
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+    model.to(device)
 
     N = len(X_train)
     dataset = TrainingSet(X_train, y_train)
@@ -420,7 +423,7 @@ def _train_with_optimizer(
         # Refresh WANDA scores periodically
         if epoch % score_refresh_interval == 0:
             model.eval()
-            sample_x = torch.FloatTensor(X_train[:min(256, N)])
+            sample_x = torch.FloatTensor(X_train[:min(256, N)]).to(device)
             new_scores = compute_mlp_wanda_scores(model, sample_x)
             for sb, ns in zip(score_bufs, new_scores):
                 sb.copy_(ns)
@@ -469,9 +472,10 @@ def _train_input_group(
     rho_init: float = 200.0,
     rho_update_interval: int = 5,
     score_refresh_interval: int = 10,
-    device: str = "cpu",
+    device: str = None,
     use_ratio_norm: bool = True,   # False → plain L1 proximal (ablation)
     use_admm: bool = True,         # False → proximal gradient (ablation)
+    uniform_penalty: bool = False,  # True → λ_j = C (uniform); False → λ_j = C/s_j (adaptive)
 ) -> None:
     """Train a GatedFeatureSelectionMLP with Linearized ADMM + Ratio Norm.
 
@@ -498,6 +502,10 @@ def _train_input_group(
     N = len(X_train)
     dataset = TrainingSet(X_train, y_train)
     loader = DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=0)
+
+    if device is None:
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+    model.to(device)
 
     if n_classes <= 2:
         criterion = nn.BCEWithLogitsLoss(reduction="mean")
@@ -656,7 +664,10 @@ def _train_input_group(
             #
             # Importance-adaptive λ_j = C / s_j  (strong on noise,
             # weak on signal — threshold ~0.05 scale, matching proximal L1)
-            lam = C / score                    # per-feature λ
+            if uniform_penalty:
+                lam = torch.full_like(score, C)
+            else:
+                lam = C / score                    # per-feature λ
             lam = torch.clamp(lam, min=1e-6, max=0.5)
 
             # Soft-threshold for the L1 component of Ratio Norm
@@ -735,7 +746,10 @@ def _extract_feature_importance(
     handle = first_linear.register_forward_hook(hook_fn)
     model.eval()
     with torch.no_grad():
-        model(torch.FloatTensor(X_train[:min(512, len(X_train))]))
+        x_sample = torch.FloatTensor(X_train[:min(512, len(X_train))])
+        # Move to same device as model
+        device = next(model.parameters()).device
+        model(x_sample.to(device))
     handle.remove()
 
     W = first_linear.weight.data           # (out_features, in_features)
@@ -753,9 +767,10 @@ def _extract_feature_importance(
 def _predict_proba(
     model: FeatureSelectionMLP, X: np.ndarray, n_classes: int
 ) -> np.ndarray:
+    device = next(model.parameters()).device
     model.eval()
     with torch.no_grad():
-        x_t = torch.FloatTensor(X)
+        x_t = torch.FloatTensor(X).to(device)
         logits = model(x_t)
         if n_classes <= 2:
             proba = torch.sigmoid(logits).squeeze().cpu().numpy()
