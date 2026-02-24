@@ -178,6 +178,51 @@ def solve_cubic_ratio_norm(D_k: Tensor, eps: float = 1e-10) -> Tensor:
     return solve_cubic_depressed(D_k, eps=eps)
 
 
+def solve_cubic_paper(D: Tensor, eps: float = 1e-10) -> Tensor:
+    """Solve the paper's cubic: τ³ − τ² − D = 0  (D > 0).
+
+    This is the y-subproblem cubic from the 3-variable ADMM formulation.
+    For D > 0, there is exactly one positive real root τ > 2/3.
+
+    Uses Cardano's formula after the substitution τ = t + 1/3 to get
+    the depressed form t³ − t/3 − (D + 2/27) = 0.
+    """
+    # Depressed form: t³ + pt + q = 0 where p = -1/3, q = -(D + 2/27)
+    q = -(D + 2.0 / 27.0)
+    p = -1.0 / 3.0
+
+    # Discriminant of depressed cubic: Δ = -4p³ - 27q²
+    disc = -4.0 * p**3 - 27.0 * q**2  # = 4/27 - 27*(D+2/27)²
+
+    tau = torch.zeros_like(D)
+
+    # Case 1: Δ < 0 (one real root) — most common for D > 0
+    mask1 = disc < -eps
+    if mask1.any():
+        qq = q[mask1]
+        sqrt_term = torch.sqrt(torch.clamp(qq * qq / 4.0 + 1.0 / 27.0, min=0.0))
+        u = safe_cbrt(-qq / 2.0 + sqrt_term)
+        v = safe_cbrt(-qq / 2.0 - sqrt_term)
+        tau[mask1] = u + v + 1.0 / 3.0  # shift back: τ = t + 1/3
+
+    # Case 2: Δ ≥ 0 (three real roots) — rare for D > 0, pick largest
+    mask2 = ~mask1
+    if mask2.any():
+        qq = q[mask2]
+        cos_3theta = torch.clamp(-qq / 2.0 * torch.sqrt(torch.tensor(27.0)), min=-1.0, max=1.0)
+        theta = torch.acos(cos_3theta) / 3.0
+        scale = 2.0 / (3.0**0.5)  # 2/√3... but for p=-1/3: 2*sqrt(-p/3) = 2/3
+        scale_correct = 2.0 * torch.sqrt(torch.tensor(1.0 / 9.0))  # = 2/3
+        t0 = scale_correct * torch.cos(theta)
+        t1 = scale_correct * torch.cos(theta - 2.0943951023931953)
+        t2 = scale_correct * torch.cos(theta - 4.1887902047863905)
+        best = torch.max(torch.max(t0, t1), t2)
+        tau[mask2] = best + 1.0 / 3.0
+
+    tau = torch.clamp(tau, min=1.0)
+    return tau
+
+
 def compute_y_update_scale(
     score: Tensor,
     dk: Tensor,

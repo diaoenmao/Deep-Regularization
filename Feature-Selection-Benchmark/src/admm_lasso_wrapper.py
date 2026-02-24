@@ -50,6 +50,7 @@ from optimizer.lasso_neuron import Lasso_neuron
 from optimizer.utils import (
     soft_thresholding,
     solve_cubic_ratio_norm,
+    solve_cubic_paper,
     safe_norm,
     safe_cbrt,
 )
@@ -476,6 +477,7 @@ def _train_input_group(
     use_ratio_norm: bool = True,   # False → plain L1 proximal (ablation)
     use_admm: bool = True,         # False → proximal gradient (ablation)
     uniform_penalty: bool = False,  # True → λ_j = C (uniform); False → λ_j = C/s_j (adaptive)
+    three_variable: bool = False,   # True → paper's 3-variable ADMM (y,z with duals v,w)
 ) -> None:
     """Train a GatedFeatureSelectionMLP with Linearized ADMM + Ratio Norm.
 
@@ -616,7 +618,98 @@ def _train_input_group(
         model.eval()
         return
 
-    # ── ADMM path (default) ───────────────────────────────────────────
+    # ── 3-variable ADMM path (paper's formulation) ─────────────────────
+    if three_variable and use_ratio_norm:
+        yk = gate_param.data.clone()
+        zk_3 = gate_param.data.clone()
+        vk = torch.zeros(m, device=device)  # dual for g=y
+        wk = torch.zeros(m, device=device)  # dual for g=z
+        convergence_log = []
+
+        for epoch in range(prune_epochs):
+            with torch.no_grad():
+                W1 = model.first_linear.weight
+                score = torch.norm(W1, p=2, dim=0) + 1e-8
+
+            # (1) g-step: Adam on augmented loss with TWO penalty terms
+            model.train()
+            for x_batch, y_batch in loader:
+                x_batch, y_batch = x_batch.to(device), y_batch.to(device)
+                opt_all.zero_grad()
+                y_hat = model(x_batch)
+                if n_classes > 2:
+                    y_hat = torch.log_softmax(y_hat, dim=1)
+                else:
+                    y_hat = y_hat.reshape(len(y_hat))
+                try:
+                    data_loss = criterion(y_hat, y_batch)
+                except RuntimeError:
+                    data_loss = criterion(y_hat, y_batch.float())
+
+                penalty = (rho / 2.0) * (
+                    torch.sum((gate_param - yk.detach() + vk.detach()) ** 2)
+                    + torch.sum((gate_param - zk_3.detach() + wk.detach()) ** 2)
+                )
+                (data_loss + penalty).backward()
+                opt_all.step()
+
+            # (2) y-step: cubic τ³ − τ² − D = 0 (paper's formulation)
+            with torch.no_grad():
+                if uniform_penalty:
+                    lam = torch.full_like(score, C)
+                else:
+                    lam = C / score
+                lam = torch.clamp(lam, min=1e-6, max=0.5)
+
+                c_t = torch.sum(lam * torch.abs(zk_3))  # scalar
+                d_t = gate_param.data + vk / rho         # vector
+                d_norm = safe_norm(d_t)
+
+                if d_norm > 1e-8 and c_t > 1e-8:
+                    D_scalar = c_t / (N * rho * torch.clamp(d_norm ** 3, min=1e-10))
+                    tau_y = solve_cubic_paper(D_scalar.unsqueeze(0)).squeeze(0)
+                    yk = tau_y * d_t
+                else:
+                    yk = d_t.clone()
+
+            # (3) z-step: soft-threshold with ‖y‖₂ coupling
+            with torch.no_grad():
+                zk_3_old = zk_3.clone()
+                y_norm = safe_norm(yk)
+                a = gate_param.data + wk / rho
+                kappa = lam / (N * rho * torch.clamp(y_norm, min=1e-8))
+                zk_3 = soft_thresholding(a, kappa)
+
+            # (4) Dual updates
+            with torch.no_grad():
+                vk = vk + rho * (gate_param.data - yk)
+                wk = wk + rho * (gate_param.data - zk_3)
+
+            # Convergence log (use g-z primal residual)
+            with torch.no_grad():
+                primal_resid = torch.norm(gate_param.data - zk_3).item()
+                dual_resid = rho * torch.norm(zk_3 - zk_3_old).item()
+                convergence_log.append((epoch, primal_resid, dual_resid))
+
+            # Adaptive ρ
+            if epoch > 0 and epoch % rho_update_interval == 0:
+                with torch.no_grad():
+                    r_norm = max(torch.norm(gate_param.data - zk_3).item(), 1e-12)
+                    s_norm = max(rho * torch.norm(zk_3 - zk_3_old).item(), 1e-12)
+                    rho_old = rho
+                    if r_norm > 10.0 * s_norm:
+                        rho = min(rho * 2.0, 1e4)
+                    elif s_norm > 10.0 * r_norm:
+                        rho = max(rho / 2.0, 50.0)
+                    if rho != rho_old:
+                        vk = vk * (rho_old / rho)
+                        wk = wk * (rho_old / rho)
+
+        model.eval()
+        model.convergence_log = convergence_log
+        return
+
+    # ── ADMM path (default, 2-variable) ────────────────────────────────
     convergence_log = []  # stores (epoch, primal_resid, dual_resid) for diagnostics
     for epoch in range(prune_epochs):
         # Refresh score every epoch (column norms evolve with training)
