@@ -24,6 +24,8 @@ from typing import Optional, List, Tuple
 
 import numpy as np
 import scipy.special
+import scipy.sparse
+import scipy.sparse.csgraph
 
 from src.knockoff import generate_gaussian_knockoffs
 
@@ -89,25 +91,47 @@ def random_dag(n_features=2000, n_relevant=20, n_irrelevant=1000, density=0.005)
     #G = networkx.from_numpy_matrix(A, create_using=networkx.DiGraph())
     #assert networkx.is_directed_acyclic_graph(G)
 
-    # Naive algorithm for finding all pairs of connected vertices.
-    # The performance of this algorithm will strongly depend on the topology
-    # of the input graph, but it proved to be quite efficient in practice.
-    # Note: possible improvement, compute accessibility matrix (e.g. with Floyd-Warshall algorithm)
-    C_old = np.copy(np.asarray(A, dtype=bool))
-    while True:
-        C_new = np.logical_or(C_old, np.dot(C_old.astype(int), C_old.astype(int)) > 0)
-        if np.all(C_new == C_old):
-            break
-        C_old = C_new
+    # Reachability analysis using sparse BFS (much faster than all-pairs shortest path)
+    A_sparse = scipy.sparse.csr_matrix(A.astype(np.float64))
+    n = len(A)
+    target = n - 1
 
-    # Find forks
-    F = (np.dot(C_new.T.astype(int), C_new.astype(int)) > 0).astype(bool)
+    # Chain features: nodes that can reach the target (BFS on transposed graph)
+    A_T = A_sparse.T.tocsr()
+    _, predecessors = scipy.sparse.csgraph.breadth_first_order(A_T, target, directed=True, return_predecessors=True)
+    can_reach_target = (predecessors >= 0)
+    can_reach_target[target] = False  # exclude target itself
 
-    all_indices = set(list(range(len(A) - 1)))
-    chain_indices = set(list(np.where(C_new[:-1, -1])[0]))
-    fork_indices = set(list(np.where(F[:-1, -1])[0])) - chain_indices
-    remaining_indices = all_indices - chain_indices - fork_indices
-    idx = np.asarray(list(chain_indices) + list(fork_indices) + list(remaining_indices) + [len(A) - 1])
+    # For fork detection, we need: nodes sharing a common ancestor with target
+    # A fork between i and target means ∃ node c such that c→...→i and c→...→target
+    # = ancestors(i) ∩ ancestors(target) ≠ ∅
+    # ancestors(target) = nodes that can reach target in original graph
+    # But we need ancestors in the DAG sense: c is ancestor of i if c→...→i
+    # So ancestors(i) = {c : c can reach i} = BFS on transposed graph from i
+
+    # Compute ancestors of target (nodes that can reach target in original graph)
+    target_ancestors = set(np.where(can_reach_target)[0])
+
+    # For each non-chain node, check if it shares an ancestor with target
+    # ancestor(i) = nodes that can reach i = BFS on A_T from i
+    # Fork if ancestor(i) ∩ ancestor(target) ≠ ∅
+    # Equivalently: ∃ c that can reach both i and target
+    # = row c of reachability matrix has both i and target set
+    # Efficient: for each ancestor c of target, find all nodes c can reach
+    all_reachable_from_target_ancestors = set()
+    for c in target_ancestors:
+        _, preds_c = scipy.sparse.csgraph.breadth_first_order(A_sparse, c, directed=True, return_predecessors=True)
+        reachable = set(np.where(preds_c >= 0)[0])
+        reachable.add(c)  # c can reach itself trivially
+        all_reachable_from_target_ancestors.update(reachable)
+
+    # Fork nodes: reachable from target's ancestors but not chain (not directly reaching target)
+    chain_indices = set(np.where(can_reach_target[:target])[0])
+    fork_candidates = all_reachable_from_target_ancestors - chain_indices - {target}
+    fork_indices = set(i for i in fork_candidates if i < target)
+
+    remaining_indices = set(range(target)) - chain_indices - fork_indices
+    idx = np.asarray(list(chain_indices) + list(fork_indices) + list(remaining_indices) + [target])
     assert len(idx) == len(A)
     A = A[:, idx][idx, :]
 

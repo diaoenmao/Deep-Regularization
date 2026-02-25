@@ -76,7 +76,13 @@ def run_stg_fs(
             y_train_hat = y_train_pred.flatten()
             y_hat = y_hat_pred.flatten()
     else:
-        y_train_hat = y_train_pred
-        y_hat = y_hat_pred
+        # STG predict returns class labels (1D) for multiclass;
+        # return None to skip the shape assertion in core.py
+        if y_hat_pred.ndim == 1 or (y_hat_pred.ndim == 2 and y_hat_pred.shape[1] != n_classes):
+            y_train_hat = None
+            y_hat = None
+        else:
+            y_train_hat = y_train_pred
+            y_hat = y_hat_pred
 
     return y_train_hat, y_hat, scores, scores2
