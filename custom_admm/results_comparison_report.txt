@@ -1,0 +1,80 @@
+======================================================================
+ADMM RESULTS COMPARISON REPORT
+======================================================================
+
+NEW CONSISTENT ARCHITECTURE RESULTS
+----------------------------------------
+Total experiments: 4
+Average non-zero features: 48.00 (+/- 16.00)
+Average runtime: 9.74 seconds
+
+Per-dataset breakdown:
+  ring-32: avg non-zero = 32.00 (+/- 0.00)
+  ring-64: avg non-zero = 64.00 (+/- 0.00)
+  xor-32: avg non-zero = 32.00 (+/- 0.00)
+  xor-64: avg non-zero = 64.00 (+/- 0.00)
+
+BACKUP (ORIGINAL) RESULTS SUMMARY
+----------------------------------------
+  xor: avg_best_k = 0.833
+  xor-m2: best_k = 1.000
+  xor-m4: best_k = 1.000
+  xor-m8: best_k = 1.000
+  xor-m16: best_k = 1.000
+  xor-m32: best_k = 1.000
+  xor-m64: best_k = 1.000
+  xor-m128: best_k = 1.000
+  xor-m256: best_k = 1.000
+  xor-m512: best_k = 0.667
+  xor-m1024: best_k = 0.333
+  xor-m2048: best_k = 0.167
+  ring: avg_best_k = 0.639
+  ring-m8: best_k = 1.000
+  ring-m16: best_k = 1.000
+  ring-m32: best_k = 1.000
+  ring-m64: best_k = 0.917
+  ring-m128: best_k = 0.500
+  ring-m256: best_k = 0.500
+  ring-m512: best_k = 0.500
+  ring-m1024: best_k = 0.167
+  ring-m2048: best_k = 0.167
+  ring+xor: avg_best_k = 0.542
+  ring+xor-m4: best_k = 1.000
+  ring+xor-m8: best_k = 0.750
+  ring+xor-m16: best_k = 0.667
+  ring+xor-m32: best_k = 0.625
+  ring+xor-m64: best_k = 0.542
+  ring+xor-m128: best_k = 0.667
+  ring+xor-m256: best_k = 0.625
+  ring+xor-m512: best_k = 0.292
+  ring+xor-m1024: best_k = 0.167
+  ring+xor-m2048: best_k = 0.083
+  ring+xor+sum: avg_best_k = 0.658
+  ring+xor+sum-m6: best_k = 1.000
+  ring+xor+sum-m8: best_k = 0.889
+  ring+xor+sum-m16: best_k = 0.722
+  ring+xor+sum-m32: best_k = 0.694
+  ring+xor+sum-m64: best_k = 0.667
+  ring+xor+sum-m128: best_k = 0.639
+  ring+xor+sum-m256: best_k = 0.694
+  ring+xor+sum-m512: best_k = 0.556
+  ring+xor+sum-m1024: best_k = 0.389
+  ring+xor+sum-m2048: best_k = 0.333
+  dag: avg_best_k = 0.078
+  madelon: AUROC = 0.9650 (+/- 0.0009)
+
+======================================================================
+KEY OBSERVATIONS
+======================================================================
+
+The NEW consistent architecture results use the SAME model
+architecture as the standard Feature Selection Benchmark:
+  - latent_size: 58
+  - n_hidden_layers: 5
+  - gaussian_noise: 0.7466805127272365
+  - dropout: 0.04308691548552568
+  - activation: mish
+  - layer_norm: 0
+
+This enables FAIR comparisons between different feature selection
+methods, as all methods use identical underlying architectures.

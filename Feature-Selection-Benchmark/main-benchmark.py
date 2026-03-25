@@ -52,16 +52,7 @@ FS_METHODS = {
     'mrmr': ('mRMR', True, False),
     'mi': ('mi', True, False),
     'lassonet': ('LassoNet', True, True),
-    'cae': ('CAE', True, True),
-    'admm_global': ('ADMM_Global', True, True),
-    'admm_layer': ('ADMM_Layer', True, True),
-    'admm_neuron': ('ADMM_Neuron', True, True),
-    'lasso_global': ('Lasso_Global', True, True),
-    'lasso_layer': ('Lasso_Layer', True, True),
-    'lasso_neuron': ('Lasso_Neuron', True, True),
-    'admm_input_group': ('ADMM_InputGroup', True, True),
-    'lasso_input_group': ('Lasso_InputGroup', True, True),
-    'stg': ('STG', True, True),
+    'cae': ('CAE', True, True)
 }
 SA_METHODS = {
     'Saliency': 'Saliency',
@@ -315,16 +306,7 @@ if __name__ == '__main__':
         'treeshap',
         'canceloutsigmoid',
         'canceloutsoftmax',
-        'deeppink',
-        'admm_global',
-        'admm_layer',
-        'admm_neuron',
-        'lasso_global',
-        'lasso_layer',
-        'lasso_neuron',
-        'admm_input_group',
-        'lasso_input_group',
-        'stg',
+        'deeppink'
     ]
     parser = argparse.ArgumentParser()
     parser.add_argument('method', type=str, choices=method_names, help='Method name')

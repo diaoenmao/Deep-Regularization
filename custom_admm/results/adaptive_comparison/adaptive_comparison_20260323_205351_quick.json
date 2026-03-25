@@ -1,0 +1,51 @@
+{
+  "metadata": {
+    "timestamp": "20260323_205351",
+    "mode": "quick",
+    "device": "cpu",
+    "n_samples": 1000,
+    "n_folds": 6
+  },
+  "architectures": {
+    "small_2layer": {
+      "datasets": {
+        "xor": {
+          "dimensions": {
+            "8": {
+              "mean_best_k": 0.0,
+              "std_best_k": 0.0,
+              "mean_auc": 0.5,
+              "std_auc": 0.0
+            },
+            "128": {
+              "mean_best_k": 0.0,
+              "std_best_k": 0.0,
+              "mean_auc": 0.5,
+              "std_auc": 0.0
+            }
+          }
+        }
+      }
+    },
+    "medium_3layer": {
+      "datasets": {
+        "xor": {
+          "dimensions": {
+            "8": {
+              "mean_best_k": 0.0,
+              "std_best_k": 0.0,
+              "mean_auc": 0.5,
+              "std_auc": 0.0
+            },
+            "128": {
+              "mean_best_k": 0.0,
+              "std_best_k": 0.0,
+              "mean_auc": 0.5,
+              "std_auc": 0.0
+            }
+          }
+        }
+      }
+    }
+  }
+}

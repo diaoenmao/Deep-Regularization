@@ -59,13 +59,7 @@ METHODS = {
     'Relief': ('Relief', 'turquoise', 'o'),
     'mi': ('Mutual information', 'cadetblue', '^'),
     'mRMR': ('mRMR', 'steelblue', 's'),
-    'LassoNet': ('LassoNet', 'chocolate', '*'),
-    'ADMM_Global': ('ADMM (global)', 'crimson', '^'),
-    'ADMM_Layer': ('ADMM (layer)', 'indianred', 'v'),
-    'ADMM_Neuron': ('ADMM (neuron)', 'darkred', '<'),
-    'Lasso_Global': ('Lasso (global)', 'royalblue', '^'),
-    'Lasso_Layer': ('Lasso (layer)', 'cornflowerblue', 'v'),
-    'Lasso_Neuron': ('Lasso (neuron)', 'darkblue', '<'),
+    'LassoNet': ('LassoNet', 'chocolate', '*')
 }
 METHOD_NAMES = list(METHODS.keys())
 

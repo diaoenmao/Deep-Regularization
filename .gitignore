@@ -58,3 +58,11 @@ ISSUES_LIST.py
 # Feature-Selection-Benchmark PDFs
 Feature-Selection-Benchmark/*.pdf
 Feature-Selection-Benchmark-backup/
+
+# agent skills
+skills/
+skills-lock.json
+.agents
+.claude
+.trae
+CLAUDE.md

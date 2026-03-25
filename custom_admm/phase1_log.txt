@@ -1,0 +1,188 @@
+Using device: cuda
+================================================================================
+Phase 1: Rapid Experimental Validation
+================================================================================
+Mode: QUICK | Device: cuda
+Total runs: 48
+================================================================================
+
+>>> Experiment: baseline - 原始 ADMM (无早停，无噪声，Adam)
+------------------------------------------------------------
+
+  Dataset: xor (k=2)
+    m=8 [1/48, ETA: 0.0min]... Class imbalance: 0.507
+best-k=33.3% (+/- 37.3%)
+    m=128 [2/48, ETA: 105.7min]... Class imbalance: 0.482
+best-k=50.0% (+/- 50.0%)
+    m=1024 [3/48, ETA: 132.8min]... Class imbalance: 0.499
+best-k=41.7% (+/- 44.9%)
+
+  Dataset: ring (k=2)
+    m=32 [4/48, ETA: 150.8min]... Class imbalance: 0.545
+best-k=8.3% (+/- 18.6%)
+    m=512 [5/48, ETA: 162.5min]... Class imbalance: 0.519
+best-k=33.3% (+/- 23.6%)
+
+  Dataset: ring+xor (k=4)
+    m=16 [6/48, ETA: 169.3min]... Class imbalance: 0.54
+best-k=25.0% (+/- 14.4%)
+    m=256 [7/48, ETA: 166.4min]... Class imbalance: 0.509
+best-k=0.0% (+/- 0.0%)
+
+  Dataset: ring+xor+sum (k=6)
+    m=64 [8/48, ETA: 163.2min]... Class imbalance: 0.499
+best-k=25.0% (+/- 26.8%)
+
+>>> Experiment: early_stop - ADMM + 早停 (patience=66)
+------------------------------------------------------------
+
+  Dataset: xor (k=2)
+    m=8 [9/48, ETA: 158.8min]... Class imbalance: 0.507
+Early stopping at epoch 285, best val loss: 2.0788
+Restored best model (val loss: 2.0788)
+Early stopping at epoch 186, best val loss: 2.0807
+Restored best model (val loss: 2.0807)
+Early stopping at epoch 216, best val loss: 2.0800
+Restored best model (val loss: 2.0800)
+Early stopping at epoch 191, best val loss: 2.0886
+Restored best model (val loss: 2.0886)
+Early stopping at epoch 244, best val loss: 0.7985
+Restored best model (val loss: 0.7985)
+Early stopping at epoch 186, best val loss: 2.0795
+Restored best model (val loss: 2.0795)
+best-k=50.0% (+/- 28.9%)
+    m=128 [10/48, ETA: 144.4min]... Class imbalance: 0.482
+Early stopping at epoch 301, best val loss: 1.0401
+Restored best model (val loss: 1.0401)
+Early stopping at epoch 287, best val loss: 2.0727
+Restored best model (val loss: 2.0727)
+Early stopping at epoch 227, best val loss: 2.0781
+Restored best model (val loss: 2.0781)
+Early stopping at epoch 190, best val loss: 2.0809
+Restored best model (val loss: 2.0809)
+Early stopping at epoch 209, best val loss: 2.0795
+Restored best model (val loss: 2.0795)
+Early stopping at epoch 319, best val loss: 0.8932
+Restored best model (val loss: 0.8932)
+best-k=33.3% (+/- 47.1%)
+    m=1024 [11/48, ETA: 133.0min]... Class imbalance: 0.499
+Restored best model (val loss: 1.6143)
+Early stopping at epoch 254, best val loss: 2.4251
+Restored best model (val loss: 2.4251)
+Early stopping at epoch 355, best val loss: 2.2898
+Restored best model (val loss: 2.2898)
+Restored best model (val loss: 1.8399)
+Restored best model (val loss: 1.7513)
+Restored best model (val loss: 2.0615)
+best-k=66.7% (+/- 47.1%)
+
+  Dataset: ring (k=2)
+    m=32 [12/48, ETA: 127.1min]... Class imbalance: 0.545
+Early stopping at epoch 222, best val loss: 2.0857
+Restored best model (val loss: 2.0857)
+Early stopping at epoch 313, best val loss: 2.0463
+Restored best model (val loss: 2.0463)
+Early stopping at epoch 218, best val loss: 2.0588
+Restored best model (val loss: 2.0588)
+Early stopping at epoch 252, best val loss: 2.0901
+Restored best model (val loss: 2.0901)
+Early stopping at epoch 188, best val loss: 2.0797
+Restored best model (val loss: 2.0797)
+Early stopping at epoch 216, best val loss: 2.0890
+Restored best model (val loss: 2.0890)
+best-k=0.0% (+/- 0.0%)
+    m=512 [13/48, ETA: 117.8min]... Class imbalance: 0.519
+Early stopping at epoch 218, best val loss: 2.4390
+Restored best model (val loss: 2.4390)
+Early stopping at epoch 202, best val loss: 2.3491
+Restored best model (val loss: 2.3491)
+Early stopping at epoch 225, best val loss: 2.4328
+Restored best model (val loss: 2.4328)
+Early stopping at epoch 298, best val loss: 2.2035
+Restored best model (val loss: 2.2035)
+Early stopping at epoch 286, best val loss: 2.8022
+Restored best model (val loss: 2.8022)
+Early stopping at epoch 332, best val loss: 2.3696
+Restored best model (val loss: 2.3696)
+best-k=0.0% (+/- 0.0%)
+
+  Dataset: ring+xor (k=4)
+    m=16 [14/48, ETA: 110.1min]... Class imbalance: 0.54
+Early stopping at epoch 220, best val loss: 2.0760
+Restored best model (val loss: 2.0760)
+Early stopping at epoch 205, best val loss: 2.0543
+Restored best model (val loss: 2.0543)
+Early stopping at epoch 192, best val loss: 2.0598
+Restored best model (val loss: 2.0598)
+Early stopping at epoch 221, best val loss: 2.0846
+Restored best model (val loss: 2.0846)
+Early stopping at epoch 186, best val loss: 2.0989
+Restored best model (val loss: 2.0989)
+Early stopping at epoch 196, best val loss: 2.1004
+Restored best model (val loss: 2.1004)
+best-k=29.2% (+/- 17.2%)
+    m=256 [15/48, ETA: 102.3min]... Class imbalance: 0.509
+Early stopping at epoch 252, best val loss: 2.1872
+Restored best model (val loss: 2.1872)
+Early stopping at epoch 218, best val loss: 2.1795
+Restored best model (val loss: 2.1795)
+Early stopping at epoch 212, best val loss: 2.0921
+Restored best model (val loss: 2.0921)
+Early stopping at epoch 304, best val loss: 2.0971
+Restored best model (val loss: 2.0971)
+Early stopping at epoch 208, best val loss: 2.0780
+Restored best model (val loss: 2.0780)
+Early stopping at epoch 188, best val loss: 2.0794
+Restored best model (val loss: 2.0794)
+best-k=29.2% (+/- 30.3%)
+
+  Dataset: ring+xor+sum (k=6)
+    m=64 [16/48, ETA: 95.7min]... Class imbalance: 0.499
+Early stopping at epoch 290, best val loss: 1.8760
+Restored best model (val loss: 1.8760)
+Early stopping at epoch 256, best val loss: 1.8351
+Restored best model (val loss: 1.8351)
+Early stopping at epoch 223, best val loss: 2.0847
+Restored best model (val loss: 2.0847)
+Early stopping at epoch 202, best val loss: 2.0791
+Restored best model (val loss: 2.0791)
+Early stopping at epoch 216, best val loss: 2.0790
+Restored best model (val loss: 2.0790)
+Early stopping at epoch 216, best val loss: 2.0803
+Restored best model (val loss: 2.0803)
+best-k=36.1% (+/- 32.5%)
+
+>>> Experiment: noise - ADMM + 高斯噪声 (0.747)
+------------------------------------------------------------
+
+  Dataset: xor (k=2)
+    m=8 [17/48, ETA: 89.8min]... Class imbalance: 0.507
+Traceback (most recent call last):
+  File "C:\Users\12425\Documents\Projects\NEW_Pruning_20251110\custom_admm\run_phase1_experiments.py", line 346, in <module>
+  File "C:\Users\12425\Documents\Projects\NEW_Pruning_20251110\custom_admm\run_phase1_experiments.py", line 254, in run_all_experiments
+    print(f"    m={n_features} [{run_count}/{total_runs}, ETA: {eta/60:.1f}min]...", end=" ", flush=True)
+  File "C:\Users\12425\Documents\Projects\NEW_Pruning_20251110\custom_admm\run_phase1_experiments.py", line 189, in run_single_experiment
+    )
+  File "C:\Users\12425\Documents\Projects\NEW_Pruning_20251110\custom_admm\run_phase1_experiments.py", line 127, in evaluate_fold
+    def evaluate_fold(model, X_train, y_train, X_test, correct, k, device, train_config):
+  File "C:\Users\12425\Documents\Projects\NEW_Pruning_20251110\custom_admm\src\admm_input_group_wrapper.py", line 430, in _train_input_group
+    y_hat = model(x_batch)
+  File "C:\Users\12425\AppData\Roaming\Python\Python310\site-packages\torch\nn\modules\module.py", line 1736, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "C:\Users\12425\AppData\Roaming\Python\Python310\site-packages\torch\nn\modules\module.py", line 1747, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "C:\Users\12425\Documents\Projects\NEW_Pruning_20251110\custom_admm\src\admm_input_group_wrapper.py", line 168, in forward
+    return self.layers(x * g)
+  File "C:\Users\12425\AppData\Roaming\Python\Python310\site-packages\torch\nn\modules\module.py", line 1736, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "C:\Users\12425\AppData\Roaming\Python\Python310\site-packages\torch\nn\modules\module.py", line 1747, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "C:\Users\12425\AppData\Roaming\Python\Python310\site-packages\torch\nn\modules\container.py", line 250, in forward
+    input = module(input)
+  File "C:\Users\12425\AppData\Roaming\Python\Python310\site-packages\torch\nn\modules\module.py", line 1736, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "C:\Users\12425\AppData\Roaming\Python\Python310\site-packages\torch\nn\modules\module.py", line 1747, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "C:\Users\12425\Documents\Projects\NEW_Pruning_20251110\custom_admm\src\nn_wrapper.py", line 52, in forward
+    X = X + self.stddev * torch.randn(*X.size())
+RuntimeError: Expected all tensors to be on the same device, but found at least two devices, cuda:0 and cpu!

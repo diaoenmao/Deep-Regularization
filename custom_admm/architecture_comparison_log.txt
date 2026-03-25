@@ -1,0 +1,107 @@
+Using device: cuda:0
+================================================================================
+Architecture Comparison: LassoNet-style Small Model vs Baseline
+================================================================================
+Device: cuda:0 | Mode: QUICK
+Total runs: 192 (4 architectures × 4 datasets × 6 folds)
+================================================================================
+
+>>> Architecture: baseline_5layer - Baseline: 5 层×58 单元 (当前 ADMM)
+------------------------------------------------------------
+  xor m=8 fold=1...Class imbalance: 0.507
+2Class imbalance: 0.478
+3Class imbalance: 0.495
+4Class imbalance: 0.499
+5Class imbalance: 0.485
+6Class imbalance: 0.492
+ → 58.3% (+/- 34.4%)  [ETA: 131min]
+  xor m=128 fold=1...Class imbalance: 0.482
+2Class imbalance: 0.517
+3Class imbalance: 0.502
+4Class imbalance: 0.507
+5Class imbalance: 0.508
+6Class imbalance: 0.503
+ → 16.7% (+/- 37.3%)  [ETA: 145min]
+  xor m=1024 fold=1...Class imbalance: 0.499
+2Class imbalance: 0.495
+3Class imbalance: 0.489
+4Class imbalance: 0.477
+5Class imbalance: 0.498
+6Class imbalance: 0.482
+ → 75.0% (+/- 38.2%)  [ETA: 146min]
+  ring m=32 fold=1...Class imbalance: 0.545
+2Class imbalance: 0.519
+3Class imbalance: 0.485
+4Class imbalance: 0.528
+5Class imbalance: 0.502
+6Class imbalance: 0.497
+ → 0.0% (+/- 0.0%)  [ETA: 142min]
+  ring m=512 fold=1...Class imbalance: 0.519
+2Class imbalance: 0.507
+3Class imbalance: 0.499
+4Class imbalance: 0.51
+5Class imbalance: 0.501
+6Class imbalance: 0.488
+ → 33.3% (+/- 23.6%)  [ETA: 135min]
+  ring+xor m=16 fold=1...Class imbalance: 0.54
+2Class imbalance: 0.514
+3Class imbalance: 0.5
+4Class imbalance: 0.508
+5Class imbalance: 0.505
+6Class imbalance: 0.508
+ → 20.8% (+/- 9.3%)  [ETA: 129min]
+  ring+xor m=256 fold=1...Class imbalance: 0.509
+2Class imbalance: 0.532
+3Class imbalance: 0.54
+4Class imbalance: 0.52
+5Class imbalance: 0.482
+6Class imbalance: 0.511
+ → 29.2% (+/- 30.3%)  [ETA: 124min]
+  ring+xor+sum m=64 fold=1...Class imbalance: 0.499
+2Class imbalance: 0.493
+3Class imbalance: 0.492
+4Class imbalance: 0.504
+5Class imbalance: 0.485
+6Class imbalance: 0.518
+ → 36.1% (+/- 31.1%)  [ETA: 116min]
+
+>>> Architecture: small_2layer - Small: 2 层×32 单元 (LassoNet 风格)
+------------------------------------------------------------
+  xor m=8 fold=1...Class imbalance: 0.507
+2Class imbalance: 0.478
+3Class imbalance: 0.495
+4Class imbalance: 0.499
+5Class imbalance: 0.485
+6Class imbalance: 0.492
+ → 100.0% (+/- 0.0%)  [ETA: 107min]
+  xor m=128 fold=1...Class imbalance: 0.482
+2Class imbalance: 0.517
+3Class imbalance: 0.502
+4Class imbalance: 0.507
+5Class imbalance: 0.508
+6Class imbalance: 0.503
+ → 100.0% (+/- 0.0%)  [ETA: 99min]
+  xor m=1024 fold=1...Class imbalance: 0.499
+2Class imbalance: 0.495
+3Class imbalance: 0.489
+4Class imbalance: 0.477
+5Class imbalance: 0.498
+6Class imbalance: 0.482
+ → 83.3% (+/- 37.3%)  [ETA: 93min]
+  ring m=32 fold=1...Class imbalance: 0.545
+2Class imbalance: 0.519
+3Class imbalance: 0.485
+4Class imbalance: 0.528
+5Class imbalance: 0.502
+6Class imbalance: 0.497
+ → 100.0% (+/- 0.0%)  [ETA: 87min]
+  ring m=512 fold=1...Class imbalance: 0.519
+2Class imbalance: 0.507
+3Class imbalance: 0.499
+4Class imbalance: 0.51
+5Class imbalance: 0.501
+6Class imbalance: 0.488
+ → 8.3% (+/- 18.6%)  [ETA: 81min]
+  ring+xor m=16 fold=1...Class imbalance: 0.54
+2Class imbalance: 0.514
+3

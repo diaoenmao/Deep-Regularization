@@ -1,0 +1,120 @@
+{
+  "method": "admm_input_group_tuned",
+  "n_samples": 1000,
+  "cv_folds": 2,
+  "hyperparameters": {
+    "feat_drop": 0.6,
+    "lr": 0.005,
+    "C": 0.05,
+    "epochs": 500,
+    "warmup_epochs": 120,
+    "rho_init": 200.0
+  },
+  "datasets": {
+    "xor": {
+      "avg_best_k": 0.5,
+      "details": [
+        {
+          "m": 32,
+          "best_k": 0.0,
+          "best_2k": 0.0,
+          "time_seconds": 50.2889678478241
+        },
+        {
+          "m": 64,
+          "best_k": 0.5,
+          "best_2k": 0.5,
+          "time_seconds": 48.44694137573242
+        },
+        {
+          "m": 128,
+          "best_k": 0.5,
+          "best_2k": 0.5,
+          "time_seconds": 49.34284710884094
+        },
+        {
+          "m": 256,
+          "best_k": 1.0,
+          "best_2k": 1.0,
+          "time_seconds": 50.323221921920776
+        }
+      ]
+    },
+    "ring": {
+      "avg_best_k": 0.625,
+      "details": [
+        {
+          "m": 32,
+          "best_k": 1.0,
+          "best_2k": 1.0,
+          "time_seconds": 46.12475347518921
+        },
+        {
+          "m": 64,
+          "best_k": 1.0,
+          "best_2k": 1.0,
+          "time_seconds": 43.89870762825012
+        },
+        {
+          "m": 128,
+          "best_k": 0.25,
+          "best_2k": 0.25,
+          "time_seconds": 44.59827256202698
+        },
+        {
+          "m": 256,
+          "best_k": 0.25,
+          "best_2k": 0.25,
+          "time_seconds": 43.79362988471985
+        }
+      ]
+    },
+    "ring+xor": {
+      "avg_best_k": 0.4583333333333333,
+      "details": [
+        {
+          "m": 32,
+          "best_k": 0.375,
+          "best_2k": 0.375,
+          "time_seconds": 41.282254457473755
+        },
+        {
+          "m": 64,
+          "best_k": 0.5,
+          "best_2k": 0.5,
+          "time_seconds": 41.620288610458374
+        },
+        {
+          "m": 128,
+          "best_k": 0.5,
+          "best_2k": 0.625,
+          "time_seconds": 42.14981293678284
+        }
+      ]
+    },
+    "ring+xor+sum": {
+      "avg_best_k": 0.5277777777777778,
+      "details": [
+        {
+          "m": 32,
+          "best_k": 0.75,
+          "best_2k": 0.8333333333333334,
+          "time_seconds": 40.8377947807312
+        },
+        {
+          "m": 64,
+          "best_k": 0.3333333333333333,
+          "best_2k": 0.5833333333333334,
+          "time_seconds": 40.92379951477051
+        },
+        {
+          "m": 128,
+          "best_k": 0.5,
+          "best_2k": 0.5833333333333333,
+          "time_seconds": 41.77846336364746
+        }
+      ]
+    }
+  },
+  "total_time_seconds": 625.4607982635498
+}

@@ -1,0 +1,106 @@
+{
+  "source": "custom_admm_consistent",
+  "timestamp": "2026-03-08T17:52:58.966545",
+  "experiments": [
+    {
+      "key": "ring-32",
+      "method": "admm_input_group",
+      "dataset": "ring",
+      "n_samples": 200,
+      "n_features": 32,
+      "seed": 42,
+      "non_zero_features": 32,
+      "runtime_seconds": 14.42019772529602,
+      "scores_summary": {
+        "min": 0.002535430248826742,
+        "max": 0.2664047181606293,
+        "mean": 0.1496610197791597,
+        "median": 0.15113741159439087,
+        "std": 0.07695490702809334
+      },
+      "model_params": {
+        "latent_size": 58,
+        "n_hidden_layers": 5,
+        "gaussian_noise": 0.7466805127272365,
+        "dropout": 0.04308691548552568,
+        "activation": "mish",
+        "layer_norm": 0
+      }
+    },
+    {
+      "key": "ring-64",
+      "method": "admm_input_group",
+      "dataset": "ring",
+      "n_samples": 200,
+      "n_features": 64,
+      "seed": 42,
+      "non_zero_features": 64,
+      "runtime_seconds": 10.933811902999878,
+      "scores_summary": {
+        "min": 0.000692293862812221,
+        "max": 0.1956973671913147,
+        "mean": 0.08964876405480027,
+        "median": 0.08628792688250542,
+        "std": 0.057226297471417754
+      },
+      "model_params": {
+        "latent_size": 58,
+        "n_hidden_layers": 5,
+        "gaussian_noise": 0.7466805127272365,
+        "dropout": 0.04308691548552568,
+        "activation": "mish",
+        "layer_norm": 0
+      }
+    },
+    {
+      "key": "xor-32",
+      "method": "admm_input_group",
+      "dataset": "xor",
+      "n_samples": 200,
+      "n_features": 32,
+      "seed": 42,
+      "non_zero_features": 32,
+      "runtime_seconds": 11.543029546737671,
+      "scores_summary": {
+        "min": 0.00011249964154558256,
+        "max": 0.27648067474365234,
+        "mean": 0.021170989735992407,
+        "median": 0.003399420529603958,
+        "std": 0.06237564298044682
+      },
+      "model_params": {
+        "latent_size": 58,
+        "n_hidden_layers": 5,
+        "gaussian_noise": 0.7466805127272365,
+        "dropout": 0.04308691548552568,
+        "activation": "mish",
+        "layer_norm": 0
+      }
+    },
+    {
+      "key": "xor-64",
+      "method": "admm_input_group",
+      "dataset": "xor",
+      "n_samples": 200,
+      "n_features": 64,
+      "seed": 42,
+      "non_zero_features": 64,
+      "runtime_seconds": 11.968218088150024,
+      "scores_summary": {
+        "min": 0.0007318969583138824,
+        "max": 0.35820284485816956,
+        "mean": 0.08046002797527763,
+        "median": 0.0758230872452259,
+        "std": 0.06045901266493615
+      },
+      "model_params": {
+        "latent_size": 58,
+        "n_hidden_layers": 5,
+        "gaussian_noise": 0.7466805127272365,
+        "dropout": 0.04308691548552568,
+        "activation": "mish",
+        "layer_norm": 0
+      }
+    }
+  ]
+}

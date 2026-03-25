@@ -1,0 +1,185 @@
+{
+  "metadata": {
+    "n_samples": 1000,
+    "seed": 0,
+    "architectures": {
+      "latent_size": 58,
+      "n_hidden_layers": 5,
+      "feat_drop": 0.6
+    }
+  },
+  "experiments": {
+    "xor": {
+      "16": {
+        "500 (default)": {
+          "best_k": 0.0,
+          "runtime": 36.73367238044739,
+          "non_zero": 12,
+          "convergence": null
+        },
+        "1000 (2x)": {
+          "best_k": 0.5,
+          "runtime": 76.53811407089233,
+          "non_zero": 8,
+          "convergence": null
+        },
+        "2000 (4x)": {
+          "best_k": 0.0,
+          "runtime": 139.92426013946533,
+          "non_zero": 6,
+          "convergence": null
+        }
+      },
+      "32": {
+        "500 (default)": {
+          "best_k": 0.5,
+          "runtime": 36.496249198913574,
+          "non_zero": 28,
+          "convergence": null
+        },
+        "1000 (2x)": {
+          "best_k": 0.0,
+          "runtime": 72.16415929794312,
+          "non_zero": 10,
+          "convergence": null
+        },
+        "2000 (4x)": {
+          "best_k": 0.0,
+          "runtime": 134.79699969291687,
+          "non_zero": 11,
+          "convergence": null
+        }
+      },
+      "64": {
+        "500 (default)": {
+          "best_k": 0.0,
+          "runtime": 31.818825006484985,
+          "non_zero": 35,
+          "convergence": null
+        },
+        "1000 (2x)": {
+          "best_k": 0.0,
+          "runtime": 66.03558921813965,
+          "non_zero": 18,
+          "convergence": null
+        },
+        "2000 (4x)": {
+          "best_k": 0.0,
+          "runtime": 131.12273383140564,
+          "non_zero": 9,
+          "convergence": null
+        }
+      },
+      "128": {
+        "500 (default)": {
+          "best_k": 0.0,
+          "runtime": 31.412060499191284,
+          "non_zero": 86,
+          "convergence": null
+        },
+        "1000 (2x)": {
+          "best_k": 0.0,
+          "runtime": 79.41174483299255,
+          "non_zero": 71,
+          "convergence": null
+        },
+        "2000 (4x)": {
+          "best_k": 0.0,
+          "runtime": 137.58426237106323,
+          "non_zero": 89,
+          "convergence": null
+        }
+      },
+      "256": {
+        "500 (default)": {
+          "best_k": 1.0,
+          "runtime": 35.04519820213318,
+          "non_zero": 255,
+          "convergence": null
+        },
+        "1000 (2x)": {
+          "best_k": 1.0,
+          "runtime": 66.93711495399475,
+          "non_zero": 189,
+          "convergence": null
+        },
+        "2000 (4x)": {
+          "best_k": 1.0,
+          "runtime": 133.85288953781128,
+          "non_zero": 133,
+          "convergence": null
+        }
+      },
+      "512": {
+        "500 (default)": {
+          "best_k": 1.0,
+          "runtime": 34.091402530670166,
+          "non_zero": 504,
+          "convergence": null
+        },
+        "1000 (2x)": {
+          "best_k": 1.0,
+          "runtime": 66.33915829658508,
+          "non_zero": 269,
+          "convergence": null
+        },
+        "2000 (4x)": {
+          "best_k": 1.0,
+          "runtime": 143.55159616470337,
+          "non_zero": 299,
+          "convergence": null
+        }
+      },
+      "1024": {
+        "500 (default)": {
+          "best_k": 0.0,
+          "runtime": 38.52772045135498,
+          "non_zero": 977,
+          "convergence": null
+        },
+        "1000 (2x)": {
+          "best_k": 0.0,
+          "runtime": 71.94113802909851,
+          "non_zero": 0,
+          "convergence": null
+        },
+        "2000 (4x)": {
+          "best_k": 0.0,
+          "runtime": 141.5946147441864,
+          "non_zero": 370,
+          "convergence": null
+        }
+      }
+    },
+    "ring": {
+      "16": {
+        "500 (default)": {
+          "best_k": 0.0,
+          "runtime": 34.706204891204834,
+          "non_zero": 15,
+          "convergence": null
+        },
+        "1000 (2x)": {
+          "best_k": 0.0,
+          "runtime": 66.8284113407135,
+          "non_zero": 15,
+          "convergence": null
+        },
+        "2000 (4x)": {
+          "best_k": 0.0,
+          "runtime": 132.69939804077148,
+          "non_zero": 16,
+          "convergence": null
+        }
+      },
+      "32": {
+        "500 (default)": {
+          "best_k": 0.0,
+          "runtime": 34.189706563949585,
+          "non_zero": 32,
+          "convergence": null
+        }
+      }
+    }
+  }
+}

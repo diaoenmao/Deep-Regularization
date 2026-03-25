@@ -1,0 +1,38 @@
+{
+  "new_consistent_architecture": {
+    "total_experiments": 4,
+    "by_dataset": {
+      "ring": {
+        "count": 2,
+        "non_zero_features": [
+          32,
+          64
+        ],
+        "runtimes": [
+          14.42019772529602,
+          10.933811902999878
+        ],
+        "avg_non_zero": 48.0,
+        "std_non_zero": 16.0,
+        "avg_runtime": 12.67700481414795
+      },
+      "xor": {
+        "count": 2,
+        "non_zero_features": [
+          32,
+          64
+        ],
+        "runtimes": [
+          11.543029546737671,
+          11.968218088150024
+        ],
+        "avg_non_zero": 48.0,
+        "std_non_zero": 16.0,
+        "avg_runtime": 11.755623817443848
+      }
+    }
+  },
+  "backup_summary": {
+    "total_datasets": 6
+  }
+}

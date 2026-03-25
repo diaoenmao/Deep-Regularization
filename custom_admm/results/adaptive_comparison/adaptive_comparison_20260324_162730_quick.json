@@ -1,0 +1,219 @@
+{
+  "metadata": {
+    "timestamp": "20260324_162730",
+    "mode": "quick",
+    "device": "cpu",
+    "n_samples": 1000,
+    "n_folds": 6
+  },
+  "architectures": {
+    "small_2layer": {
+      "datasets": {
+        "xor": {
+          "dimensions": {
+            "8": {
+              "mean_best_k": 1.0,
+              "std_best_k": 0.0,
+              "mean_auc": 0.5,
+              "std_auc": 0.0,
+              "per_fold_best_k": [
+                1.0,
+                1.0,
+                1.0,
+                1.0,
+                1.0,
+                1.0
+              ],
+              "per_fold_auc": [
+                0.5,
+                0.5,
+                0.5,
+                0.5,
+                0.5,
+                0.5
+              ]
+            },
+            "128": {
+              "mean_best_k": 1.0,
+              "std_best_k": 0.0,
+              "mean_auc": 0.5,
+              "std_auc": 0.0,
+              "per_fold_best_k": [
+                1.0,
+                1.0,
+                1.0,
+                1.0,
+                1.0,
+                1.0
+              ],
+              "per_fold_auc": [
+                0.5,
+                0.5,
+                0.5,
+                0.5,
+                0.5,
+                0.5
+              ]
+            }
+          }
+        }
+      }
+    },
+    "medium_3layer": {
+      "datasets": {
+        "xor": {
+          "dimensions": {
+            "8": {
+              "mean_best_k": 0.8333333333333334,
+              "std_best_k": 0.37267799624996495,
+              "mean_auc": 0.5,
+              "std_auc": 0.0,
+              "per_fold_best_k": [
+                1.0,
+                1.0,
+                1.0,
+                0.0,
+                1.0,
+                1.0
+              ],
+              "per_fold_auc": [
+                0.5,
+                0.5,
+                0.5,
+                0.5,
+                0.5,
+                0.5
+              ]
+            },
+            "128": {
+              "mean_best_k": 1.0,
+              "std_best_k": 0.0,
+              "mean_auc": 0.5,
+              "std_auc": 0.0,
+              "per_fold_best_k": [
+                1.0,
+                1.0,
+                1.0,
+                1.0,
+                1.0,
+                1.0
+              ],
+              "per_fold_auc": [
+                0.5,
+                0.5,
+                0.5,
+                0.5,
+                0.5,
+                0.5
+              ]
+            }
+          }
+        }
+      }
+    },
+    "baseline_5layer": {
+      "datasets": {
+        "xor": {
+          "dimensions": {
+            "8": {
+              "mean_best_k": 0.25,
+              "std_best_k": 0.25,
+              "mean_auc": 0.5,
+              "std_auc": 0.0,
+              "per_fold_best_k": [
+                0.0,
+                0.5,
+                0.5,
+                0.0,
+                0.0,
+                0.5
+              ],
+              "per_fold_auc": [
+                0.5,
+                0.5,
+                0.5,
+                0.5,
+                0.5,
+                0.5
+              ]
+            },
+            "128": {
+              "mean_best_k": 0.08333333333333333,
+              "std_best_k": 0.1863389981249825,
+              "mean_auc": 0.5,
+              "std_auc": 0.0,
+              "per_fold_best_k": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.5
+              ],
+              "per_fold_auc": [
+                0.5,
+                0.5,
+                0.5,
+                0.5,
+                0.5,
+                0.5
+              ]
+            }
+          }
+        }
+      }
+    },
+    "adaptive_mlp": {
+      "datasets": {
+        "xor": {
+          "dimensions": {
+            "8": {
+              "mean_best_k": 1.0,
+              "std_best_k": 0.0,
+              "mean_auc": 0.5,
+              "std_auc": 0.0,
+              "per_fold_best_k": [
+                1.0,
+                1.0,
+                1.0,
+                1.0,
+                1.0,
+                1.0
+              ],
+              "per_fold_auc": [
+                0.5,
+                0.5,
+                0.5,
+                0.5,
+                0.5,
+                0.5
+              ]
+            },
+            "128": {
+              "mean_best_k": 1.0,
+              "std_best_k": 0.0,
+              "mean_auc": 0.5,
+              "std_auc": 0.0,
+              "per_fold_best_k": [
+                1.0,
+                1.0,
+                1.0,
+                1.0,
+                1.0,
+                1.0
+              ],
+              "per_fold_auc": [
+                0.5,
+                0.5,
+                0.5,
+                0.5,
+                0.5,
+                0.5
+              ]
+            }
+          }
+        }
+      }
+    }
+  }
+}

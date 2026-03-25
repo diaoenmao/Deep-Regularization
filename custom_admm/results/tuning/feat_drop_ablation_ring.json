@@ -1,0 +1,218 @@
+{
+  "dataset": "ring",
+  "n_samples": 1000,
+  "cv_folds": 2,
+  "fixed_hyperparameters": {
+    "lr": 0.005,
+    "C": 0.05,
+    "epochs": 500,
+    "warmup_epochs": 120,
+    "rho_init": 200.0
+  },
+  "tested_feat_drop_values": [
+    0.0,
+    0.2,
+    0.4,
+    0.6
+  ],
+  "tested_feature_dims": [
+    32,
+    64,
+    128,
+    256
+  ],
+  "results": {
+    "0.0": {
+      "feat_drop": 0.0,
+      "per_m": [
+        {
+          "m": 32,
+          "best_k": 0.0,
+          "best_2k": 0.0,
+          "per_fold_bestk": [
+            0.0,
+            0.0
+          ],
+          "time_seconds": 52.41416263580322
+        },
+        {
+          "m": 64,
+          "best_k": 0.25,
+          "best_2k": 0.25,
+          "per_fold_bestk": [
+            0.0,
+            0.5
+          ],
+          "time_seconds": 50.1950466632843
+        },
+        {
+          "m": 128,
+          "best_k": 0.0,
+          "best_2k": 0.0,
+          "per_fold_bestk": [
+            0.0,
+            0.0
+          ],
+          "time_seconds": 48.83767795562744
+        },
+        {
+          "m": 256,
+          "best_k": 0.0,
+          "best_2k": 0.0,
+          "per_fold_bestk": [
+            0.0,
+            0.0
+          ],
+          "time_seconds": 48.454657316207886
+        }
+      ],
+      "avg_best_k": 0.0625
+    },
+    "0.2": {
+      "feat_drop": 0.2,
+      "per_m": [
+        {
+          "m": 32,
+          "best_k": 0.0,
+          "best_2k": 0.0,
+          "per_fold_bestk": [
+            0.0,
+            0.0
+          ],
+          "time_seconds": 48.377124547958374
+        },
+        {
+          "m": 64,
+          "best_k": 0.25,
+          "best_2k": 0.25,
+          "per_fold_bestk": [
+            0.0,
+            0.5
+          ],
+          "time_seconds": 48.38782358169556
+        },
+        {
+          "m": 128,
+          "best_k": 0.0,
+          "best_2k": 0.0,
+          "per_fold_bestk": [
+            0.0,
+            0.0
+          ],
+          "time_seconds": 49.503875494003296
+        },
+        {
+          "m": 256,
+          "best_k": 0.0,
+          "best_2k": 0.0,
+          "per_fold_bestk": [
+            0.0,
+            0.0
+          ],
+          "time_seconds": 49.2266960144043
+        }
+      ],
+      "avg_best_k": 0.0625
+    },
+    "0.4": {
+      "feat_drop": 0.4,
+      "per_m": [
+        {
+          "m": 32,
+          "best_k": 0.0,
+          "best_2k": 0.0,
+          "per_fold_bestk": [
+            0.0,
+            0.0
+          ],
+          "time_seconds": 49.06028127670288
+        },
+        {
+          "m": 64,
+          "best_k": 0.25,
+          "best_2k": 0.25,
+          "per_fold_bestk": [
+            0.0,
+            0.5
+          ],
+          "time_seconds": 48.8231258392334
+        },
+        {
+          "m": 128,
+          "best_k": 0.0,
+          "best_2k": 0.0,
+          "per_fold_bestk": [
+            0.0,
+            0.0
+          ],
+          "time_seconds": 48.19196915626526
+        },
+        {
+          "m": 256,
+          "best_k": 0.0,
+          "best_2k": 0.0,
+          "per_fold_bestk": [
+            0.0,
+            0.0
+          ],
+          "time_seconds": 49.4753098487854
+        }
+      ],
+      "avg_best_k": 0.0625
+    },
+    "0.6": {
+      "feat_drop": 0.6,
+      "per_m": [
+        {
+          "m": 32,
+          "best_k": 0.5,
+          "best_2k": 0.5,
+          "per_fold_bestk": [
+            0.0,
+            1.0
+          ],
+          "time_seconds": 48.24193620681763
+        },
+        {
+          "m": 64,
+          "best_k": 0.5,
+          "best_2k": 0.75,
+          "per_fold_bestk": [
+            0.5,
+            0.5
+          ],
+          "time_seconds": 48.13991332054138
+        },
+        {
+          "m": 128,
+          "best_k": 0.25,
+          "best_2k": 0.25,
+          "per_fold_bestk": [
+            0.5,
+            0.0
+          ],
+          "time_seconds": 48.690752267837524
+        },
+        {
+          "m": 256,
+          "best_k": 0.0,
+          "best_2k": 0.0,
+          "per_fold_bestk": [
+            0.0,
+            0.0
+          ],
+          "time_seconds": 48.77692699432373
+        }
+      ],
+      "avg_best_k": 0.3125
+    }
+  },
+  "best_configuration": {
+    "feat_drop": 0.6,
+    "avg_best_k": 0.3125
+  },
+  "reference_performance": {
+    "feat_drop": 0.7,
+    "avg_best_k": 0.12037037037037036
+  }
+}

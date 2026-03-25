@@ -72,16 +72,10 @@ METHOD_NAMES = [
     'mrmr',
     'fsnet',
     'cae',
-    'admm_global',
-    'admm_layer',
-    'admm_neuron',
-    'lasso_global',
-    'lasso_layer',
-    'lasso_neuron',
-    'admm_input_group',
 ]
 
-DATASETS = ['arcene', 'madelon', 'dexter', 'dorothea', 'gisette', 'fashion', 'isolet', 'mice', 'har', 'mnist', 'coil20']
+#DATASETS = ['arcene', 'madelon', 'dexter', 'dorothea', 'gisette', 'fashion', 'isolet', 'mice', 'har', 'mnist', 'coil20']
+DATASETS = ['dexter']
 
 
 def load_nips2003_labels(filepath: str) -> np.ndarray:
