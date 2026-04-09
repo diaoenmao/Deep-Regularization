@@ -1,0 +1,141 @@
+{
+  "metadata": {
+    "timestamp": "20260326_111016",
+    "quick_mode": true,
+    "n_samples": 1000,
+    "n_folds": 6,
+    "fold_limit": 1,
+    "dim_limit": 1,
+    "matched_backbone": {
+      "latent_size": 32,
+      "n_hidden_layers": 2,
+      "gaussian_noise": 0.0,
+      "dropout": 0.0,
+      "activation": "mish"
+    },
+    "matched_nn_fit": {
+      "learning_rate": 0.0017601777068292975,
+      "epochs": 416,
+      "batch_size": 56,
+      "weight_decay": 0.00048519293899787247,
+      "val": 0.2,
+      "early_stopping_patience": 66,
+      "optimizer": "adagrad",
+      "sam_type": "no-sam"
+    },
+    "matched_sadmm_hp": {
+      "latent_size": 32,
+      "n_hidden_layers": 2,
+      "gaussian_noise": 0.0,
+      "dropout": 0.0,
+      "activation": "mish",
+      "epochs": 416,
+      "warmup_epochs": 100,
+      "batch_size": 56,
+      "optimizer_type": "adagrad",
+      "use_early_stopping": true,
+      "patience": 66,
+      "val_split": 0.2,
+      "feat_drop": 0.6
+    },
+    "fsnet_fit": {
+      "n_epochs": 416,
+      "batch_size": 56,
+      "_lambda": 10.0,
+      "weight_decay": 1e-06
+    },
+    "lassonet_kwargs": {
+      "hidden_dims": [
+        32,
+        32
+      ],
+      "n_iters": [
+        30,
+        30
+      ],
+      "batch_size": 64,
+      "dropout": 0.0,
+      "patience": 10,
+      "lambda_start": 3.2768,
+      "tol": 0.9999,
+      "verbose": false
+    }
+  },
+  "method_specs": {
+    "sadmm_fs": {
+      "label": "SADMM-FS",
+      "match_level": "method_specific",
+      "reason": "Shared 2x32 predictor and Adagrad family, but ADMM gate updates are method-specific."
+    },
+    "cancelout_sigmoid": {
+      "label": "CancelOut-Sigmoid",
+      "match_level": "full_match",
+      "reason": "Shared 2x32 predictor and shared NNwrapper training config."
+    },
+    "stg": {
+      "label": "STG",
+      "match_level": "unavailable",
+      "reason": "src.stg_wrapper is missing in the current repo snapshot."
+    }
+  },
+  "results": {
+    "sadmm_fs": {
+      "xor": {
+        "8": {
+          "k": 2,
+          "folds": [
+            {
+              "status": "ok",
+              "best_k": 1.0,
+              "runtime_sec": 28.056172609329224,
+              "fold_idx": 0
+            }
+          ],
+          "mean_best_k": 1.0,
+          "std_best_k": 0.0,
+          "mean_runtime_sec": 28.056172609329224
+        }
+      }
+    },
+    "cancelout_sigmoid": {
+      "xor": {
+        "8": {
+          "k": 2,
+          "folds": [
+            {
+              "status": "ok",
+              "best_k": 1.0,
+              "runtime_sec": 16.48670792579651,
+              "fold_idx": 0
+            }
+          ],
+          "mean_best_k": 1.0,
+          "std_best_k": 0.0,
+          "mean_runtime_sec": 16.48670792579651
+        }
+      }
+    }
+  },
+  "summary": {
+    "sadmm_fs": {
+      "overall_mean_best_k": 1.0,
+      "datasets": {
+        "xor": {
+          "mean_best_k": 1.0,
+          "mean_runtime_sec": 28.056172609329224
+        }
+      },
+      "match_level": "method_specific"
+    },
+    "cancelout_sigmoid": {
+      "overall_mean_best_k": 1.0,
+      "datasets": {
+        "xor": {
+          "mean_best_k": 1.0,
+          "mean_runtime_sec": 16.48670792579651
+        }
+      },
+      "match_level": "full_match"
+    }
+  }
+}

@@ -363,6 +363,13 @@ class AdaptiveFeatureSelectionMLP(nn.Module):
             if isinstance(module, nn.Linear):
                 init_weights(module)
 
+    @property
+    def first_linear(self) -> nn.Linear:
+        for module in self.layers:
+            if isinstance(module, nn.Linear):
+                return module
+        raise RuntimeError("No Linear layer found")
+
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Forward pass with gating and feature dropout."""
         # Apply input noise (training only)

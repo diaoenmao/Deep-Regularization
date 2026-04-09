@@ -1,0 +1,142 @@
+{
+  "metadata": {
+    "timestamp": "20260329_212651",
+    "n_samples": 1000,
+    "n_folds": 6,
+    "device": "cuda",
+    "epochs": 120,
+    "warmup_epochs": 30,
+    "methods_requested": [
+      "select_then_mlp",
+      "expand8_then_select_then_mlp"
+    ],
+    "dataset_filter": [],
+    "task_keys": [
+      "xor_m128"
+    ],
+    "task_limit": 0,
+    "protocol": "training-order synthetic grid with 6-fold CV, feature permutation, best-k/best-2k/AUC/AUPRC"
+  },
+  "methods": {
+    "select_then_mlp": {
+      "desc": "Baseline order: select on raw features, then MLP"
+    },
+    "expand8_then_select_then_mlp": {
+      "desc": "Expand to 8 channels per feature, then gate, then MLP"
+    }
+  },
+  "results": {
+    "xor_m128": {
+      "select_then_mlp": {
+        "mean_best_k": 1.0,
+        "std_best_k": 0.0,
+        "mean_best_2k": 1.0,
+        "std_best_2k": 0.0,
+        "mean_auc": 0.8282452999894344,
+        "std_auc": 0.03747392148349928,
+        "mean_auprc": 0.812410284267001,
+        "std_auprc": 0.07221287642301577,
+        "elapsed_sec": 39.60429000854492,
+        "per_fold": [
+          {
+            "fold": 1,
+            "best_k": 1.0,
+            "best_2k": 1.0,
+            "auc": 0.8686477174849269,
+            "auprc": 0.8923259490985447
+          },
+          {
+            "fold": 2,
+            "best_k": 1.0,
+            "best_2k": 1.0,
+            "auc": 0.8481067125645438,
+            "auprc": 0.8604255733428133
+          },
+          {
+            "fold": 3,
+            "best_k": 1.0,
+            "best_2k": 1.0,
+            "auc": 0.7541533080734479,
+            "auprc": 0.6700380715806064
+          },
+          {
+            "fold": 4,
+            "best_k": 1.0,
+            "best_2k": 1.0,
+            "auc": 0.8103646281940855,
+            "auprc": 0.8155177579566758
+          },
+          {
+            "fold": 5,
+            "best_k": 1.0,
+            "best_2k": 1.0,
+            "auc": 0.8506902761104442,
+            "auprc": 0.7845176403351831
+          },
+          {
+            "fold": 6,
+            "best_k": 1.0,
+            "best_2k": 1.0,
+            "auc": 0.8375091575091576,
+            "auprc": 0.851636713288183
+          }
+        ]
+      },
+      "expand8_then_select_then_mlp": {
+        "mean_best_k": 0.3333333333333333,
+        "std_best_k": 0.4714045207910317,
+        "mean_best_2k": 0.4166666666666667,
+        "std_best_2k": 0.44876373392787533,
+        "mean_auc": 0.7485981726036491,
+        "std_auc": 0.2243548341851744,
+        "mean_auprc": 0.7553469605884935,
+        "std_auprc": 0.21868570865518888,
+        "elapsed_sec": 29.282744646072388,
+        "per_fold": [
+          {
+            "fold": 1,
+            "best_k": 0.0,
+            "best_2k": 0.0,
+            "auc": 0.46525983347688776,
+            "auprc": 0.5047916469223404
+          },
+          {
+            "fold": 2,
+            "best_k": 0.0,
+            "best_2k": 0.5,
+            "auc": 0.9558232931726908,
+            "auprc": 0.9611244267491855
+          },
+          {
+            "fold": 3,
+            "best_k": 1.0,
+            "best_2k": 1.0,
+            "auc": 0.9718740891868259,
+            "auprc": 0.9677825343395174
+          },
+          {
+            "fold": 4,
+            "best_k": 1.0,
+            "best_2k": 1.0,
+            "auc": 0.9843525696238875,
+            "auprc": 0.9842810404633386
+          },
+          {
+            "fold": 5,
+            "best_k": 0.0,
+            "best_2k": 0.0,
+            "auc": 0.5525210084033614,
+            "auprc": 0.5039658054789602
+          },
+          {
+            "fold": 6,
+            "best_k": 0.0,
+            "best_2k": 0.0,
+            "auc": 0.5617582417582417,
+            "auprc": 0.6101363095776193
+          }
+        ]
+      }
+    }
+  }
+}

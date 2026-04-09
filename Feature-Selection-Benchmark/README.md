@@ -14,7 +14,7 @@ To run a feature selection method on the synthetic datasets, you simply need to 
 python main-benchmark.py rf
 ```
 
-Other methods are: `attr`, `attr-t`, `attr-b`, `nn`, `rf`, `relief`, `fsnet`, `mrmr`, `mi`, `lassonet`, `cae`, `treeshap`, `canceloutsigmoid`, `canceloutsoftmax` or `deeppink`.
+Other methods are: `attr`, `attr-t`, `attr-b`, `nn`, `rf`, `relief`, `fsnet`, `e2efs`, `mrmr`, `mi`, `lassonet`, `cae`, `treeshap`, `canceloutsigmoid`, `canceloutsoftmax` or `deeppink`.
 
 Results will be stored in `results/`.
 

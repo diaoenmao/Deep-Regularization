@@ -1,0 +1,35 @@
+[
+  {
+    "dataset": "xor",
+    "n_features": 8,
+    "k": 2,
+    "best_k_mean": 0.0,
+    "best_k_std": 0.0,
+    "auroc_mean": 0.5147735499833123,
+    "auroc_std": 0.06478471087563673,
+    "auprc_mean": 0.5582931228535856,
+    "auprc_std": 0.06767335182241989
+  },
+  {
+    "dataset": "xor",
+    "n_features": 128,
+    "k": 2,
+    "best_k_mean": 0.0,
+    "best_k_std": 0.0,
+    "auroc_mean": 0.5084085895742235,
+    "auroc_std": 0.09515954453240873,
+    "auprc_mean": 0.5705946527456901,
+    "auprc_std": 0.07633151560117149
+  },
+  {
+    "dataset": "ring",
+    "n_features": 32,
+    "k": 2,
+    "best_k_mean": 0.5,
+    "best_k_std": 0.0,
+    "auroc_mean": 0.5046427406972134,
+    "auroc_std": 0.07885701873781546,
+    "auprc_mean": 0.4919665861349846,
+    "auprc_std": 0.06338709172978305
+  }
+]

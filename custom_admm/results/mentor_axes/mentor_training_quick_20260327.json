@@ -1,0 +1,74 @@
+{
+  "metadata": {
+    "timestamp": "20260327_212756",
+    "axis": [
+      "training"
+    ],
+    "device": "cpu",
+    "folds": 2,
+    "epochs": 96,
+    "warmup_epochs": 24
+  },
+  "axes": {
+    "training": {
+      "tasks": {
+        "xor_m256": {
+          "select_then_mlp": {
+            "mean_best_k": 0.25,
+            "std_best_k": 0.25,
+            "mean_auc": 0.4942546033597576,
+            "std_auc": 0.02193437755951383,
+            "per_fold": [
+              {
+                "fold": 0,
+                "best_k": 0.5,
+                "auc": 0.5161889809192715,
+                "pretrain": null
+              },
+              {
+                "fold": 1,
+                "best_k": 0.0,
+                "auc": 0.4723202258002438,
+                "pretrain": null
+              }
+            ],
+            "desc": "Current order: gate raw features, then MLP"
+          },
+          "expand_then_select_then_mlp": {
+            "mean_best_k": 0.0,
+            "std_best_k": 0.0,
+            "mean_auc": 0.4862478961778021,
+            "std_auc": 0.00664689547217634,
+            "per_fold": [
+              {
+                "fold": 0,
+                "best_k": 0.0,
+                "auc": 0.49289479164997846,
+                "pretrain": null
+              },
+              {
+                "fold": 1,
+                "best_k": 0.0,
+                "auc": 0.4796010007056258,
+                "pretrain": null
+              }
+            ],
+            "desc": "Expand features into d channels, then gate, then MLP"
+          }
+        }
+      },
+      "models": [
+        {
+          "name": "select_then_mlp",
+          "desc": "Current order: gate raw features, then MLP",
+          "pretrain": false
+        },
+        {
+          "name": "expand_then_select_then_mlp",
+          "desc": "Expand features into d channels, then gate, then MLP",
+          "pretrain": false
+        }
+      ]
+    }
+  }
+}

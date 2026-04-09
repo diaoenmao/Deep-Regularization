@@ -1,0 +1,22 @@
+{
+  "auroc": 1.0,
+  "auroc_std": 0.0,
+  "auprc": NaN,
+  "auprc_std": NaN,
+  "k": 8192,
+  "time": 97.42468190193176,
+  "per_seed_auroc": [
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0
+  ],
+  "per_seed_auprc": [
+    NaN,
+    NaN,
+    NaN,
+    NaN,
+    NaN
+  ]
+}

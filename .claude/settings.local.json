@@ -181,7 +181,9 @@
       "Bash(cat Feature-Selection-Benchmark/tables/*.tex)",
       "Skill(research)",
       "Bash(tee phase1_log.txt)",
-      "Bash(tee architecture_comparison_log.txt)"
+      "Bash(tee architecture_comparison_log.txt)",
+      "mcp__codex__codex",
+      "Bash(taskkill /F /FI 'IMAGENAME eq python.exe')"
     ]
   }
 }

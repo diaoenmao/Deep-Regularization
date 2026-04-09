@@ -1,0 +1,83 @@
+{
+  "metadata": {
+    "timestamp": "20260327_222859",
+    "n_samples": 1000,
+    "n_folds": 6,
+    "device": "cpu",
+    "epochs": 24,
+    "warmup_epochs": 6,
+    "methods_requested": [
+      "cae"
+    ],
+    "dataset_filter": [],
+    "task_limit": 1,
+    "protocol": "official synthetic grid with 6-fold CV, feature permutation, best-k/best-2k/AUC/AUPRC",
+    "unavailable_tier2": {}
+  },
+  "methods": {
+    "cae": {
+      "family": "tier2_baseline",
+      "desc": "Concrete Autoencoder selector",
+      "pretrain": false
+    }
+  },
+  "results": {
+    "xor_m2": {
+      "cae": {
+        "mean_best_k": 1.0,
+        "std_best_k": 0.0,
+        "mean_best_2k": 1.0,
+        "std_best_2k": 0.0,
+        "mean_auc": 0.5179571883526973,
+        "std_auc": 0.03536904228625349,
+        "mean_auprc": 0.5129260808279793,
+        "std_auprc": 0.018665768085585323,
+        "elapsed_sec": 33.133731842041016,
+        "per_fold": [
+          {
+            "fold": 1,
+            "best_k": 1.0,
+            "best_2k": 1.0,
+            "auc": 0.4636075949367089,
+            "auprc": 0.5104049118292161
+          },
+          {
+            "fold": 2,
+            "best_k": 1.0,
+            "best_2k": 1.0,
+            "auc": 0.534234752589183,
+            "auprc": 0.5206524085216792
+          },
+          {
+            "fold": 3,
+            "best_k": 1.0,
+            "best_2k": 1.0,
+            "auc": 0.50704833141542,
+            "auprc": 0.5024523831238058
+          },
+          {
+            "fold": 4,
+            "best_k": 1.0,
+            "best_2k": 1.0,
+            "auc": 0.5678427997705106,
+            "auprc": 0.5481938896343718
+          },
+          {
+            "fold": 5,
+            "best_k": 1.0,
+            "best_2k": 1.0,
+            "auc": 0.5464788732394367,
+            "auprc": 0.48741649395961484
+          },
+          {
+            "fold": 6,
+            "best_k": 1.0,
+            "best_2k": 1.0,
+            "auc": 0.4885307781649245,
+            "auprc": 0.508436397899188
+          }
+        ]
+      }
+    }
+  }
+}

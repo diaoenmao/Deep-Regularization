@@ -1,0 +1,231 @@
+{
+  "results": [
+    {
+      "dataset": "xor",
+      "method": "mlp_baseline",
+      "seed": 0,
+      "best_k": 0.0,
+      "selected": [
+        35,
+        37
+      ]
+    },
+    {
+      "dataset": "xor",
+      "method": "mlp_baseline",
+      "seed": 1,
+      "best_k": 0.0,
+      "selected": [
+        55,
+        12
+      ]
+    },
+    {
+      "dataset": "xor",
+      "method": "mlp_baseline",
+      "seed": 2,
+      "best_k": 0.0,
+      "selected": [
+        17,
+        47
+      ]
+    },
+    {
+      "dataset": "xor",
+      "method": "mlp_baseline",
+      "seed": 3,
+      "best_k": 0.0,
+      "selected": [
+        84,
+        73
+      ]
+    },
+    {
+      "dataset": "xor",
+      "method": "mlp_baseline",
+      "seed": 4,
+      "best_k": 0.0,
+      "selected": [
+        127,
+        109
+      ]
+    },
+    {
+      "dataset": "xor",
+      "method": "transformer_pretrain",
+      "seed": 0,
+      "best_k": 0.0,
+      "selected": [
+        6,
+        31
+      ]
+    },
+    {
+      "dataset": "xor",
+      "method": "transformer_pretrain",
+      "seed": 1,
+      "best_k": 0.0,
+      "selected": [
+        104,
+        25
+      ]
+    },
+    {
+      "dataset": "xor",
+      "method": "transformer_pretrain",
+      "seed": 2,
+      "best_k": 0.0,
+      "selected": [
+        49,
+        106
+      ]
+    },
+    {
+      "dataset": "xor",
+      "method": "transformer_pretrain",
+      "seed": 3,
+      "best_k": 0.0,
+      "selected": [
+        47,
+        103
+      ]
+    },
+    {
+      "dataset": "xor",
+      "method": "transformer_pretrain",
+      "seed": 4,
+      "best_k": 0.0,
+      "selected": [
+        76,
+        52
+      ]
+    },
+    {
+      "dataset": "ring",
+      "method": "mlp_baseline",
+      "seed": 0,
+      "best_k": 0.0,
+      "selected": [
+        83,
+        110
+      ]
+    },
+    {
+      "dataset": "ring",
+      "method": "mlp_baseline",
+      "seed": 1,
+      "best_k": 0.0,
+      "selected": [
+        124,
+        79
+      ]
+    },
+    {
+      "dataset": "ring",
+      "method": "mlp_baseline",
+      "seed": 2,
+      "best_k": 0.0,
+      "selected": [
+        10,
+        126
+      ]
+    },
+    {
+      "dataset": "ring",
+      "method": "mlp_baseline",
+      "seed": 3,
+      "best_k": 0.0,
+      "selected": [
+        118,
+        94
+      ]
+    },
+    {
+      "dataset": "ring",
+      "method": "mlp_baseline",
+      "seed": 4,
+      "best_k": 0.0,
+      "selected": [
+        52,
+        51
+      ]
+    },
+    {
+      "dataset": "ring",
+      "method": "transformer_pretrain",
+      "seed": 0,
+      "best_k": 0.0,
+      "selected": [
+        23,
+        97
+      ]
+    },
+    {
+      "dataset": "ring",
+      "method": "transformer_pretrain",
+      "seed": 1,
+      "best_k": 0.0,
+      "selected": [
+        46,
+        74
+      ]
+    },
+    {
+      "dataset": "ring",
+      "method": "transformer_pretrain",
+      "seed": 2,
+      "best_k": 0.0,
+      "selected": [
+        11,
+        7
+      ]
+    },
+    {
+      "dataset": "ring",
+      "method": "transformer_pretrain",
+      "seed": 3,
+      "best_k": 0.0,
+      "selected": [
+        96,
+        41
+      ]
+    },
+    {
+      "dataset": "ring",
+      "method": "transformer_pretrain",
+      "seed": 4,
+      "best_k": 0.0,
+      "selected": [
+        73,
+        13
+      ]
+    }
+  ],
+  "summary": {
+    "xor": {
+      "mlp_baseline": {
+        "best_k_mean": 0.0,
+        "best_k_std": 0.0,
+        "n_runs": 5
+      },
+      "transformer_pretrain": {
+        "best_k_mean": 0.0,
+        "best_k_std": 0.0,
+        "n_runs": 5
+      }
+    },
+    "ring": {
+      "mlp_baseline": {
+        "best_k_mean": 0.0,
+        "best_k_std": 0.0,
+        "n_runs": 5
+      },
+      "transformer_pretrain": {
+        "best_k_mean": 0.0,
+        "best_k_std": 0.0,
+        "n_runs": 5
+      }
+    }
+  },
+  "timestamp": "2026-04-05T20:54:15.702971"
+}

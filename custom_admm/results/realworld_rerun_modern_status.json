@@ -1,0 +1,58 @@
+{
+  "started_at": "2026-03-27 13:42:18",
+  "root": "C:\\Users\\12425\\Documents\\Projects\\NEW_Pruning_20251110",
+  "jobs": [
+    {
+      "name": "modern_admm",
+      "cmd": [
+        "C:\\Python310\\python.exe",
+        "-u",
+        "C:\\Users\\12425\\Documents\\Projects\\NEW_Pruning_20251110\\custom_admm\\run_modern_admm_stg.py",
+        "--methods",
+        "admm_input_group",
+        "--datasets",
+        "isolet",
+        "mice",
+        "har",
+        "--seeds",
+        "5",
+        "--force"
+      ],
+      "log": "C:\\Users\\12425\\Documents\\Projects\\NEW_Pruning_20251110\\custom_admm\\results\\realworld_rerun_logs\\modern_admm.log",
+      "err": "C:\\Users\\12425\\Documents\\Projects\\NEW_Pruning_20251110\\custom_admm\\results\\realworld_rerun_logs\\modern_admm.err",
+      "started_at": "2026-03-27 13:42:18",
+      "status": "completed",
+      "elapsed_sec": 1998.6657576560974,
+      "returncode": 0,
+      "finished_at": "2026-03-27 14:15:37"
+    },
+    {
+      "name": "modern_stg",
+      "cmd": [
+        "C:\\Python310\\python.exe",
+        "-u",
+        "C:\\Users\\12425\\Documents\\Projects\\NEW_Pruning_20251110\\custom_admm\\run_modern_admm_stg.py",
+        "--methods",
+        "stg",
+        "--datasets",
+        "fashion",
+        "coil20",
+        "isolet",
+        "mice",
+        "har",
+        "--seeds",
+        "5",
+        "--force"
+      ],
+      "log": "C:\\Users\\12425\\Documents\\Projects\\NEW_Pruning_20251110\\custom_admm\\results\\realworld_rerun_logs\\modern_stg.log",
+      "err": "C:\\Users\\12425\\Documents\\Projects\\NEW_Pruning_20251110\\custom_admm\\results\\realworld_rerun_logs\\modern_stg.err",
+      "started_at": "2026-03-27 14:15:37",
+      "status": "completed",
+      "elapsed_sec": 6005.75289607048,
+      "returncode": 0,
+      "finished_at": "2026-03-27 15:55:43"
+    }
+  ],
+  "state": "completed",
+  "finished_at": "2026-03-27 15:55:43"
+}

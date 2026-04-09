@@ -1,0 +1,18 @@
+{
+  "state": "completed",
+  "started_at": "2026-03-30T09:09:49",
+  "device": "auto",
+  "epochs": 240,
+  "warmup_epochs": 60,
+  "output": "C:\\Users\\12425\\Documents\\Projects\\NEW_Pruning_20251110\\custom_admm\\results\\mentor_axes\\training_order_synthetic_full_20260329.json",
+  "methods": [
+    "select_then_mlp",
+    "expand4_then_select_then_mlp",
+    "expand8_then_select_then_mlp",
+    "expand16_then_select_then_mlp"
+  ],
+  "current_method": null,
+  "current_task": null,
+  "completed_pairs": 156,
+  "completed_at": "2026-03-30T10:40:30"
+}

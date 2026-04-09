@@ -1,0 +1,73 @@
+{
+  "started_at": "2026-03-27 08:45:06",
+  "root": "C:\\Users\\12425\\Documents\\Projects\\NEW_Pruning_20251110",
+  "jobs": [
+    {
+      "name": "nips_admm",
+      "cmd": [
+        "C:\\Python310\\python.exe",
+        "-u",
+        "C:\\Users\\12425\\Documents\\Projects\\NEW_Pruning_20251110\\custom_admm\\run_realworld_admm.py",
+        "--method",
+        "admm_input_group",
+        "--seeds",
+        "5",
+        "--force"
+      ],
+      "log": "C:\\Users\\12425\\Documents\\Projects\\NEW_Pruning_20251110\\custom_admm\\results\\realworld_rerun_logs\\nips_admm.log",
+      "err": "C:\\Users\\12425\\Documents\\Projects\\NEW_Pruning_20251110\\custom_admm\\results\\realworld_rerun_logs\\nips_admm.err",
+      "started_at": "2026-03-27 08:45:06",
+      "status": "completed",
+      "elapsed_sec": 1467.6029069423676,
+      "returncode": 0,
+      "finished_at": "2026-03-27 09:09:34"
+    },
+    {
+      "name": "nips_stg",
+      "cmd": [
+        "C:\\Python310\\python.exe",
+        "-u",
+        "C:\\Users\\12425\\Documents\\Projects\\NEW_Pruning_20251110\\custom_admm\\run_realworld_admm.py",
+        "--method",
+        "stg",
+        "--seeds",
+        "5",
+        "--force"
+      ],
+      "log": "C:\\Users\\12425\\Documents\\Projects\\NEW_Pruning_20251110\\custom_admm\\results\\realworld_rerun_logs\\nips_stg.log",
+      "err": "C:\\Users\\12425\\Documents\\Projects\\NEW_Pruning_20251110\\custom_admm\\results\\realworld_rerun_logs\\nips_stg.err",
+      "started_at": "2026-03-27 09:09:34",
+      "status": "completed",
+      "elapsed_sec": 629.0284857749939,
+      "returncode": 0,
+      "finished_at": "2026-03-27 09:20:03"
+    },
+    {
+      "name": "modern_admm",
+      "cmd": [
+        "C:\\Python310\\python.exe",
+        "-u",
+        "C:\\Users\\12425\\Documents\\Projects\\NEW_Pruning_20251110\\custom_admm\\run_modern_admm_stg.py",
+        "--methods",
+        "admm_input_group",
+        "--datasets",
+        "fashion",
+        "coil20",
+        "isolet",
+        "mice",
+        "har",
+        "--seeds",
+        "5",
+        "--force"
+      ],
+      "log": "C:\\Users\\12425\\Documents\\Projects\\NEW_Pruning_20251110\\custom_admm\\results\\realworld_rerun_logs\\modern_admm.log",
+      "err": "C:\\Users\\12425\\Documents\\Projects\\NEW_Pruning_20251110\\custom_admm\\results\\realworld_rerun_logs\\modern_admm.err",
+      "started_at": "2026-03-27 09:20:03",
+      "status": "failed",
+      "elapsed_sec": 9.459895849227905,
+      "returncode": 1,
+      "finished_at": "2026-03-27 09:20:13"
+    }
+  ],
+  "state": "failed"
+}

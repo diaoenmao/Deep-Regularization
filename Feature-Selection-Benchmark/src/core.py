@@ -19,17 +19,17 @@
 #  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 #  MA 02110-1301, USA.
 
+import captum.attr
 import numpy as np
 import pandas as pd
+import torch
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.feature_selection import mutual_info_classif
-import torch
-import captum.attr
 
+from src.e2efs_wrapper import run_e2efs
 from src.fsnet import FSNet
-from src.nn_wrapper import NNwrapper, Model
+from src.nn_wrapper import Model, NNwrapper
 from src.relief import relief
-
 
 SEED = 0xCAFE
 np.random.seed(SEED)
@@ -39,34 +39,38 @@ def run_fa_method(wrapper, X_test: np.ndarray, method_name: str) -> np.ndarray:
     tmp_x = torch.FloatTensor(X_test)
     tmp_x.requires_grad_()
     baselines = torch.zeros((1, tmp_x.size()[-1]))
-    if 'IG_noMul' == method_name:
+    if "IG_noMul" == method_name:
         ig = captum.attr.IntegratedGradients(wrapper.model, multiply_by_inputs=False)
-        attr = ig.attribute(tmp_x, target=0, return_convergence_delta=False, baselines=baselines)
-    elif 'Saliency' == method_name:
+        attr = ig.attribute(
+            tmp_x, target=0, return_convergence_delta=False, baselines=baselines
+        )
+    elif "Saliency" == method_name:
         ig = captum.attr.Saliency(wrapper.model)
         attr = ig.attribute(tmp_x, target=0, abs=True)
-    elif 'DeepLift' == method_name:
+    elif "DeepLift" == method_name:
         ig = captum.attr.DeepLift(wrapper.model, multiply_by_inputs=False)
-        attr = ig.attribute(tmp_x, target=0, return_convergence_delta=False, baselines=baselines)
-    elif 'InputXGradient' == method_name:
+        attr = ig.attribute(
+            tmp_x, target=0, return_convergence_delta=False, baselines=baselines
+        )
+    elif "InputXGradient" == method_name:
         ig = captum.attr.InputXGradient(wrapper.model)
         attr = ig.attribute(tmp_x, target=0)
-    elif 'SmoothGrad' == method_name:
+    elif "SmoothGrad" == method_name:
         ig = captum.attr.NoiseTunnel(captum.attr.Saliency(wrapper.model))
         attr = ig.attribute(tmp_x, target=0, nt_samples=50, stdevs=0.1)
-    elif 'GuidedBackprop' == method_name:
+    elif "GuidedBackprop" == method_name:
         ig = captum.attr.GuidedBackprop(wrapper.model)
         attr = ig.attribute(tmp_x, target=0)
-    elif 'Deconvolution' == method_name:
+    elif "Deconvolution" == method_name:
         ig = captum.attr.Deconvolution(wrapper.model)
         attr = ig.attribute(tmp_x, target=0)
-    elif 'FeatureAblation' == method_name:
+    elif "FeatureAblation" == method_name:
         ig = captum.attr.FeatureAblation(wrapper.model)
         attr = ig.attribute(tmp_x, target=0, baselines=baselines)
-    elif 'FeaturePermutation' == method_name:
+    elif "FeaturePermutation" == method_name:
         ig = captum.attr.FeaturePermutation(wrapper.model)
         attr = ig.attribute(tmp_x, target=0)
-    elif 'ShapleyValueSampling' == method_name:
+    elif "ShapleyValueSampling" == method_name:
         ig = captum.attr.ShapleyValueSampling(wrapper.model)
         attr = ig.attribute(tmp_x, target=0, baselines=baselines)
     else:
@@ -78,15 +82,15 @@ def run_fa_method(wrapper, X_test: np.ndarray, method_name: str) -> np.ndarray:
 
 
 def run_fs_method(
-        dataset_name,
-        method_name,
-        X_train,
-        X_tilde_train,
-        y_train,
-        X_test,
-        X_tilde_test,
-        k,
-        _2k=True
+    dataset_name,
+    method_name,
+    X_train,
+    X_tilde_train,
+    y_train,
+    X_test,
+    X_tilde_test,
+    k,
+    _2k=True,
 ):
     y_train_hat = None
     y_hat = None
@@ -94,37 +98,47 @@ def run_fs_method(
     scores2 = None
     n_classes = len(set(y_train))
     n_features = X_train.shape[1]
-    if method_name == 'random':
+    if method_name == "random":
         scores = np.random.rand(n_features)
         scores2 = np.random.rand(n_features)
-    elif method_name == 'nn':
+    elif method_name == "nn":
         wrapper = NNwrapper.create(dataset_name, n_features, n_classes)
         wrapper.fit(X_train, y_train)
         y_train_hat = wrapper.predict_proba(X_train)
         y_hat = wrapper.predict_proba(X_test)
-    elif method_name == 'rf':
+    elif method_name == "rf":
         clf = RandomForestClassifier(n_estimators=500, n_jobs=-1, random_state=SEED)
         clf.fit(X_train, y_train)
         scores = clf.feature_importances_
         scores2 = scores
         y_train_hat = clf.predict_proba(X_train)
         y_hat = clf.predict_proba(X_test)
-    elif method_name == 'mi':
+    elif method_name == "mi":
         scores = mutual_info_classif(X_train, y_train)
         scores2 = scores
-    elif method_name == 'relief':
+    elif method_name == "relief":
         scores = relief(X_train, y_train)
         scores2 = scores
-    elif method_name == 'fsnet':
+    elif method_name == "fsnet":
         n_selected = min(2 * k, n_features)
-        fsnet = FSNet(Model(n_selected, n_classes), n_features, 30, n_selected, n_classes)
+        fsnet = FSNet(
+            Model(n_selected, n_classes), n_features, 30, n_selected, n_classes
+        )
         fsnet.fit(X_train, y_train)
         y_train_hat = fsnet.predict(X_train)
         y_hat = fsnet.predict(X_test)
         scores = fsnet.get_feature_importances()
         scores2 = scores
-    elif method_name == 'lassonet':
+    elif method_name == "e2efs":
+        y_train_hat, y_hat, scores, scores2 = run_e2efs(
+            X_train,
+            y_train,
+            X_test,
+            k,
+        )
+    elif method_name == "lassonet":
         import lassonet
+
         model = lassonet.LassoNetClassifier(
             hidden_dims=(32, 32),
             n_iters=(30, 30),
@@ -133,7 +147,8 @@ def run_fs_method(
             patience=10,
             lambda_start=3.2768,
             tol=0.9999,
-            verbose=False)
+            verbose=False,
+        )
         path = model.path(X_train, y_train, return_state_dicts=True)
         scores = model.feature_importances_.numpy()
         scores2 = scores
@@ -142,7 +157,7 @@ def run_fs_method(
         model.load(state_dict)
         y_train_hat = model.predict_proba(X_train)
         y_hat = model.predict_proba(X_test)
-    elif method_name == 'mrmr':
+    elif method_name == "mrmr":
         """
         import pymrmr
         n_bins = 20
@@ -165,24 +180,30 @@ def run_fs_method(
             scores2 = np.zeros(n_features, dtype=float)
             scores2[idx] = 1
         """
-        print('Running MRMR')
+        print("Running MRMR")
         from pymrmre import mrmr
-        X_df = pd.DataFrame(X_train, columns=[f'x{i}' for i in range(X_train.shape[1])])
-        y_df = pd.DataFrame(y_train, columns=['y'])
-        solutions = mrmr.mrmr_ensemble(features=X_df, targets=y_df, solution_length=k, solution_count=1)
+
+        X_df = pd.DataFrame(X_train, columns=[f"x{i}" for i in range(X_train.shape[1])])
+        y_df = pd.DataFrame(y_train, columns=["y"])
+        solutions = mrmr.mrmr_ensemble(
+            features=X_df, targets=y_df, solution_length=k, solution_count=1
+        )
         feature_names = solutions.iloc[0][0]
         idx = np.asarray([int(feature_name[1:]) for feature_name in feature_names])
         scores = np.zeros(n_features, dtype=float)
         scores[idx] = np.random.rand(len(idx))
         if _2k:
-            solutions = mrmr.mrmr_ensemble(features=X_df, targets=y_df, solution_length=2*k, solution_count=1)
+            solutions = mrmr.mrmr_ensemble(
+                features=X_df, targets=y_df, solution_length=2 * k, solution_count=1
+            )
             feature_names = solutions.iloc[0][0]
             idx = np.asarray([int(feature_name[1:]) for feature_name in feature_names])
             scores2 = np.zeros(n_features, dtype=float)
             scores2[idx] = np.random.rand(len(idx))
-    elif method_name == 'cae':
-        from concrete_autoencoder import ConcreteAutoencoderFeatureSelector
+    elif method_name == "cae":
         import keras
+        from concrete_autoencoder import ConcreteAutoencoderFeatureSelector
+
         def nn(x):
             n_out = 1 if (n_classes <= 2) else n_classes
             x = keras.layers.GaussianNoise(0.1)(x)
@@ -192,44 +213,62 @@ def run_fs_method(
             x = keras.layers.Dense(32)(x)
             x = keras.layers.Dropout(0.2)(x)
             x = keras.layers.LeakyReLU(alpha=0.2)(x)
-            x = keras.layers.Dense(n_out, activation='sigmoid')(x)
+            x = keras.layers.Dense(n_out, activation="sigmoid")(x)
             return x
 
         selector = ConcreteAutoencoderFeatureSelector(
-            K=k, output_function=nn, start_temp=10, min_temp=0.01, num_epochs=300,
-            learning_rate=0.0001, tryout_limit=1)
+            K=k,
+            output_function=nn,
+            start_temp=10,
+            min_temp=0.01,
+            num_epochs=300,
+            learning_rate=0.0001,
+            tryout_limit=1,
+        )
         selector.fit(X_train, y_train)
         indices = selector.get_support(indices=True).flatten()
         scores = np.zeros(n_features, dtype=float)
         scores[indices] = 1
         selector = ConcreteAutoencoderFeatureSelector(
-            K=2 * k, output_function=nn, start_temp=10, min_temp=0.01, num_epochs=30,
-            learning_rate=0.0001, tryout_limit=1)
+            K=2 * k,
+            output_function=nn,
+            start_temp=10,
+            min_temp=0.01,
+            num_epochs=30,
+            learning_rate=0.0001,
+            tryout_limit=1,
+        )
         selector.fit(X_train, y_train)
         y_train_hat = selector.get_params().predict(X_train)
         y_hat = selector.get_params().predict(X_test)
         indices = selector.get_support(indices=True).flatten()
         scores2 = np.zeros(n_features, dtype=float)
         scores2[indices] = 1
-    elif method_name == 'canceloutsigmoid':
-        wrapper = NNwrapper.create(dataset_name, n_features, n_classes, arch='cancelout-sigmoid')
+    elif method_name == "canceloutsigmoid":
+        wrapper = NNwrapper.create(
+            dataset_name, n_features, n_classes, arch="cancelout-sigmoid"
+        )
         wrapper.fit(X_train, y_train)
         y_train_hat = wrapper.predict_proba(X_train)
         y_hat = wrapper.predict_proba(X_test)
         scores = wrapper.model.cancel_out.get_weights().data.numpy()
         scores2 = scores
-    elif method_name == 'canceloutsoftmax':
-        wrapper = NNwrapper.create(dataset_name, n_features, n_classes, arch='cancelout-softmax')
+    elif method_name == "canceloutsoftmax":
+        wrapper = NNwrapper.create(
+            dataset_name, n_features, n_classes, arch="cancelout-softmax"
+        )
         wrapper.fit(X_train, y_train)
         y_train_hat = wrapper.predict_proba(X_train)
         y_hat = wrapper.predict_proba(X_test)
         scores = wrapper.model.cancel_out.get_weights().data.numpy()
         scores2 = scores
-    elif method_name == 'deeppink':
+    elif method_name == "deeppink":
         X_augmented = np.empty((X_train.shape[0], X_train.shape[1], 2))
         X_augmented[:, :, 0] = X_train
         X_augmented[:, :, 1] = X_tilde_train
-        wrapper = NNwrapper.create(dataset_name, len(X_train[0]), n_classes, arch='deeppink')
+        wrapper = NNwrapper.create(
+            dataset_name, len(X_train[0]), n_classes, arch="deeppink"
+        )
         wrapper.fit(X_augmented, y_train)
         y_train_hat = wrapper.predict_proba(X_augmented)
         X_augmented = np.empty((X_test.shape[0], X_test.shape[1], 2))
@@ -239,8 +278,9 @@ def run_fs_method(
         scores = wrapper.model.get_weights()
         scores -= scores.min()
         scores2 = scores
-    elif method_name == 'treeshap':
+    elif method_name == "treeshap":
         import shap
+
         clf = RandomForestClassifier(n_estimators=500, n_jobs=-1, random_state=SEED)
         clf.fit(X_train, y_train)
         explainer = shap.TreeExplainer(clf)

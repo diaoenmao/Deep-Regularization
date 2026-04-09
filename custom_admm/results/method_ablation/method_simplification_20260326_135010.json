@@ -1,0 +1,399 @@
+{
+  "metadata": {
+    "timestamp": "20260326_135010",
+    "quick_mode": false,
+    "fold_limit": 3,
+    "variants": {
+      "baseline_drop": {
+        "label": "Baseline gate + feature dropout",
+        "hp_overrides": {
+          "feat_drop": 0.6,
+          "column_normalize_first_layer": false
+        }
+      },
+      "baseline_no_drop": {
+        "label": "Baseline gate without feature dropout",
+        "hp_overrides": {
+          "feat_drop": 0.0,
+          "column_normalize_first_layer": false
+        }
+      }
+    }
+  },
+  "results": {
+    "baseline_drop": {
+      "xor": {
+        "32": {
+          "k": 2,
+          "folds": [
+            {
+              "best_k": 1.0,
+              "runtime_sec": 30.877248764038086,
+              "fold_idx": 0
+            },
+            {
+              "best_k": 1.0,
+              "runtime_sec": 29.202805995941162,
+              "fold_idx": 1
+            },
+            {
+              "best_k": 1.0,
+              "runtime_sec": 28.697453022003174,
+              "fold_idx": 2
+            }
+          ],
+          "mean_best_k": 1.0,
+          "std_best_k": 0.0,
+          "mean_runtime_sec": 29.59250259399414
+        },
+        "128": {
+          "k": 2,
+          "folds": [
+            {
+              "best_k": 1.0,
+              "runtime_sec": 29.11119842529297,
+              "fold_idx": 0
+            },
+            {
+              "best_k": 1.0,
+              "runtime_sec": 29.144892930984497,
+              "fold_idx": 1
+            },
+            {
+              "best_k": 1.0,
+              "runtime_sec": 29.36360788345337,
+              "fold_idx": 2
+            }
+          ],
+          "mean_best_k": 1.0,
+          "std_best_k": 0.0,
+          "mean_runtime_sec": 29.20656641324361
+        },
+        "512": {
+          "k": 2,
+          "folds": [
+            {
+              "best_k": 1.0,
+              "runtime_sec": 30.321146249771118,
+              "fold_idx": 0
+            },
+            {
+              "best_k": 1.0,
+              "runtime_sec": 30.090765237808228,
+              "fold_idx": 1
+            },
+            {
+              "best_k": 1.0,
+              "runtime_sec": 29.416073083877563,
+              "fold_idx": 2
+            }
+          ],
+          "mean_best_k": 1.0,
+          "std_best_k": 0.0,
+          "mean_runtime_sec": 29.94266152381897
+        }
+      },
+      "ring": {
+        "32": {
+          "k": 2,
+          "folds": [
+            {
+              "best_k": 0.5,
+              "runtime_sec": 29.217703819274902,
+              "fold_idx": 0
+            },
+            {
+              "best_k": 1.0,
+              "runtime_sec": 29.280588626861572,
+              "fold_idx": 1
+            },
+            {
+              "best_k": 1.0,
+              "runtime_sec": 28.66106939315796,
+              "fold_idx": 2
+            }
+          ],
+          "mean_best_k": 0.8333333333333334,
+          "std_best_k": 0.23570226039551584,
+          "mean_runtime_sec": 29.053120613098145
+        },
+        "128": {
+          "k": 2,
+          "folds": [
+            {
+              "best_k": 1.0,
+              "runtime_sec": 29.178571224212646,
+              "fold_idx": 0
+            },
+            {
+              "best_k": 1.0,
+              "runtime_sec": 28.892942667007446,
+              "fold_idx": 1
+            },
+            {
+              "best_k": 1.0,
+              "runtime_sec": 28.93796944618225,
+              "fold_idx": 2
+            }
+          ],
+          "mean_best_k": 1.0,
+          "std_best_k": 0.0,
+          "mean_runtime_sec": 29.00316111246745
+        }
+      },
+      "ring+xor": {
+        "16": {
+          "k": 4,
+          "folds": [
+            {
+              "best_k": 0.5,
+              "runtime_sec": 28.907869577407837,
+              "fold_idx": 0
+            },
+            {
+              "best_k": 0.5,
+              "runtime_sec": 28.70498752593994,
+              "fold_idx": 1
+            },
+            {
+              "best_k": 0.5,
+              "runtime_sec": 28.597809314727783,
+              "fold_idx": 2
+            }
+          ],
+          "mean_best_k": 0.5,
+          "std_best_k": 0.0,
+          "mean_runtime_sec": 28.73688880602519
+        },
+        "64": {
+          "k": 4,
+          "folds": [
+            {
+              "best_k": 0.5,
+              "runtime_sec": 29.75959062576294,
+              "fold_idx": 0
+            },
+            {
+              "best_k": 0.5,
+              "runtime_sec": 29.273640632629395,
+              "fold_idx": 1
+            },
+            {
+              "best_k": 0.75,
+              "runtime_sec": 28.99150562286377,
+              "fold_idx": 2
+            }
+          ],
+          "mean_best_k": 0.5833333333333334,
+          "std_best_k": 0.11785113019775792,
+          "mean_runtime_sec": 29.3415789604187
+        }
+      }
+    },
+    "baseline_no_drop": {
+      "xor": {
+        "32": {
+          "k": 2,
+          "folds": [
+            {
+              "best_k": 1.0,
+              "runtime_sec": 27.092409372329712,
+              "fold_idx": 0
+            },
+            {
+              "best_k": 1.0,
+              "runtime_sec": 27.262322187423706,
+              "fold_idx": 1
+            },
+            {
+              "best_k": 1.0,
+              "runtime_sec": 27.032745599746704,
+              "fold_idx": 2
+            }
+          ],
+          "mean_best_k": 1.0,
+          "std_best_k": 0.0,
+          "mean_runtime_sec": 27.129159053166706
+        },
+        "128": {
+          "k": 2,
+          "folds": [
+            {
+              "best_k": 1.0,
+              "runtime_sec": 27.7075514793396,
+              "fold_idx": 0
+            },
+            {
+              "best_k": 1.0,
+              "runtime_sec": 27.119523525238037,
+              "fold_idx": 1
+            },
+            {
+              "best_k": 1.0,
+              "runtime_sec": 28.43026638031006,
+              "fold_idx": 2
+            }
+          ],
+          "mean_best_k": 1.0,
+          "std_best_k": 0.0,
+          "mean_runtime_sec": 27.7524471282959
+        },
+        "512": {
+          "k": 2,
+          "folds": [
+            {
+              "best_k": 1.0,
+              "runtime_sec": 29.232620000839233,
+              "fold_idx": 0
+            },
+            {
+              "best_k": 1.0,
+              "runtime_sec": 28.667465209960938,
+              "fold_idx": 1
+            },
+            {
+              "best_k": 1.0,
+              "runtime_sec": 28.021456241607666,
+              "fold_idx": 2
+            }
+          ],
+          "mean_best_k": 1.0,
+          "std_best_k": 0.0,
+          "mean_runtime_sec": 28.64051381746928
+        }
+      },
+      "ring": {
+        "32": {
+          "k": 2,
+          "folds": [
+            {
+              "best_k": 0.5,
+              "runtime_sec": 27.16134810447693,
+              "fold_idx": 0
+            },
+            {
+              "best_k": 0.5,
+              "runtime_sec": 27.36322522163391,
+              "fold_idx": 1
+            },
+            {
+              "best_k": 0.5,
+              "runtime_sec": 27.359190464019775,
+              "fold_idx": 2
+            }
+          ],
+          "mean_best_k": 0.5,
+          "std_best_k": 0.0,
+          "mean_runtime_sec": 27.294587930043537
+        },
+        "128": {
+          "k": 2,
+          "folds": [
+            {
+              "best_k": 0.0,
+              "runtime_sec": 27.797725677490234,
+              "fold_idx": 0
+            },
+            {
+              "best_k": 0.0,
+              "runtime_sec": 27.63983988761902,
+              "fold_idx": 1
+            },
+            {
+              "best_k": 0.5,
+              "runtime_sec": 27.619744300842285,
+              "fold_idx": 2
+            }
+          ],
+          "mean_best_k": 0.16666666666666666,
+          "std_best_k": 0.23570226039551584,
+          "mean_runtime_sec": 27.68576995531718
+        }
+      },
+      "ring+xor": {
+        "16": {
+          "k": 4,
+          "folds": [
+            {
+              "best_k": 1.0,
+              "runtime_sec": 27.555785655975342,
+              "fold_idx": 0
+            },
+            {
+              "best_k": 1.0,
+              "runtime_sec": 28.44923996925354,
+              "fold_idx": 1
+            },
+            {
+              "best_k": 0.75,
+              "runtime_sec": 27.49267578125,
+              "fold_idx": 2
+            }
+          ],
+          "mean_best_k": 0.9166666666666666,
+          "std_best_k": 0.11785113019775792,
+          "mean_runtime_sec": 27.832567135492962
+        },
+        "64": {
+          "k": 4,
+          "folds": [
+            {
+              "best_k": 0.5,
+              "runtime_sec": 27.716857433319092,
+              "fold_idx": 0
+            },
+            {
+              "best_k": 0.75,
+              "runtime_sec": 27.509310483932495,
+              "fold_idx": 1
+            },
+            {
+              "best_k": 0.5,
+              "runtime_sec": 27.53445291519165,
+              "fold_idx": 2
+            }
+          ],
+          "mean_best_k": 0.5833333333333334,
+          "std_best_k": 0.11785113019775792,
+          "mean_runtime_sec": 27.58687361081441
+        }
+      }
+    }
+  },
+  "summary": {
+    "baseline_drop": {
+      "overall_mean_best_k": 0.8452380952380952,
+      "datasets": {
+        "xor": {
+          "mean_best_k": 1.0,
+          "mean_runtime_sec": 29.580576843685574
+        },
+        "ring": {
+          "mean_best_k": 0.9166666666666666,
+          "mean_runtime_sec": 29.028140862782795
+        },
+        "ring+xor": {
+          "mean_best_k": 0.5416666666666666,
+          "mean_runtime_sec": 29.039233883221943
+        }
+      }
+    },
+    "baseline_no_drop": {
+      "overall_mean_best_k": 0.7380952380952381,
+      "datasets": {
+        "xor": {
+          "mean_best_k": 1.0,
+          "mean_runtime_sec": 27.840706666310627
+        },
+        "ring": {
+          "mean_best_k": 0.3333333333333333,
+          "mean_runtime_sec": 27.49017894268036
+        },
+        "ring+xor": {
+          "mean_best_k": 0.75,
+          "mean_runtime_sec": 27.709720373153687
+        }
+      }
+    }
+  }
+}

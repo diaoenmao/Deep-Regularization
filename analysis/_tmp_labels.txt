@@ -1,0 +1,72 @@
+   72 \section{Introduction}\label{sec:intro}
+   97 \section{Related Work}\label{sec:related}
+  135 \section{Method: SADMM-FS (Stochastic ADMM Feature Selection)}\label{sec:method}
+  137 \subsection{Per-Feature Scaling and Network Architecture}\label{sec:model}
+  140 \begin{equation}\label{eq:gating}
+  145 \begin{equation}\label{eq:mlp}
+  213 \label{fig:method}
+  216 \subsection{Two-Variable ADMM for Sparsity Enforcement}\label{sec:admm}
+  224 \begin{equation}\label{eq:admm-obj}
+  232 \begin{equation}\label{eq:auglag}
+  249 \begin{equation}\label{eq:gstep}
+  265 \begin{equation}\label{eq:zstep}
+  269 \begin{equation}\label{eq:zstep_ratio}
+  278 \begin{remark}[Two-Timescale Updates]\label{rem:timescale}
+  285 \begin{remark}[Reconciling $\rho$]\label{rem:rho}
+  290 \subsection{Solving the \texorpdfstring{$\bz$}{z}-Subproblem: Exact \texorpdfstring{$\ell_1$}{L1} Proximal and Ratio Norm Extension}\label{sec:zstep}
+  303 \begin{proposition}[Exact \texorpdfstring{$\ell_1$}{L1} Proximal Anchor]\label{prop:l1}
+  317 \begin{equation}\label{eq:softthresh}
+  326 \begin{equation}\label{eq:cubic}
+  330 \begin{equation}\label{eq:D}
+  336 \begin{lemma}[Uniqueness of the Positive Root]\label{lem:cubic}
+  347 \begin{equation}\label{eq:tau}
+  352 \begin{proposition}[Pruning Bound]\label{prop:pruning}
+  354 \begin{equation}\label{eq:prune-bound}
+  360 \subsection{The SADMM Bridge: Connecting ADMM with Stochastic Optimization}\label{sec:sadmm}
+  364 \begin{equation}\label{eq:sadmm-bridge}
+  371 \begin{equation}\label{eq:g-practical}
+  380 \begin{remark}[Convergence of the SADMM Bridge]\label{rem:convergence}
+  386 \subsection{Ratio Norm as a Scale-Invariant Extension}\label{sec:rationorm}
+  409 \caption{SADMM-FS with Ratio Norm}\label{alg:main}
+  442 \section{Experiments}\label{sec:exp}
+  446 \subsection{Synthetic Benchmarks}\label{sec:synth}
+  476     \caption{Synthetic Datasets: Average Best-$k$ (\%, 6-fold CV) Across All $m$. Best overall in \textbf{bold}, best neural \underline{underlined}. $\pm$ values for SADMM-FS denote mean fold std across dimensions.}\label{tab:synthetic}
+  500 \subsection{Causal DAG Benchmark}\label{sec:dag}
+  519     \caption{DAG Dataset: Feature Recovery (\%, $m{=}2{,}000$). Best in \textbf{bold}, best neural \underline{underlined}.}\label{tab:dag}
+  544 \subsection{Real-World Datasets}\label{sec:realworld}
+  583     \caption{Real-World Datasets: Downstream AUROC (top-$k$ $\to$ RF). Best in \textbf{bold}, best neural \underline{underlined}. SADMM-FS and STG report mean$\pm$std over 5 seeds. ``---'' = not evaluated.}\label{tab:realworld}
+  608 \subsection{Analysis}\label{sec:analysis}
+  653 \section{Limitations}\label{sec:limitations}
+  667 \section{Conclusion}\label{sec:conclusion}
+  707 \section{Hyperparameter Settings}\label{app:hparams}
+  714     \caption{Hyperparameter Settings.}\label{tab:hparams}
+  734 \section{Detailed Results by Dimension}\label{app:bydim}
+  740     \caption{XOR ($k{=}2$): Best-$k$ (\%) by Dimension.}\label{tab:xor-dim}
+  756     \caption{Ring ($k{=}2$): Best-$k$ (\%) by Dimension.}\label{tab:ring-dim}
+  772     \caption{Ring+XOR ($k{=}4$): Best-$k$ (\%) by Dimension.}\label{tab:rx-dim}
+  788     \caption{Ring+XOR+Sum ($k{=}6$): Best-$k$ (\%) by Dimension.}\label{tab:rxs-dim}
+  802 \section{ADMM Convergence}\label{app:convergence}
+  811     \label{fig:convergence}
+  814 \section{Full Derivation of the Two-Variable ADMM}\label{app:derivation}
+  836 \begin{equation}\label{eq:aug-lag-full}
+  849 \subsection{\texorpdfstring{$\bg$}{g}-Subproblem (Optimizer-Driven SADMM Bridge)}\label{app:g-sub}
+  867 \begin{equation}\label{eq:g-implicit}
+  893 \subsection{\texorpdfstring{$\bz$}{z}-Subproblem (Ratio Norm Extension)}\label{app:z-sub}
+  933 \subsection{Dual Variable Update}\label{app:dual-sub}
+  954 \subsection{\texorpdfstring{$\ell_1$}{L1} Anchor (Proof of Proposition~\ref{prop:l1})}\label{app:l1-proof}
+  987 \section{DAG Dataset Generation}\label{app:dag}
+ 1002 \section{Additional Analysis}\label{app:ablation}
+ 1004 \subsection{Predictor Architecture Sensitivity}\label{app:architecture}
+ 1023     \caption{Penalty Ablation: Average Best-$k$ (\%) across synthetic tasks. Both penalties perform comparably, validating the ADMM framework's robustness to penalty choice.}\label{tab:ablation-l1}
+ 1034 \subsection{Feature Dropout Ablation}\label{app:dropout}
+ 1044     \caption{Feature Dropout Ablation: Best-$k$ (\%) for varying dropout rate $p$. Results are mean $\pm$ std over 6-fold CV.}\label{tab:ablation-dropout}
+ 1057 \subsection{Bounded vs.\ Unbounded Gate Ablation}\label{app:bounded-gate}
+ 1066     \caption{Bounded vs.\ Unbounded Gate: Best-$k$ (\%) at $m{=}512$. Mean$\pm$std over 3 seeds.}\label{tab:bounded-ablation}
+ 1084 \section{Downstream AUROC on Synthetic Benchmarks}\label{app:downstream}
+ 1096     \caption{Downstream AUROC (top-$k$ $\to$ RF, 6-fold CV) on synthetic benchmarks at representative dimensions. Best in \textbf{bold}.}\label{tab:downstream-synth}
+ 1126 \section{AUROC-vs-\texorpdfstring{$k$}{k} Curves for Real-World Datasets}\label{app:auroc-vs-k}
+ 1137     \caption{Downstream AUROC vs.\ number of selected features $k$ on NIPS 2003 datasets. SADMM-FS peaks early on MADELON ($k{=}25$), indicating precise feature ranking, while STG's ranking is diffuse.}\label{fig:auroc-vs-k}
+ 1140 \section{Multi-Seed DAG Evaluation}\label{app:multiseed-dag}
+ 1151     \caption{Multi-Seed DAG: Feature Recovery (\%, mean$\pm$std over 5 graphs). Best in \textbf{bold}.}\label{tab:multiseed-dag}
+ 1165 \section{Adaptive vs.\ Uniform Penalty Ablation}\label{app:penalty-ablation}
+ 1173     \caption{Adaptive ($\lambda_j{=}C/s_j$) vs.\ Uniform ($\lambda_j{=}C$) penalty. DAG: bestK2 (\%); NIPS: AUROC. Mean$\pm$std over 5 seeds.}\label{tab:penalty-ablation}

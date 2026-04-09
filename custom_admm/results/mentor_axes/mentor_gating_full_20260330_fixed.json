@@ -1,0 +1,306 @@
+{
+  "metadata": {
+    "timestamp": "20260330_112407",
+    "axis": [
+      "gating"
+    ],
+    "device": "cpu",
+    "folds": 6,
+    "epochs": 240,
+    "warmup_epochs": 60
+  },
+  "axes": {
+    "gating": {
+      "tasks": {
+        "xor_m128": {
+          "linear_gate_mlp": {
+            "mean_best_k": 1.0,
+            "std_best_k": 0.0,
+            "mean_auc": 0.8531780253288783,
+            "std_auc": 0.020426815779217188,
+            "per_fold": [
+              {
+                "fold": 0,
+                "best_k": 1.0,
+                "auc": 0.8765432098765431,
+                "pretrain": null
+              },
+              {
+                "fold": 1,
+                "best_k": 1.0,
+                "auc": 0.8650315547905909,
+                "pretrain": null
+              },
+              {
+                "fold": 2,
+                "best_k": 1.0,
+                "auc": 0.8207519673564558,
+                "pretrain": null
+              },
+              {
+                "fold": 3,
+                "best_k": 1.0,
+                "auc": 0.8446741314958369,
+                "pretrain": null
+              },
+              {
+                "fold": 4,
+                "best_k": 1.0,
+                "auc": 0.8376350540216086,
+                "pretrain": null
+              },
+              {
+                "fold": 5,
+                "best_k": 1.0,
+                "auc": 0.8744322344322344,
+                "pretrain": null
+              }
+            ],
+            "desc": "Unbounded linear gate + baseline MLP"
+          },
+          "sigmoid_gate_mlp": {
+            "mean_best_k": 1.0,
+            "std_best_k": 0.0,
+            "mean_auc": 0.8447697789512331,
+            "std_auc": 0.03907251386448026,
+            "per_fold": [
+              {
+                "fold": 0,
+                "best_k": 1.0,
+                "auc": 0.8963537180591444,
+                "pretrain": null
+              },
+              {
+                "fold": 1,
+                "best_k": 1.0,
+                "auc": 0.8331899024670109,
+                "pretrain": null
+              },
+              {
+                "fold": 2,
+                "best_k": 1.0,
+                "auc": 0.773972602739726,
+                "pretrain": null
+              },
+              {
+                "fold": 3,
+                "best_k": 1.0,
+                "auc": 0.830318690783807,
+                "pretrain": null
+              },
+              {
+                "fold": 4,
+                "best_k": 1.0,
+                "auc": 0.8751500600240096,
+                "pretrain": null
+              },
+              {
+                "fold": 5,
+                "best_k": 1.0,
+                "auc": 0.8596336996336996,
+                "pretrain": null
+              }
+            ],
+            "desc": "Sigmoid-bounded gate + baseline MLP"
+          }
+        },
+        "ring_m128": {
+          "linear_gate_mlp": {
+            "mean_best_k": 0.6666666666666666,
+            "std_best_k": 0.23570226039551584,
+            "mean_auc": 0.5125609279102955,
+            "std_auc": 0.035507987722099975,
+            "per_fold": [
+              {
+                "fold": 0,
+                "best_k": 0.5,
+                "auc": 0.5478036175710594,
+                "pretrain": null
+              },
+              {
+                "fold": 1,
+                "best_k": 0.5,
+                "auc": 0.5576057605760576,
+                "pretrain": null
+              },
+              {
+                "fold": 2,
+                "best_k": 1.0,
+                "auc": 0.48317031070195626,
+                "pretrain": null
+              },
+              {
+                "fold": 3,
+                "best_k": 1.0,
+                "auc": 0.5307206431237439,
+                "pretrain": null
+              },
+              {
+                "fold": 4,
+                "best_k": 0.5,
+                "auc": 0.4969512195121951,
+                "pretrain": null
+              },
+              {
+                "fold": 5,
+                "best_k": 0.5,
+                "auc": 0.45911401597676105,
+                "pretrain": null
+              }
+            ],
+            "desc": "Unbounded linear gate + baseline MLP"
+          },
+          "sigmoid_gate_mlp": {
+            "mean_best_k": 0.5833333333333334,
+            "std_best_k": 0.3435921354681384,
+            "mean_auc": 0.49051399895171405,
+            "std_auc": 0.04975573560852766,
+            "per_fold": [
+              {
+                "fold": 0,
+                "best_k": 1.0,
+                "auc": 0.5307206431237439,
+                "pretrain": null
+              },
+              {
+                "fold": 1,
+                "best_k": 0.5,
+                "auc": 0.548004800480048,
+                "pretrain": null
+              },
+              {
+                "fold": 2,
+                "best_k": 0.5,
+                "auc": 0.41513233601841193,
+                "pretrain": null
+              },
+              {
+                "fold": 3,
+                "best_k": 1.0,
+                "auc": 0.5261269020958943,
+                "pretrain": null
+              },
+              {
+                "fold": 4,
+                "best_k": 0.0,
+                "auc": 0.48707897793263644,
+                "pretrain": null
+              },
+              {
+                "fold": 5,
+                "best_k": 0.5,
+                "auc": 0.43602033405954976,
+                "pretrain": null
+              }
+            ],
+            "desc": "Sigmoid-bounded gate + baseline MLP"
+          }
+        },
+        "ring+xor_m256": {
+          "linear_gate_mlp": {
+            "mean_best_k": 0.5416666666666666,
+            "std_best_k": 0.09316949906249122,
+            "mean_auc": 0.5592494410265622,
+            "std_auc": 0.06045203630698576,
+            "per_fold": [
+              {
+                "fold": 0,
+                "best_k": 0.75,
+                "auc": 0.6218668971477961,
+                "pretrain": null
+              },
+              {
+                "fold": 1,
+                "best_k": 0.5,
+                "auc": 0.5401606425702812,
+                "pretrain": null
+              },
+              {
+                "fold": 2,
+                "best_k": 0.5,
+                "auc": 0.5375,
+                "pretrain": null
+              },
+              {
+                "fold": 3,
+                "best_k": 0.5,
+                "auc": 0.5339791787160209,
+                "pretrain": null
+              },
+              {
+                "fold": 4,
+                "best_k": 0.5,
+                "auc": 0.6518895348837209,
+                "pretrain": null
+              },
+              {
+                "fold": 5,
+                "best_k": 0.5,
+                "auc": 0.4701003928415539,
+                "pretrain": null
+              }
+            ],
+            "desc": "Unbounded linear gate + baseline MLP"
+          },
+          "sigmoid_gate_mlp": {
+            "mean_best_k": 0.5416666666666666,
+            "std_best_k": 0.09316949906249122,
+            "mean_auc": 0.5407839748766311,
+            "std_auc": 0.027604161023283016,
+            "per_fold": [
+              {
+                "fold": 0,
+                "best_k": 0.75,
+                "auc": 0.5695764909248056,
+                "pretrain": null
+              },
+              {
+                "fold": 1,
+                "best_k": 0.5,
+                "auc": 0.5589500860585198,
+                "pretrain": null
+              },
+              {
+                "fold": 2,
+                "best_k": 0.5,
+                "auc": 0.5168103448275861,
+                "pretrain": null
+              },
+              {
+                "fold": 3,
+                "best_k": 0.5,
+                "auc": 0.5241469057258531,
+                "pretrain": null
+              },
+              {
+                "fold": 4,
+                "best_k": 0.5,
+                "auc": 0.5732558139534885,
+                "pretrain": null
+              },
+              {
+                "fold": 5,
+                "best_k": 0.5,
+                "auc": 0.501964207769533,
+                "pretrain": null
+              }
+            ],
+            "desc": "Sigmoid-bounded gate + baseline MLP"
+          }
+        }
+      },
+      "models": [
+        {
+          "name": "linear_gate_mlp",
+          "desc": "Unbounded linear gate + baseline MLP",
+          "pretrain": false
+        },
+        {
+          "name": "sigmoid_gate_mlp",
+          "desc": "Sigmoid-bounded gate + baseline MLP",
+          "pretrain": false
+        }
+      ]
+    }
+  }
+}

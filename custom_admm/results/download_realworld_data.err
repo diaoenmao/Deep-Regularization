@@ -1,0 +1,24 @@
+Traceback (most recent call last):
+  File "C:\Users\12425\Documents\Projects\NEW_Pruning_20251110\custom_admm\download_realworld_data.py", line 200, in <module>
+    main()
+  File "C:\Users\12425\Documents\Projects\NEW_Pruning_20251110\custom_admm\download_realworld_data.py", line 196, in main
+    DOWNLOADERS[name]()
+  File "C:\Users\12425\Documents\Projects\NEW_Pruning_20251110\custom_admm\download_realworld_data.py", line 123, in download_isolet
+    _download(f"{ISOLET_URL}{fname}", dest_dir / fname)
+  File "C:\Users\12425\Documents\Projects\NEW_Pruning_20251110\custom_admm\download_realworld_data.py", line 79, in _download
+    urllib.request.urlretrieve(url, str(dest))
+  File "C:\Python310\lib\urllib\request.py", line 241, in urlretrieve
+    with contextlib.closing(urlopen(url, data)) as fp:
+  File "C:\Python310\lib\urllib\request.py", line 216, in urlopen
+    return opener.open(url, data, timeout)
+  File "C:\Python310\lib\urllib\request.py", line 525, in open
+    response = meth(req, response)
+  File "C:\Python310\lib\urllib\request.py", line 634, in http_response
+    response = self.parent.error(
+  File "C:\Python310\lib\urllib\request.py", line 563, in error
+    return self._call_chain(*args)
+  File "C:\Python310\lib\urllib\request.py", line 496, in _call_chain
+    result = func(*args)
+  File "C:\Python310\lib\urllib\request.py", line 643, in http_error_default
+    raise HTTPError(req.full_url, code, msg, hdrs, fp)
+urllib.error.HTTPError: HTTP Error 404: Not Found

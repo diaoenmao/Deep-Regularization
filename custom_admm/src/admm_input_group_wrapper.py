@@ -16,6 +16,7 @@ from typing import Optional
 import numpy as np
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from torch.utils.data import DataLoader
 
 # Import from local src directory
@@ -48,6 +49,41 @@ except ImportError:
 # MLP model (mirrors the benchmark's ``Model`` but simplified for FS)
 # ---------------------------------------------------------------------------
 
+DEFAULT_SADMM_LATENT_SIZE = 32
+DEFAULT_SADMM_HIDDEN_LAYERS = 2
+DEFAULT_SADMM_DROPOUT = 0.04308691548552568
+DEFAULT_SADMM_ACTIVATION = "mish"
+
+
+class ColumnNormalizedLinear(nn.Module):
+    """Linear layer that uses unit-norm input columns during forward passes."""
+
+    def __init__(self, in_features: int, out_features: int, bias: bool = True):
+        super().__init__()
+        self.in_features = in_features
+        self.out_features = out_features
+        self.raw_weight = nn.Parameter(torch.empty(out_features, in_features))
+        if bias:
+            self.bias = nn.Parameter(torch.empty(out_features))
+        else:
+            self.register_parameter("bias", None)
+        self.reset_parameters()
+
+    def reset_parameters(self) -> None:
+        nn.init.kaiming_uniform_(self.raw_weight, a=np.sqrt(5))
+        if self.bias is not None:
+            fan_in, _ = nn.init._calculate_fan_in_and_fan_out(self.raw_weight)
+            bound = 1.0 / np.sqrt(fan_in) if fan_in > 0 else 0.0
+            nn.init.uniform_(self.bias, -bound, bound)
+
+    @property
+    def weight(self) -> torch.Tensor:
+        col_norm = torch.norm(self.raw_weight, p=2, dim=0, keepdim=True).clamp_min(1e-8)
+        return self.raw_weight / col_norm
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return F.linear(x, self.weight, self.bias)
+
 
 class FeatureSelectionMLP(nn.Module):
     """Simple MLP for tabular classification, compatible with sparsity optimizers."""
@@ -56,11 +92,11 @@ class FeatureSelectionMLP(nn.Module):
         self,
         input_size: int,
         n_classes: int,
-        latent_size: int = 58,
-        n_hidden_layers: int = 5,
+        latent_size: int = DEFAULT_SADMM_LATENT_SIZE,
+        n_hidden_layers: int = DEFAULT_SADMM_HIDDEN_LAYERS,
         gaussian_noise: float = 0.0,
-        dropout: float = 0.04,
-        activation: str = "mish",
+        dropout: float = DEFAULT_SADMM_DROPOUT,
+        activation: str = DEFAULT_SADMM_ACTIVATION,
     ):
         super().__init__()
         n_out = 1 if n_classes <= 2 else n_classes
@@ -94,9 +130,9 @@ class FeatureSelectionMLP(nn.Module):
 
     # Convenience: find the first Linear layer (for feature importance)
     @property
-    def first_linear(self) -> nn.Linear:
+    def first_linear(self) -> nn.Module:
         for m in self.layers:
-            if isinstance(m, nn.Linear):
+            if isinstance(m, (nn.Linear, ColumnNormalizedLinear)):
                 return m
         raise RuntimeError("No Linear layer found")
 
@@ -113,27 +149,29 @@ class GatedFeatureSelectionMLP(nn.Module):
     ``theta`` is pruned via Linearized ADMM + Ratio Norm to identify
     informative features.
 
-    Architecture matches the standard Feature Selection Benchmark Model
-    (5 hidden layers, 58 units) to ensure fair comparison with other methods.
+    The paper's main benchmark uses one fixed compact predictor
+    (2 hidden layers, width 32) without per-dataset retuning.
     """
 
     def __init__(
         self,
         input_size: int,
         n_classes: int,
-        latent_size: int = 58,
-        n_hidden_layers: int = 5,
+        latent_size: int = DEFAULT_SADMM_LATENT_SIZE,
+        n_hidden_layers: int = DEFAULT_SADMM_HIDDEN_LAYERS,
         gaussian_noise: float = 0.0,  # Disabled by default; set >0 to enable
-        dropout: float = 0.04308691548552568,
+        dropout: float = DEFAULT_SADMM_DROPOUT,
         feat_drop: float = 0.6,  # Tuned value (was 0.7); see tune_feat_drop.py ablation
-        activation: str = "mish",
+        activation: str = DEFAULT_SADMM_ACTIVATION,
         bounded_gate: bool = False,
         layer_norm: int = 0,
+        column_normalize_first_layer: bool = False,
     ):
         super().__init__()
         self.gate = nn.Parameter(torch.ones(input_size))
         self.feat_drop = feat_drop
         self.bounded_gate = bounded_gate
+        self.column_normalize_first_layer = column_normalize_first_layer
         n_out = 1 if n_classes <= 2 else n_classes
 
         layers: list[nn.Module] = []
@@ -146,7 +184,10 @@ class GatedFeatureSelectionMLP(nn.Module):
                 layers.append(nn.Dropout(p=dropout, inplace=inplace))
 
             in_dim = input_size if k == 0 else latent_size
-            layers.append(nn.Linear(in_dim, latent_size))
+            if k == 0 and column_normalize_first_layer:
+                layers.append(ColumnNormalizedLinear(in_dim, latent_size))
+            else:
+                layers.append(nn.Linear(in_dim, latent_size))
 
             if layer_norm:
                 layers.append(nn.LayerNorm(latent_size))
@@ -172,22 +213,36 @@ class GatedFeatureSelectionMLP(nn.Module):
 
         layers.append(nn.Linear(latent_size, n_out))
         self.layers = nn.Sequential(*layers)
-        # Use PyTorch default init (kaiming_uniform_ a=sqrt(5)) — empirically
+        # Use PyTorch default init (kaiming_uniform_ a=sqrt(5)) â?empirically
         # better for gate-based feature selection than the custom init_weights.
 
     @property
-    def first_linear(self) -> nn.Linear:
+    def first_linear(self) -> nn.Module:
         for m in self.layers:
-            if isinstance(m, nn.Linear):
+            if isinstance(m, (nn.Linear, ColumnNormalizedLinear)):
                 return m
         raise RuntimeError("No Linear layer found")
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        g = torch.sigmoid(self.gate) if self.bounded_gate else self.gate
-        if self.training and self.feat_drop > 0:
-            mask = (torch.rand(g.shape, device=x.device) > self.feat_drop).float()
+    def gate_from_parameter(self, gate_param: torch.Tensor) -> torch.Tensor:
+        if self.bounded_gate:
+            return torch.sigmoid(gate_param)
+        return gate_param
+
+    def parameter_from_gate(self, gate_value: torch.Tensor) -> torch.Tensor:
+        if self.bounded_gate:
+            gate_value = torch.clamp(gate_value, min=1e-6, max=1.0 - 1e-6)
+            return torch.logit(gate_value)
+        return gate_value
+
+    def get_gate_values(self, training_drop: bool = False) -> torch.Tensor:
+        g = self.gate_from_parameter(self.gate)
+        if self.training and training_drop and self.feat_drop > 0:
+            mask = (torch.rand(g.shape, device=g.device) > self.feat_drop).float()
             g = g * mask / (1.0 - self.feat_drop + 1e-8)
-        return self.layers(x * g)
+        return g
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return self.layers(x * self.get_gate_values(training_drop=True))
 
 
 # ---------------------------------------------------------------------------
@@ -275,6 +330,31 @@ def compute_mlp_wanda_scores(
 
 
 # ---------------------------------------------------------------------------
+# Feature score helper for ADMM thresholds
+# ---------------------------------------------------------------------------
+
+
+def _get_feature_penalty_scores(model: nn.Module) -> torch.Tensor:
+    """Return one positive score per original input feature.
+
+    Standard MLP variants use the first dense layer column norms.
+    Custom backbones can expose `get_feature_scores()` when there is no
+    feature-aligned dense first layer.
+    """
+    device = next(model.parameters()).device
+    if hasattr(model, "get_feature_scores"):
+        score = model.get_feature_scores()
+        if not torch.is_tensor(score):
+            score = torch.as_tensor(score, dtype=torch.float32, device=device)
+        else:
+            score = score.to(device=device, dtype=torch.float32)
+        return torch.clamp(score.detach(), min=1e-8)
+
+    W1 = model.first_linear.weight
+    return torch.norm(W1, p=2, dim=0) + 1e-8
+
+
+# ---------------------------------------------------------------------------
 # Soft thresholding utility (needed for ADMM)
 # ---------------------------------------------------------------------------
 
@@ -295,29 +375,29 @@ def safe_cbrt(x: torch.Tensor) -> torch.Tensor:
 
 
 def solve_cubic_ratio_norm(D: torch.Tensor) -> torch.Tensor:
-    """Solve τ³ - τ - D = 0 for τ ≥ 0 using Cardano's formula.
+    """Solve ÏÂ³ - Ï - D = 0 for Ï â?0 using Cardano's formula.
 
-    For the equation τ³ - τ - D = 0:
-    - Discriminant: Δ = D²/4 - 1/27
-    - If Δ >= 0: one real root τ = ∛(D/2 + √Δ) + ∛(D/2 - √Δ)
-    - If Δ < 0: three real roots, use trigonometric method
+    For the equation ÏÂ³ - Ï - D = 0:
+    - Discriminant: Î = DÂ²/4 - 1/27
+    - If Î >= 0: one real root Ï = â?D/2 + âÎ? + â?D/2 - âÎ?
+    - If Î < 0: three real roots, use trigonometric method
 
     Args:
         D: Input tensor (should be non-negative for Ratio Norm)
 
     Returns:
-        τ: Positive real root of the cubic equation
+        Ï: Positive real root of the cubic equation
     """
     tau = torch.zeros_like(D)
 
-    # Discriminant for τ³ - τ - D = 0: Δ = D²/4 - 1/27
+    # Discriminant for ÏÂ³ - Ï - D = 0: Î = DÂ²/4 - 1/27
     discriminant = (D / 2.0) ** 2 - 1.0 / 27.0
 
     # Case 1: discriminant >= 0 (one real root)
     case1 = discriminant >= 0
     if torch.any(case1):
         sqrt_disc = torch.sqrt(discriminant[case1])
-        # τ = ∛(D/2 + √Δ) + ∛(D/2 - √Δ)
+        # Ï = â?D/2 + âÎ? + â?D/2 - âÎ?
         # FIX: Use safe_cbrt to handle negative values
         term1 = D[case1] / 2.0 + sqrt_disc
         term2 = D[case1] / 2.0 - sqrt_disc  # FIX: was -D/2 + sqrt_disc (wrong sign)
@@ -326,8 +406,8 @@ def solve_cubic_ratio_norm(D: torch.Tensor) -> torch.Tensor:
     # Case 2: discriminant < 0 (three real roots, use trigonometric method)
     case2 = ~case1
     if torch.any(case2):
-        # For τ³ - τ - D = 0, the trigonometric solution is:
-        # τ = 2/√3 * cos(θ/3) where θ = arccos(3√3 D / 2)
+        # For ÏÂ³ - Ï - D = 0, the trigonometric solution is:
+        # Ï = 2/â? * cos(Î¸/3) where Î¸ = arccos(3â? D / 2)
         sqrt_3 = torch.sqrt(torch.tensor(3.0, device=D.device))
         arg = torch.clamp(3.0 * sqrt_3 * D[case2] / 2.0, min=-1.0, max=1.0)
         theta = torch.acos(arg)
@@ -364,10 +444,10 @@ def _train_input_group(
     rho_update_interval: int = 5,
     score_refresh_interval: int = 10,
     device: Optional[str] = None,
-    use_ratio_norm: bool = True,  # False → plain L1 proximal (ablation)
-    use_admm: bool = True,  # False → proximal gradient (ablation)
-    uniform_penalty: bool = False,  # True → λ_j = C (uniform); False → λ_j = C/s_j (adaptive)
-    three_variable: bool = False,  # True → paper's 3-variable ADMM (y,z with duals v,w)
+    use_ratio_norm: bool = True,  # False â?plain L1 proximal (ablation)
+    use_admm: bool = True,  # False â?proximal gradient (ablation)
+    uniform_penalty: bool = False,  # True â?Î»_j = C (uniform); False â?Î»_j = C/s_j (adaptive)
+    three_variable: bool = False,  # True â?paper's 3-variable ADMM (y,z with duals v,w)
     n_features: int = None,  # Feature dimension for rho scaling
     # Phase 1 experimental improvements:
     optimizer_type: str = "adam",  # "adam" or "adagrad"
@@ -377,21 +457,21 @@ def _train_input_group(
 ) -> None:
     """Train a GatedFeatureSelectionMLP with Linearized ADMM + Ratio Norm.
 
-    **Phase 1 — Warm-up** (epoch 0 … warmup_epochs-1):
+    **Phase 1 â?Warm-up** (epoch 0 â?warmup_epochs-1):
         All parameters trained with Adam.  Feature dropout (in the model)
         prevents memorisation, letting the MLP learn the true signal.
 
-    **Phase 2 — Linearized ADMM pruning** (epoch warmup_epochs … epochs-1):
-        Uses 2-variable ADMM splitting:  min L(θ,g) + λ·R(z)  s.t. g = z
-        where R(z) = ‖z‖₁/‖z‖₂ is the Ratio Norm (scale-invariant).
+    **Phase 2 â?Linearized ADMM pruning** (epoch warmup_epochs â?epochs-1):
+        Uses 2-variable ADMM splitting:  min L(Î¸,g) + Î»Â·R(z)  s.t. g = z
+        where R(z) = âzââ/âzââ is the Ratio Norm (scale-invariant).
 
         Per epoch:
-          1. **g-step**: Adam on ALL params (θ AND g) with augmented loss
-             L(θ,g) + (ρ/2)‖g − z + u‖²   → gate has full gradient dynamics
-          2. **z-step**: z = prox_{λ/ρ · RatioNorm}(g + u)
-             → cubic τ³ − τ − D = 0 for scaling + soft-thresh for sparsity
-          3. **Dual update**: u ← u + g − z
-          4. **Adaptive ρ**: Boyd §3.4.1 with proper dual rescaling
+          1. **g-step**: Adam on ALL params (Î¸ AND g) with augmented loss
+             L(Î¸,g) + (Ï/2)âg â?z + uâÂ?  â?gate has full gradient dynamics
+          2. **z-step**: z = prox_{Î»/Ï Â· RatioNorm}(g + u)
+             â?cubic ÏÂ³ â?Ï â?D = 0 for scaling + soft-thresh for sparsity
+          3. **Dual update**: u â?u + g â?z
+          4. **Adaptive Ï**: Boyd Â§3.4.1 with proper dual rescaling
 
         Score s_j = ||W1[:,j]||_2 gives importance-adaptive thresholds
         lambda_j = C/s_j, so the Ratio Norm amplifies signal features and
@@ -435,7 +515,7 @@ def _train_input_group(
         criterion = nn.NLLLoss(reduction="mean")
 
     # ==================================================================
-    # Phase 1: Warm-up — Optimizer selection (Adam/Adagrad)
+    # Phase 1: Warm-up â?Optimizer selection (Adam/Adagrad)
     # ==================================================================
     if optimizer_type == "adam":
         opt_warmup = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=1e-3)
@@ -466,48 +546,70 @@ def _train_input_group(
             opt_warmup.step()
 
     # ==================================================================
-    # Phase 2: Linearized ADMM — gate in Adam + Ratio Norm z-step
+    # Phase 2: Linearized ADMM â?gate in Adam + Ratio Norm z-step
     #
-    #   min_{g,θ}  L(θ, g)  +  λ · R(z)           (R = Ratio Norm)
+    #   min_{g,Î¸}  L(Î¸, g)  +  Î» Â· R(z)           (R = Ratio Norm)
     #   s.t.  g = z
     #
     #   Augmented Lagrangian (scaled form):
-    #     L_ρ = L(θ, g) + (ρ/2) ‖g − z + u‖²
-    #
+    #     L_Ï = L(Î¸, g) + (Ï/2) âg â?z + uâÂ?    #
     #   Per epoch:
-    #     (1) g-step:  Adam on (θ, g) with augmented loss
-    #                  → gate gets full gradient dynamics
-    #     (2) z-step:  z = prox_{λ/ρ · RatioNorm}(g + u)
-    #                  → Ratio Norm proximal (cubic solver) for sparsity
-    #     (3) dual:    u ← u + g − z
+    #     (1) g-step:  Adam on (Î¸, g) with augmented loss
+    #                  â?gate gets full gradient dynamics
+    #     (2) z-step:  z = prox_{Î»/Ï Â· RatioNorm}(g + u)
+    #                  â?Ratio Norm proximal (cubic solver) for sparsity
+    #     (3) dual:    u â?u + g â?z
     #
-    #   Score s_j = ‖W₁[:,j]‖₂ gives importance-adaptive thresholds.
+    #   Score s_j = âWâ[:,j]ââ gives importance-adaptive thresholds.
     # ==================================================================
     gate_param = model.gate  # shape (m,)
     m = gate_param.shape[0]
+    bounded_gate = getattr(model, "bounded_gate", False)
 
-    # ADMM buffers (scaled dual form: u = λ/ρ)
-    zk = gate_param.data.clone()
+    def _effective_gate(param: torch.Tensor) -> torch.Tensor:
+        """Convert raw parameter to effective gate value (apply sigmoid if bounded)."""
+        if hasattr(model, "gate_from_parameter"):
+            return model.gate_from_parameter(param)
+        return param
+
+    def _parameter_from_effective(gate_value: torch.Tensor) -> torch.Tensor:
+        """Convert effective gate value to raw parameter (inverse sigmoid if bounded)."""
+        if hasattr(model, "parameter_from_gate"):
+            return model.parameter_from_gate(gate_value)
+        return gate_value
+
+    def _project_effective_gate(gate_value: torch.Tensor) -> torch.Tensor:
+        """Project effective gate to valid range. Only used for effective-space ADMM."""
+        if bounded_gate:
+            return torch.clamp(gate_value, min=0.0, max=1.0)
+        return gate_value
+
+    # ADMM buffers in RAW SPACE for bounded_gate, EFFECTIVE SPACE otherwise
+    # This is the key fix: bounded_gate ADMM operates in raw space
+    if bounded_gate:
+        # Raw space ADMM: zk and uk are in raw (pre-sigmoid) space
+        zk = gate_param.data.clone()  # raw gate value
+    else:
+        # Effective space ADMM: zk and uk are in effective space
+        zk = _effective_gate(gate_param.data).clone()
     uk = torch.zeros(m, device=device)  # scaled dual variable
     rho = rho_init
 
     # Score = first-layer column norms (importance per feature)
     with torch.no_grad():
-        W1 = model.first_linear.weight  # (out, in=m)
-        score = torch.norm(W1, p=2, dim=0) + 1e-8  # (m,)
+        score = _get_feature_penalty_scores(model)
 
     # Adam on ALL parameters including gate (gate gets gradient dynamics)
     opt_all = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=1e-3)
 
     prune_epochs = epochs - warmup_epochs
 
-    # ── Ablation: proximal gradient (no ADMM) ────────────────────────
+    # ââ Ablation: proximal gradient (no ADMM) ââââââââââââââââââââââââ
     if not use_admm:
         opt_prox = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=1e-3)
         for epoch in range(prune_epochs):
             with torch.no_grad():
-                W1 = model.first_linear.weight
-                score = torch.norm(W1, p=2, dim=0) + 1e-8
+                score = _get_feature_penalty_scores(model)
 
             # Forward pass (Adam step)
             model.train()
@@ -528,9 +630,16 @@ def _train_input_group(
 
             # Proximal step: apply proximal operator directly to gate
             with torch.no_grad():
-                g = gate_param.data
-                lam = C / score
-                lam = torch.clamp(lam, min=1e-8)  # Only lower bound, no upper clamp
+                # For bounded_gate: use raw gate; for unbounded: use effective gate
+                if bounded_gate:
+                    g = gate_param.data  # raw space
+                else:
+                    g = _effective_gate(gate_param.data)
+                if uniform_penalty:
+                    lam = torch.full_like(score, C)
+                else:
+                    lam = C / score  # per-feature lambda
+                lam = torch.clamp(lam, min=1e-8, max=0.5)
                 alpha = lam * lr  # proximal step size
                 g_shrunk = soft_thresholding(g, alpha)
                 if use_ratio_norm and torch.norm(g_shrunk, p=1) > 1e-8:
@@ -539,22 +648,33 @@ def _train_input_group(
                     D_k = (mu * score * score) / (1.0 * torch.clamp(v_l2**3, min=1e-10))
                     tau_k = solve_cubic_ratio_norm(D_k)
                     g_shrunk = tau_k * g_shrunk
-                gate_param.data.copy_(g_shrunk)
+                # For bounded_gate (raw space): no projection needed
+                # For unbounded_gate (effective space): project to valid range
+                if not bounded_gate:
+                    g_shrunk = _project_effective_gate(g_shrunk)
+                if bounded_gate:
+                    gate_param.data.copy_(g_shrunk)
+                else:
+                    gate_param.data.copy_(_parameter_from_effective(g_shrunk))
         model.eval()
         return
 
-    # ── 3-variable ADMM path (paper's formulation) ─────────────────────
+    # ââ 3-variable ADMM path (paper's formulation) âââââââââââââââââââââ
     if three_variable and use_ratio_norm:
-        yk = gate_param.data.clone()
-        zk_3 = gate_param.data.clone()
+        # For bounded_gate: use raw space; for unbounded: use effective space
+        if bounded_gate:
+            yk = gate_param.data.clone()
+            zk_3 = gate_param.data.clone()
+        else:
+            yk = _effective_gate(gate_param.data).clone()
+            zk_3 = _effective_gate(gate_param.data).clone()
         vk = torch.zeros(m, device=device)  # dual for g=y
         wk = torch.zeros(m, device=device)  # dual for g=z
         convergence_log = []
 
         for epoch in range(prune_epochs):
             with torch.no_grad():
-                W1 = model.first_linear.weight
-                score = torch.norm(W1, p=2, dim=0) + 1e-8
+                score = _get_feature_penalty_scores(model)
 
             # (1) g-step: Adam on augmented loss with TWO penalty terms
             model.train()
@@ -571,14 +691,19 @@ def _train_input_group(
                 except RuntimeError:
                     data_loss = criterion(y_hat, y_batch.float())
 
+                # For bounded_gate: use raw gate; for unbounded: use effective gate
+                if bounded_gate:
+                    gate_value_for_penalty = gate_param
+                else:
+                    gate_value_for_penalty = _effective_gate(gate_param)
                 penalty = (rho / 2.0) * (
-                    torch.sum((gate_param - yk.detach() + vk.detach()) ** 2)
-                    + torch.sum((gate_param - zk_3.detach() + wk.detach()) ** 2)
+                    torch.sum((gate_value_for_penalty - yk.detach() + vk.detach()) ** 2)
+                    + torch.sum((gate_value_for_penalty - zk_3.detach() + wk.detach()) ** 2)
                 )
                 (data_loss + penalty).backward()
                 opt_all.step()
 
-            # (2) y-step: cubic τ³ − τ² − D = 0 (paper's formulation)
+            # (2) y-step: cubic update in effective gate space
             with torch.no_grad():
                 if uniform_penalty:
                     lam = torch.full_like(score, C)
@@ -586,8 +711,11 @@ def _train_input_group(
                     lam = C / score
                 lam = torch.clamp(lam, min=1e-6, max=0.5)
 
-                c_t = torch.sum(lam * torch.abs(zk_3))  # scalar
-                d_t = gate_param.data + vk / rho  # vector
+                c_t = torch.sum(lam * torch.abs(zk_3))
+                if bounded_gate:
+                    d_t = gate_param.data + vk / rho
+                else:
+                    d_t = _effective_gate(gate_param.data) + vk / rho
                 d_norm = safe_norm(d_t)
 
                 if d_norm > 1e-8 and c_t > 1e-8:
@@ -596,30 +724,46 @@ def _train_input_group(
                     yk = tau_y * d_t
                 else:
                     yk = d_t.clone()
+                # For bounded_gate (raw space): no projection needed
+                if not bounded_gate:
+                    yk = _project_effective_gate(yk)
 
-            # (3) z-step: soft-threshold with ‖y‖₂ coupling
+            # (3) z-step: soft-threshold in effective gate space
             with torch.no_grad():
                 zk_3_old = zk_3.clone()
                 y_norm = safe_norm(yk)
-                a = gate_param.data + wk / rho
+                if bounded_gate:
+                    a = gate_param.data + wk / rho
+                else:
+                    a = _effective_gate(gate_param.data) + wk / rho
                 kappa = lam / (N * rho * torch.clamp(y_norm, min=1e-8))
                 zk_3 = soft_thresholding(a, kappa)
+                # For bounded_gate (raw space): no projection needed
+                if not bounded_gate:
+                    zk_3 = _project_effective_gate(zk_3)
 
-            # (4) Dual updates
+            # (4) dual updates
             with torch.no_grad():
-                vk = vk + rho * (gate_param.data - yk)
-                wk = wk + rho * (gate_param.data - zk_3)
+                if bounded_gate:
+                    gate_value = gate_param.data
+                else:
+                    gate_value = _effective_gate(gate_param.data)
+                vk = vk + rho * (gate_value - yk)
+                wk = wk + rho * (gate_value - zk_3)
 
-            # Convergence log (use g-z primal residual)
             with torch.no_grad():
-                primal_resid = torch.norm(gate_param.data - zk_3).item()
+                if bounded_gate:
+                    gate_value = gate_param.data
+                else:
+                    gate_value = _effective_gate(gate_param.data)
+                primal_resid = torch.norm(gate_value - zk_3).item()
                 dual_resid = rho * torch.norm(zk_3 - zk_3_old).item()
                 convergence_log.append((epoch, primal_resid, dual_resid))
 
-            # Adaptive ρ
             if epoch > 0 and epoch % rho_update_interval == 0:
                 with torch.no_grad():
-                    r_norm = max(torch.norm(gate_param.data - zk_3).item(), 1e-12)
+                    gate_value = _effective_gate(gate_param.data)
+                    r_norm = max(torch.norm(gate_value - zk_3).item(), 1e-12)
                     s_norm = max(rho * torch.norm(zk_3 - zk_3_old).item(), 1e-12)
                     rho_old = rho
                     if r_norm > 10.0 * s_norm:
@@ -634,7 +778,6 @@ def _train_input_group(
         model.convergence_log = convergence_log
         return
 
-    # ── ADMM path (default, 2-variable) ────────────────────────────────
     convergence_log = []  # stores (epoch, primal_resid, dual_resid) for diagnostics
 
     # Early stopping variables
@@ -653,10 +796,9 @@ def _train_input_group(
     for epoch in range(prune_epochs):
         # Refresh score every epoch (column norms evolve with training)
         with torch.no_grad():
-            W1 = model.first_linear.weight
-            score = torch.norm(W1, p=2, dim=0) + 1e-8
+            score = _get_feature_penalty_scores(model)
 
-        # ── (1) g-step: Adam on augmented loss over all mini-batches ──
+        # ââ (1) g-step: Adam on augmented loss over all mini-batches ââ
         model.train()
         for x_batch, y_batch in loader:
             x_batch = x_batch.to(device)
@@ -675,31 +817,46 @@ def _train_input_group(
                 data_loss = criterion(y_hat, y_batch.float())
 
             # ADMM augmented Lagrangian penalty on gate
-            admm_penalty = (rho / 2.0) * torch.sum(
-                (gate_param - zk.detach() + uk.detach()) ** 2
-            )
+            # For bounded_gate: ADMM operates in RAW SPACE (pre-sigmoid)
+            # For unbounded_gate: ADMM operates in EFFECTIVE SPACE
+            if bounded_gate:
+                # Raw space ADMM: penalty on raw gate parameter
+                admm_penalty = (rho / 2.0) * torch.sum(
+                    (gate_param - zk.detach() + uk.detach()) ** 2
+                )
+            else:
+                # Effective space ADMM: penalty on effective gate value
+                gate_value = _effective_gate(gate_param)
+                admm_penalty = (rho / 2.0) * torch.sum(
+                    (gate_value - zk.detach() + uk.detach()) ** 2
+                )
             total_loss = data_loss + admm_penalty
 
             total_loss.backward()
             opt_all.step()
 
-        # ── (2) z-step: Ratio Norm proximal (once per epoch) ──────────
+        # ââ (2) z-step: Ratio Norm proximal (once per epoch) ââââââââââ
         with torch.no_grad():
             zk_old = zk.clone()
-            v = gate_param.data + uk  # input to proximal operator
+            # For bounded_gate: use raw gate; for unbounded: use effective gate
+            if bounded_gate:
+                v = gate_param.data + uk  # raw space
+            else:
+                gate_value = _effective_gate(gate_param.data)
+                v = gate_value + uk  # effective space
 
             # --- Ratio Norm proximal on v ---
-            # Ratio Norm R(z) = ||z||₁ / ||z||₂  (scale-invariant)
-            # prox_{λ/ρ · R}(v) decomposes into:
-            #   direction:  solve  τ³ − τ − D = 0  for scaling
+            # Ratio Norm R(z) = ||z||â?/ ||z||â? (scale-invariant)
+            # prox_{Î»/Ï Â· R}(v) decomposes into:
+            #   direction:  solve  ÏÂ³ â?Ï â?D = 0  for scaling
             #   shrinkage:  soft-threshold for L1 component
             #
-            # Importance-adaptive λ_j = C / s_j  (strong on noise,
-            # weak on signal — threshold ~0.05 scale, matching proximal L1)
+            # Importance-adaptive Î»_j = C / s_j  (strong on noise,
+            # weak on signal â?threshold ~0.05 scale, matching proximal L1)
             if uniform_penalty:
                 lam = torch.full_like(score, C)
             else:
-                lam = C / score  # per-feature λ
+                lam = C / score  # per-feature Î»
             lam = torch.clamp(lam, min=1e-8, max=0.5)
 
             # Soft-threshold for the L1 component of Ratio Norm
@@ -712,14 +869,13 @@ def _train_input_group(
 
                 if v_norm_l1 > 1e-8 and v_norm_l2 > 1e-8:
                     # FIX: D should be SCALAR for Ratio Norm
-                    # The cubic equation τ³ - τ - D = 0 derives from global scaling
-                    # D = (λ/ρ) * ||v_shrunk||₁ / ||v_shrunk||₂³
-                    # This is a scalar that scales all features uniformly
+                    # The cubic equation ÏÂ³ - Ï - D = 0 derives from global scaling
+                    # D = (Î»/Ï) * ||v_shrunk||â?/ ||v_shrunk||âÂ?                    # This is a scalar that scales all features uniformly
                     D_scalar = (
                         (C / rho) * v_norm_l1 / torch.clamp(v_norm_l2**3, min=1e-10)
                     )
 
-                    # Solve for scalar τ
+                    # Solve for scalar Ï
                     tau_k = solve_cubic_ratio_norm(
                         torch.tensor([D_scalar], device=v.device)
                     )
@@ -727,23 +883,36 @@ def _train_input_group(
                     # Apply Ratio Norm scaling to shrunk v
                     zk = tau_k * v_shrunk
                 else:
-                    # v ≈ 0: all features pruned, keep zeros
+                    # v â?0: all features pruned, keep zeros
                     zk = v_shrunk
             else:
                 # Plain L1: just soft-thresholding, no Ratio Norm scaling
                 zk = v_shrunk
+            # For bounded_gate (raw space ADMM): no projection needed
+            # The sigmoid naturally constrains effective gate to [0,1]
+            # For unbounded_gate (effective space ADMM): project to valid range
+            if not bounded_gate:
+                zk = _project_effective_gate(zk)
 
-        # ── (3) Dual update (once per epoch) ──────────────────────────
+        # ââ (3) Dual update (once per epoch) ââââââââââââââââââââââââââ
         with torch.no_grad():
-            uk = uk + gate_param.data - zk
-
+            # For bounded_gate: use raw gate; for unbounded: use effective gate
+            if bounded_gate:
+                uk = uk + gate_param.data - zk
+            else:
+                gate_value = _effective_gate(gate_param.data)
+                uk = uk + gate_value - zk
         # Log convergence diagnostics
         with torch.no_grad():
-            primal_resid = torch.norm(gate_param.data - zk).item()
+            if bounded_gate:
+                primal_resid = torch.norm(gate_param.data - zk).item()
+            else:
+                gate_value = _effective_gate(gate_param.data)
+                primal_resid = torch.norm(gate_value - zk).item()
             dual_resid = rho * torch.norm(zk - zk_old).item()
             convergence_log.append((epoch, primal_resid, dual_resid))
 
-        # ── Early Stopping Check ──────────────────────────────────────
+        # ââ Early Stopping Check ââââââââââââââââââââââââââââââââââââââ
         if use_early_stopping and val_loader is not None:
             model.eval()
             with torch.no_grad():
@@ -772,10 +941,11 @@ def _train_input_group(
                     )
                     break
 
-        # ── Adaptive ρ (Boyd §3.4.1) with proper dual rescaling ──────
+        # ââ Adaptive Ï (Boyd Â§3.4.1) with proper dual rescaling ââââââ
         if epoch > 0 and epoch % rho_update_interval == 0:
             with torch.no_grad():
-                r_norm = torch.norm(gate_param.data - zk).item()
+                gate_value = _effective_gate(gate_param.data)
+                r_norm = torch.norm(gate_value - zk).item()
                 s_norm = rho * torch.norm(zk - zk_old).item()
                 mu_bal = 10.0
                 r_n = max(r_norm, 1e-12)
@@ -789,7 +959,7 @@ def _train_input_group(
                         5.0 if n_features < 64 else (20.0 if n_features < 256 else 50.0)
                     )
                     rho = max(rho / 2.0, rho_min)
-                # Rescale dual variable when ρ changes (Boyd §3.4.1)
+                # Rescale dual variable when Ï changes (Boyd Â§3.4.1)
                 if rho != rho_old:
                     uk = uk * (rho_old / rho)
 
@@ -845,6 +1015,32 @@ def _train_adaptive_input_group(
         patience: Early stopping patience
         val_split: Validation split
     """
+    # Reuse the full ADMM path when the adaptive model still exposes a
+    # global per-feature gate vector compatible with the original solver.
+    gate_attr = getattr(model, "gate", None)
+    if isinstance(gate_attr, nn.Parameter) and hasattr(model, "first_linear"):
+        _train_input_group(
+            model,
+            X_train,
+            y_train,
+            n_classes,
+            lr=lr,
+            C=C,
+            epochs=epochs,
+            warmup_epochs=warmup_epochs,
+            batch_size=batch_size,
+            rho_init=rho_init,
+            device=device,
+            use_ratio_norm=use_ratio_norm,
+            use_admm=use_admm,
+            optimizer_type=optimizer_type,
+            use_early_stopping=use_early_stopping,
+            patience=patience,
+            val_split=val_split,
+            n_features=X_train.shape[1],
+        )
+        return
+
     N = len(X_train)
     n_features = X_train.shape[1]
 
@@ -957,8 +1153,7 @@ def _extract_feature_importance(model, X_train: np.ndarray) -> np.ndarray:
 
     For GatedFeatureSelectionMLP: returns |gate| values directly.
     For AdaptiveFeatureSelector/MLP: uses get_gate_values() method.
-    For FeatureSelectionMLP: WANDA-style  score[j] = sum_i |W₁[i, j]| * ||a_j||₂
-    """
+    For FeatureSelectionMLP: WANDA-style  score[j] = sum_i |Wâ[i, j]| * ||a_j||â?    """
     # If model has get_gate_values method (AdaptiveFeatureSelector, AdaptiveFeatureSelectionMLP)
     if hasattr(model, "get_gate_values"):
         try:
@@ -1159,11 +1354,23 @@ def run_admm_input_group(
         "C": 0.05,
         "epochs": 500,
         "warmup_epochs": 120,
+        "batch_size": 64,
+        "latent_size": DEFAULT_SADMM_LATENT_SIZE,
+        "n_hidden_layers": DEFAULT_SADMM_HIDDEN_LAYERS,
+        "dropout": DEFAULT_SADMM_DROPOUT,
+        "activation": DEFAULT_SADMM_ACTIVATION,
         "feat_drop": 0.6,  # Tuned from 0.7
         "gaussian_noise": 0.0,  # Optional; set >0 to enable input noise
+        "column_normalize_first_layer": False,
         "rho_init": rho_init_default,  # Scaled by dimension
         "warm_start": False,
+        "optimizer_type": "adam",
+        "use_early_stopping": False,
+        "patience": 66,
+        "val_split": 0.2,
     }
+    if hp_overrides:
+        hp.update(hp_overrides)
 
     # ---- Strategy 2: Standardise features ----
     scaler = _Scaler()
@@ -1174,19 +1381,18 @@ def run_admm_input_group(
     # Fix torch seed per call for reproducibility across CV folds
     _seed = seed if seed is not None else hash(tuple(y_train[:20].tolist())) % 2**31
     torch.manual_seed(_seed)
-    _use_ratio = (
-        use_ratio_norm if True else False
-    )  # Always use ratio norm for admm_input_group
+    _use_ratio = use_ratio_norm
     model = GatedFeatureSelectionMLP(
         input_size=n_features,
         n_classes=n_classes,
-        latent_size=58,
-        n_hidden_layers=5,
+        latent_size=hp["latent_size"],
+        n_hidden_layers=hp["n_hidden_layers"],
         gaussian_noise=hp.get("gaussian_noise", 0.0),
-        dropout=0.04308691548552568,
+        dropout=hp["dropout"],
         feat_drop=hp.get("feat_drop", 0.6),
-        activation="mish",
+        activation=hp["activation"],
         bounded_gate=bounded_gate,
+        column_normalize_first_layer=hp.get("column_normalize_first_layer", False),
     )
 
     _train_input_group(
@@ -1198,10 +1404,15 @@ def run_admm_input_group(
         C=hp["C"],
         epochs=hp["epochs"],
         warmup_epochs=hp.get("warmup_epochs", 120),
+        batch_size=hp.get("batch_size", 64),
         rho_init=hp.get("rho_init", 200.0),
         use_ratio_norm=_use_ratio,
         use_admm=use_admm,
         n_features=n_features,  # Pass for rho scaling
+        optimizer_type=hp.get("optimizer_type", "adam"),
+        use_early_stopping=hp.get("use_early_stopping", False),
+        patience=hp.get("patience", 66),
+        val_split=hp.get("val_split", 0.2),
     )
 
     scores = _extract_feature_importance(model, X_train_s)
@@ -1250,6 +1461,7 @@ _HPARAMS = DEFAULT_HPARAMS
 __all__ = [
     "FeatureSelectionMLP",
     "GatedFeatureSelectionMLP",
+    "ColumnNormalizedLinear",
     "_Scaler",
     "_train_input_group",
     "_train_adaptive_input_group",  # For adaptive models

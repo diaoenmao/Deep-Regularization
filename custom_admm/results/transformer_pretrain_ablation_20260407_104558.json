@@ -1,0 +1,121 @@
+{
+  "results": [
+    {
+      "dataset": "xor",
+      "method": "mlp_baseline",
+      "seed": 0,
+      "best_k": 1.0,
+      "selected": [
+        0,
+        1
+      ]
+    },
+    {
+      "dataset": "xor",
+      "method": "mlp_baseline",
+      "seed": 1,
+      "best_k": 1.0,
+      "selected": [
+        0,
+        1
+      ]
+    },
+    {
+      "dataset": "xor",
+      "method": "mlp_baseline",
+      "seed": 2,
+      "best_k": 1.0,
+      "selected": [
+        1,
+        0
+      ]
+    },
+    {
+      "dataset": "xor",
+      "method": "mlp_baseline",
+      "seed": 3,
+      "best_k": 1.0,
+      "selected": [
+        0,
+        1
+      ]
+    },
+    {
+      "dataset": "xor",
+      "method": "mlp_baseline",
+      "seed": 4,
+      "best_k": 1.0,
+      "selected": [
+        0,
+        1
+      ]
+    },
+    {
+      "dataset": "ring",
+      "method": "mlp_baseline",
+      "seed": 0,
+      "best_k": 0.5,
+      "selected": [
+        0,
+        73
+      ]
+    },
+    {
+      "dataset": "ring",
+      "method": "mlp_baseline",
+      "seed": 1,
+      "best_k": 0.5,
+      "selected": [
+        119,
+        0
+      ]
+    },
+    {
+      "dataset": "ring",
+      "method": "mlp_baseline",
+      "seed": 2,
+      "best_k": 1.0,
+      "selected": [
+        0,
+        1
+      ]
+    },
+    {
+      "dataset": "ring",
+      "method": "mlp_baseline",
+      "seed": 3,
+      "best_k": 0.5,
+      "selected": [
+        100,
+        1
+      ]
+    },
+    {
+      "dataset": "ring",
+      "method": "mlp_baseline",
+      "seed": 4,
+      "best_k": 0.0,
+      "selected": [
+        51,
+        32
+      ]
+    }
+  ],
+  "summary": {
+    "xor": {
+      "mlp_baseline": {
+        "best_k_mean": 1.0,
+        "best_k_std": 0.0,
+        "n_runs": 5
+      }
+    },
+    "ring": {
+      "mlp_baseline": {
+        "best_k_mean": 0.5,
+        "best_k_std": 0.31622776601683794,
+        "n_runs": 5
+      }
+    }
+  },
+  "timestamp": "2026-04-07T10:45:58.010176"
+}

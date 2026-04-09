@@ -1,35 +1,35 @@
 # -*- coding: utf-8 -*-
 #
 #  nn_wrapper.py
-#  
+#
 #  Copyright 2022 Antoine Passemiers <antoine.passemiers@gmail.com>
-#  
+#
 #  This program is free software; you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
 #  the Free Software Foundation; either version 2 of the License, or
 #  (at your option) any later version.
-#  
+#
 #  This program is distributed in the hope that it will be useful,
 #  but WITHOUT ANY WARRANTY; without even the implied warranty of
 #  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 #  GNU General Public License for more details.
-#  
+#
 #  You should have received a copy of the GNU General Public License
 #  along with this program; if not, write to the Free Software
 #  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 #  MA 02110-1301, USA.
 
-import tqdm
 import captum.attr
 import numpy as np
 import torch
+import tqdm
 from sklearn.model_selection import train_test_split
 from torch.utils.data import DataLoader
 
 from src.cancelout import CancelOut
 from src.deeppink import DeepPINK
-from src.utils import TrainingSet, TestSet
 from src.sam import SharpnessAwareMinimizer
+from src.utils import TestSet, TrainingSet
 
 
 def init_weights(m):
@@ -37,12 +37,11 @@ def init_weights(m):
         if m.weight.size()[1] == 1:
             torch.nn.init.xavier_uniform_(m.weight)
         else:
-            torch.nn.init.kaiming_uniform_(m.weight, nonlinearity='leaky_relu')
+            torch.nn.init.kaiming_uniform_(m.weight, nonlinearity="leaky_relu")
         m.bias.data.fill_(1e-3)
 
 
 class GaussianNoise(torch.nn.Module):
-
     def __init__(self, stddev):
         torch.nn.Module.__init__(self)
         self.stddev = stddev
@@ -94,10 +93,7 @@ MODEL_PRESETS = {
 
 
 def create_model_with_preset(
-    input_size: int,
-    n_classes: int,
-    preset: str = "baseline_5layer",
-    **overrides
+    input_size: int, n_classes: int, preset: str = "baseline_5layer", **overrides
 ) -> "Model":
     """
     Create a Model instance using a preset configuration.
@@ -119,7 +115,9 @@ def create_model_with_preset(
         model = create_model_with_preset(128, 2, preset="medium_3layer", dropout=0.1)
     """
     if preset not in MODEL_PRESETS:
-        raise ValueError(f"Unknown preset: {preset}. Available: {list(MODEL_PRESETS.keys())}")
+        raise ValueError(
+            f"Unknown preset: {preset}. Available: {list(MODEL_PRESETS.keys())}"
+        )
 
     config = MODEL_PRESETS[preset].copy()
     config.update(overrides)
@@ -146,9 +144,20 @@ class Model(torch.nn.Module):
     def forward(self, x):
         return self.layers(x)
 """
-class Model(torch.nn.Module):
 
-    def __init__(self, input_size, n_classes, latent_size=58, gaussian_noise=0.7466805127272365, dropout=0.04308691548552568, n_hidden_layers=5, layer_norm=0, activation='mish'):
+
+class Model(torch.nn.Module):
+    def __init__(
+        self,
+        input_size,
+        n_classes,
+        latent_size=58,
+        gaussian_noise=0.7466805127272365,
+        dropout=0.04308691548552568,
+        n_hidden_layers=5,
+        layer_norm=0,
+        activation="mish",
+    ):
         torch.nn.Module.__init__(self)
         n_out = 1 if (n_classes <= 2) else n_classes
         layers = []
@@ -156,7 +165,6 @@ class Model(torch.nn.Module):
             layers.append(GaussianNoise(gaussian_noise))
         inplace = False
         for k in range(n_hidden_layers):
-
             if dropout > 0:
                 layers.append(torch.nn.Dropout(p=dropout, inplace=inplace))
 
@@ -168,19 +176,19 @@ class Model(torch.nn.Module):
             if layer_norm:
                 layers.append(torch.nn.LayerNorm(latent_size))
 
-            if activation == 'relu':
+            if activation == "relu":
                 layers.append(torch.nn.ReLU(inplace=inplace))
-            elif activation == 'leakyrelu':
+            elif activation == "leakyrelu":
                 layers.append(torch.nn.LeakyReLU(0.2, inplace=inplace))
-            elif activation == 'prelu':
+            elif activation == "prelu":
                 layers.append(torch.nn.PReLU(latent_size))
-            elif activation == 'tanh':
+            elif activation == "tanh":
                 layers.append(torch.nn.Tanh())
-            elif activation == 'sigmoid':
+            elif activation == "sigmoid":
                 layers.append(torch.nn.Sigmoid())
-            elif activation == 'mish':
+            elif activation == "mish":
                 layers.append(torch.nn.Mish(inplace=inplace))
-            elif activation == 'selu':
+            elif activation == "selu":
                 layers.append(torch.nn.SELU(inplace=inplace))
             else:
                 layers.append(torch.nn.Hardswish(inplace=inplace))
@@ -189,17 +197,25 @@ class Model(torch.nn.Module):
 
         self.layers = torch.nn.Sequential(*layers)
         self.apply(init_weights)
-            
+
     def forward(self, x):
         return self.layers(x)
 
 
 class ModelWithCancelOut(torch.nn.Module):
-
-    def __init__(self, input_size, n_classes, latent_size=16, cancel_out_activation='sigmoid'):
+    def __init__(
+        self,
+        input_size,
+        n_classes,
+        latent_size=16,
+        cancel_out_activation="sigmoid",
+        model_kwargs=None,
+    ):
         torch.nn.Module.__init__(self)
         self.cancel_out = CancelOut(input_size, activation=cancel_out_activation)
-        self.model = Model(input_size, n_classes, latent_size=latent_size)
+        cfg = {} if model_kwargs is None else dict(model_kwargs)
+        cfg.setdefault("latent_size", latent_size)
+        self.model = Model(input_size, n_classes, **cfg)
 
     def forward(self, x):
         x = self.cancel_out(x)
@@ -207,7 +223,6 @@ class ModelWithCancelOut(torch.nn.Module):
 
 
 class NNwrapper:
-
     def __init__(self, model, n_classes):
         self.model = model
         self.n_classes = n_classes
@@ -218,18 +233,18 @@ class NNwrapper:
         self.loss_callbacks.append(func)
 
     def fit(
-            self,
-            X,
-            Y,
-            device='cpu',
-            learning_rate=0.0017601777068292975,  # 0.0005
-            epochs=416,  # 1000
-            batch_size=56,  # 64
-            weight_decay=0.00048519293899787247,  # 1e-5
-            val=0.2,
-            early_stopping_patience=66,  # 5
-            optimizer='adagrad',  # 'adam'
-            sam_type='no-sam'  # 'no-sam'
+        self,
+        X,
+        Y,
+        device="cpu",
+        learning_rate=0.0017601777068292975,  # 0.0005
+        epochs=416,  # 1000
+        batch_size=56,  # 64
+        weight_decay=0.00048519293899787247,  # 1e-5
+        val=0.2,
+        early_stopping_patience=66,  # 5
+        optimizer="adagrad",  # 'adam'
+        sam_type="no-sam",  # 'no-sam'
     ):
 
         if val > 0:
@@ -240,46 +255,76 @@ class NNwrapper:
             y_test = np.asarray([])
 
         dataset = TrainingSet(X_train, y_train)
-        loader = DataLoader(dataset, batch_size=batch_size, shuffle=True, sampler=None, num_workers=0)
-        
+        loader = DataLoader(
+            dataset, batch_size=batch_size, shuffle=True, sampler=None, num_workers=0
+        )
+
         if val > 0:
             val_dataset = TrainingSet(X_test, y_test)
-            val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=True, sampler=None, num_workers=0)
+            val_loader = DataLoader(
+                val_dataset,
+                batch_size=batch_size,
+                shuffle=True,
+                sampler=None,
+                num_workers=0,
+            )
         else:
             val_loader = None
 
         self.model.train()
         if self.n_classes <= 2:
-            criterion = torch.nn.BCEWithLogitsLoss(reduction='mean')
+            criterion = torch.nn.BCEWithLogitsLoss(reduction="mean")
         else:
-            criterion = torch.nn.NLLLoss(reduction='mean')
+            criterion = torch.nn.NLLLoss(reduction="mean")
 
-        if optimizer == 'adam':
+        if optimizer == "adam":
             optimizer_class = torch.optim.Adam
-        elif optimizer == 'sgd':
+        elif optimizer == "sgd":
             optimizer_class = torch.optim.SGD
-        elif optimizer == 'rmsprop':
+        elif optimizer == "rmsprop":
             optimizer_class = torch.optim.RMSprop
-        elif optimizer == 'adamw':
+        elif optimizer == "adamw":
             optimizer_class = torch.optim.AdamW
         else:
             optimizer_class = torch.optim.Adagrad
-        if sam_type == 'no-sam':
-            optimizer = optimizer_class(self.model.parameters(), lr=learning_rate, weight_decay=weight_decay)
-        elif sam_type == 'sam':
-            optimizer = SharpnessAwareMinimizer(self.model.parameters(), optimizer_class, lr=learning_rate, weight_decay=weight_decay, adaptive=False)
+        if sam_type == "no-sam":
+            optimizer = optimizer_class(
+                self.model.parameters(), lr=learning_rate, weight_decay=weight_decay
+            )
+        elif sam_type == "sam":
+            optimizer = SharpnessAwareMinimizer(
+                self.model.parameters(),
+                optimizer_class,
+                lr=learning_rate,
+                weight_decay=weight_decay,
+                adaptive=False,
+            )
         else:
-            optimizer = SharpnessAwareMinimizer(self.model.parameters(), optimizer_class, lr=learning_rate, weight_decay=weight_decay, adaptive=True)
+            optimizer = SharpnessAwareMinimizer(
+                self.model.parameters(),
+                optimizer_class,
+                lr=learning_rate,
+                weight_decay=weight_decay,
+                adaptive=True,
+            )
 
         scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-            optimizer, mode='min', factor=0.9, patience=10, verbose=False, threshold=0.0001,
-            threshold_mode='rel', cooldown=5, min_lr=1e-5, eps=1e-08)
+            optimizer,
+            mode="min",
+            factor=0.9,
+            patience=10,
+            verbose=False,
+            threshold=0.0001,
+            threshold_mode="rel",
+            cooldown=5,
+            min_lr=1e-5,
+            eps=1e-08,
+        )
 
         n_epochs_without_improvement = 0
         state_dict_history = []
         pbar = tqdm.tqdm(range(epochs))
         for e in pbar:
-
             # Training error
             total_error = 0
             for x, y in loader:
@@ -305,7 +350,7 @@ class NNwrapper:
                     return loss
 
                 loss = closure()
-                if sam_type == 'no-sam':    
+                if sam_type == "no-sam":
                     optimizer.step()
                 else:
                     optimizer.step(closure=closure)
@@ -314,7 +359,6 @@ class NNwrapper:
             scheduler.step(total_error)
 
             if val_loader is not None:
-
                 # Validation error
                 with torch.no_grad():
                     val_total_error = 0
@@ -351,11 +395,13 @@ class NNwrapper:
 
         self.model.eval()
         self.trained = True
-    
-    def predict_proba(self, X, device='cpu'):
+
+    def predict_proba(self, X, device="cpu"):
         self.model.eval()
         dataset = TestSet(X)
-        loader = DataLoader(dataset, batch_size=len(X), shuffle=False, sampler=None, num_workers=0)
+        loader = DataLoader(
+            dataset, batch_size=len(X), shuffle=False, sampler=None, num_workers=0
+        )
         predictions = []
         for sample in loader:
             x = sample.to(device)
@@ -367,7 +413,7 @@ class NNwrapper:
             predictions += y_pred.data.squeeze().tolist()
         return np.array(predictions)
 
-    def predict(self, X, device='cpu'):
+    def predict(self, X, device="cpu"):
         y_proba = self.predict_proba(X, device=device)
         if len(y_proba.shape) == 2:
             return np.argmax(y_proba, axis=1)
@@ -383,22 +429,35 @@ class NNwrapper:
         return np.mean(np.abs(scores), axis=0)
 
     @staticmethod
-    def create(dataset_name, n_input, n_classes, arch='nn'):
+    def create(dataset_name, n_input, n_classes, arch="nn", model_kwargs=None):
         loss_callbacks = []
-        if arch == 'nn':
-            model = Model(n_input, n_classes)
-        elif arch == 'cancelout-sigmoid':
-            model = ModelWithCancelOut(n_input, n_classes, cancel_out_activation='sigmoid')
+        cfg = {} if model_kwargs is None else dict(model_kwargs)
+        if arch == "nn":
+            model = Model(n_input, n_classes, **cfg)
+        elif arch == "cancelout-sigmoid":
+            model = ModelWithCancelOut(
+                n_input,
+                n_classes,
+                cancel_out_activation="sigmoid",
+                model_kwargs=cfg,
+            )
             loss_callbacks.append(lambda: model.cancel_out.weight_loss())
-        elif arch == 'cancelout-softmax':
-            model = ModelWithCancelOut(n_input, n_classes, cancel_out_activation='softmax')
-        elif arch == 'deeppink':
+        elif arch == "cancelout-softmax":
+            model = ModelWithCancelOut(
+                n_input,
+                n_classes,
+                cancel_out_activation="softmax",
+                model_kwargs=cfg,
+            )
+        elif arch == "deeppink":
             _lambda = 0.05 * np.sqrt(2.0 * np.log(n_input) / 1000)
-            model = DeepPINK(Model(n_input, n_classes), n_input)
+            model = DeepPINK(Model(n_input, n_classes, **cfg), n_input)
             for layer in model.children():
                 # if isinstance(layer, torch.nn.Linear) and (layer.out_features > 1):
                 if isinstance(layer, torch.nn.Linear):
-                    loss_callbacks.append(lambda: _lambda * torch.sum(torch.abs(layer.weight)))
+                    loss_callbacks.append(
+                        lambda: _lambda * torch.sum(torch.abs(layer.weight))
+                    )
         else:
             raise NotImplementedError(f'Unknown neural architecture "{arch}"')
         wrapper = NNwrapper(model, n_classes)

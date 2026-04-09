@@ -1,0 +1,79 @@
+{
+  "results": [
+    {
+      "dataset": "xor",
+      "method": "mlp_baseline",
+      "seed": 0,
+      "best_k": 0.0,
+      "selected": [
+        12,
+        18
+      ]
+    },
+    {
+      "dataset": "xor",
+      "method": "mlp_baseline",
+      "seed": 1,
+      "best_k": 0.0,
+      "selected": [
+        11,
+        5
+      ]
+    },
+    {
+      "dataset": "xor",
+      "method": "mlp_baseline",
+      "seed": 2,
+      "best_k": 0.0,
+      "selected": [
+        9,
+        7
+      ]
+    },
+    {
+      "dataset": "xor",
+      "method": "transformer_pretrain",
+      "seed": 0,
+      "best_k": 0.0,
+      "selected": [
+        5,
+        21
+      ]
+    },
+    {
+      "dataset": "xor",
+      "method": "transformer_pretrain",
+      "seed": 1,
+      "best_k": 0.5,
+      "selected": [
+        0,
+        20
+      ]
+    },
+    {
+      "dataset": "xor",
+      "method": "transformer_pretrain",
+      "seed": 2,
+      "best_k": 0.0,
+      "selected": [
+        5,
+        18
+      ]
+    }
+  ],
+  "summary": {
+    "xor": {
+      "mlp_baseline": {
+        "best_k_mean": 0.0,
+        "best_k_std": 0.0,
+        "n_runs": 3
+      },
+      "transformer_pretrain": {
+        "best_k_mean": 0.16666666666666666,
+        "best_k_std": 0.23570226039551584,
+        "n_runs": 3
+      }
+    }
+  },
+  "timestamp": "2026-04-05T17:47:55.338989"
+}

@@ -10,7 +10,7 @@ Datasets:
   - Dexter   (20,000 features, text categorization)
 
 Usage:
-    python run_realworld_admm.py [--method admm_input_group|stg] [--seeds 5]
+    python run_realworld_admm.py [--method admm_input_group|stg] [--seeds 5] [--force]
 """
 
 import argparse
@@ -22,28 +22,39 @@ import tracemalloc
 import numpy as np
 import torch
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import roc_auc_score, average_precision_score
-
+from sklearn.metrics import average_precision_score, roc_auc_score
 from src.admm_input_group_wrapper import run_admm_input_group
 from src.stg_wrapper import run_stg_fs
 
 SEED = 0xCAFE
 ROOT = os.path.dirname(os.path.abspath(__file__))
-RESULTS_PATH = os.path.join(ROOT, 'results', 'external-data')
+RESULTS_PATH = os.path.join(ROOT, "results", "external-data")
 os.makedirs(RESULTS_PATH, exist_ok=True)
+MODEL_HP = {"latent_size": 32, "n_hidden_layers": 2}
 
 # Dataset configs: name -> (decoy_fraction, n_features_for_sparse)
 DATASETS = {
-    'madelon': 0.96,
-    'arcene':  0.3,
-    'gisette': 0.3,
-    'dexter':  0.5,
+    "madelon": 0.96,
+    "arcene": 0.3,
+    "gisette": 0.3,
+    "dexter": 0.5,
 }
+
+
+def _resolve_data_path():
+    candidates = [
+        os.path.join(ROOT, "data"),
+        os.path.join(os.path.dirname(ROOT), "data"),
+    ]
+    for path in candidates:
+        if os.path.isdir(path):
+            return path
+    return candidates[0]
 
 
 def load_nips2003_labels(filepath):
     data = []
-    with open(filepath, 'r') as f:
+    with open(filepath, "r") as f:
         for line in f:
             line = line.rstrip()
             if len(line) > 0:
@@ -54,9 +65,9 @@ def load_nips2003_labels(filepath):
 
 def load_nips2003_dense_matrix(filepath):
     data = []
-    with open(filepath, 'r') as f:
+    with open(filepath, "r") as f:
         for line in f:
-            elements = line.rstrip().split(' ')
+            elements = line.rstrip().split(" ")
             if len(elements) > 0:
                 data.append([int(x) for x in elements])
     return np.asarray(data, dtype=int)
@@ -64,13 +75,13 @@ def load_nips2003_dense_matrix(filepath):
 
 def load_nips2003_sparse_matrix(filepath, m):
     data = []
-    with open(filepath, 'r') as f:
+    with open(filepath, "r") as f:
         for line in f:
-            elements = line.rstrip().split(' ')
+            elements = line.rstrip().split(" ")
             if len(elements) > 0:
                 xs = np.zeros(m, dtype=int)
                 for el in elements:
-                    j, value = el.split(':')
+                    j, value = el.split(":")
                     j, value = int(j) - 1, int(value)
                     assert 0 <= j < m
                     xs[j] = value
@@ -79,19 +90,27 @@ def load_nips2003_sparse_matrix(filepath, m):
 
 
 def load_dataset(name):
-    DATA_PATH = os.path.join(ROOT, 'data')
+    DATA_PATH = _resolve_data_path()
     folder = os.path.join(DATA_PATH, name)
     sub_folder = os.path.join(DATA_PATH, name, name.upper())
-    if name in {'arcene', 'gisette', 'madelon'}:
-        X_train = load_nips2003_dense_matrix(os.path.join(sub_folder, f'{name}_train.data'))
-        X_test = load_nips2003_dense_matrix(os.path.join(sub_folder, f'{name}_valid.data'))
-    elif name == 'dexter':
-        X_train = load_nips2003_sparse_matrix(os.path.join(sub_folder, f'{name}_train.data'), 20000)
-        X_test = load_nips2003_sparse_matrix(os.path.join(sub_folder, f'{name}_valid.data'), 20000)
+    if name in {"arcene", "gisette", "madelon"}:
+        X_train = load_nips2003_dense_matrix(
+            os.path.join(sub_folder, f"{name}_train.data")
+        )
+        X_test = load_nips2003_dense_matrix(
+            os.path.join(sub_folder, f"{name}_valid.data")
+        )
+    elif name == "dexter":
+        X_train = load_nips2003_sparse_matrix(
+            os.path.join(sub_folder, f"{name}_train.data"), 20000
+        )
+        X_test = load_nips2003_sparse_matrix(
+            os.path.join(sub_folder, f"{name}_valid.data"), 20000
+        )
     else:
-        raise ValueError(f'Unknown dataset: {name}')
-    y_train = load_nips2003_labels(os.path.join(sub_folder, f'{name}_train.labels'))
-    y_test = load_nips2003_labels(os.path.join(folder, f'{name}_valid.labels'))
+        raise ValueError(f"Unknown dataset: {name}")
+    y_train = load_nips2003_labels(os.path.join(sub_folder, f"{name}_train.labels"))
+    y_test = load_nips2003_labels(os.path.join(folder, f"{name}_valid.labels"))
     return X_train, y_train, X_test, y_test
 
 
@@ -107,31 +126,43 @@ def evaluate_downstream(X_train, y_train, X_test, y_test, scores, k):
     return auroc, auprc
 
 
-def run_single_seed(method, dataset_name, X_train, y_train, X_test, y_test,
-                    n_classes, k, hp_overrides, seed_val):
+def run_single_seed(
+    method,
+    dataset_name,
+    X_train,
+    y_train,
+    X_test,
+    y_test,
+    n_classes,
+    k,
+    hp_overrides,
+    seed_val,
+):
     """Run one seed for a given method and return (auroc, auprc, time)."""
     t0 = time.time()
 
-    if method == 'admm_input_group':
+    if method == "admm_input_group":
         torch.manual_seed(seed_val)
         np.random.seed(seed_val)
         _, _, scores, _ = run_admm_input_group(
             X_train.astype(np.float32),
-            y_train, X_test.astype(np.float32),
+            y_train,
+            X_test.astype(np.float32),
             n_classes,
-            hp_overrides=hp_overrides,
+            hp_overrides={**MODEL_HP, **hp_overrides},
             seed=seed_val,
         )
-    elif method == 'stg':
+    elif method == "stg":
         torch.manual_seed(seed_val)
         np.random.seed(seed_val)
         _, _, scores, _ = run_stg_fs(
             X_train.astype(np.float32),
-            y_train, X_test.astype(np.float32),
+            y_train,
+            X_test.astype(np.float32),
             n_classes,
         )
     else:
-        raise ValueError(f'Unknown method: {method}')
+        raise ValueError(f"Unknown method: {method}")
 
     runtime = time.time() - t0
     auroc, auprc = evaluate_downstream(X_train, y_train, X_test, y_test, scores, k)
@@ -140,36 +171,51 @@ def run_single_seed(method, dataset_name, X_train, y_train, X_test, y_test,
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--method', type=str, default='admm_input_group',
-                        choices=['admm_input_group', 'stg'])
-    parser.add_argument('--seeds', type=int, default=5)
+    parser.add_argument(
+        "--method",
+        type=str,
+        default="admm_input_group",
+        choices=["admm_input_group", "stg"],
+    )
+    parser.add_argument("--seeds", type=int, default=5)
+    parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Overwrite existing result JSON files instead of skipping them.",
+    )
     args = parser.parse_args()
 
     seeds = [42 + i * 1000 for i in range(args.seeds)]
 
     for dataset_name, decoy_fraction in DATASETS.items():
-        out_path = os.path.join(RESULTS_PATH, f'{dataset_name}-{args.method}.json')
+        out_path = os.path.join(RESULTS_PATH, f"{dataset_name}-{args.method}.json")
 
-        print(f'\n{"="*60}')
-        print(f'Dataset: {dataset_name} | Method: {args.method} | Seeds: {args.seeds}')
-        print(f'{"="*60}')
+        print(f"\n{'=' * 60}")
+        print(f"Dataset: {dataset_name} | Method: {args.method} | Seeds: {args.seeds}")
+        print(f"{'=' * 60}")
+
+        if os.path.exists(out_path) and not args.force:
+            print(f"  SKIPPED - existing output: {out_path} (use --force to overwrite)")
+            continue
 
         try:
             X_train, y_train, X_test, y_test = load_dataset(dataset_name)
         except FileNotFoundError as e:
-            print(f'  SKIPPED — data not found: {e}')
+            print(f"  SKIPPED — data not found: {e}")
             continue
 
         n_features = X_train.shape[1]
         n_classes = len(set(y_train))
         k = int(round((1.0 - decoy_fraction) * n_features))
 
-        print(f'  n_train={len(X_train)}, n_test={len(X_test)}, '
-              f'n_features={n_features}, k={k}, n_classes={n_classes}')
+        print(
+            f"  n_train={len(X_train)}, n_test={len(X_test)}, "
+            f"n_features={n_features}, k={k}, n_classes={n_classes}"
+        )
 
         hp_overrides = {}
-        if n_features >= 10000 and args.method == 'admm_input_group':
-            hp_overrides = {'epochs': 600, 'warmup_epochs': 150}
+        if n_features >= 10000 and args.method == "admm_input_group":
+            hp_overrides = {"epochs": 600, "warmup_epochs": 150}
 
         per_seed_auroc = []
         per_seed_auprc = []
@@ -177,31 +223,41 @@ def main():
 
         for i, s in enumerate(seeds):
             auroc, auprc, runtime = run_single_seed(
-                args.method, dataset_name,
-                X_train, y_train, X_test, y_test,
-                n_classes, k, hp_overrides, s)
+                args.method,
+                dataset_name,
+                X_train,
+                y_train,
+                X_test,
+                y_test,
+                n_classes,
+                k,
+                hp_overrides,
+                s,
+            )
             per_seed_auroc.append(auroc)
             per_seed_auprc.append(auprc)
             total_time += runtime
-            print(f'  Seed {i+1}/{args.seeds} (s={s}): AUROC={auroc:.4f}, AUPRC={auprc:.4f}, time={runtime:.1f}s')
+            print(
+                f"  Seed {i + 1}/{args.seeds} (s={s}): AUROC={auroc:.4f}, AUPRC={auprc:.4f}, time={runtime:.1f}s"
+            )
 
         results = {
-            'auroc': float(np.mean(per_seed_auroc)),
-            'auroc_std': float(np.std(per_seed_auroc)),
-            'auprc': float(np.mean(per_seed_auprc)),
-            'auprc_std': float(np.std(per_seed_auprc)),
-            'k': k,
-            'time': total_time,
-            'per_seed_auroc': per_seed_auroc,
-            'per_seed_auprc': per_seed_auprc,
+            "auroc": float(np.mean(per_seed_auroc)),
+            "auroc_std": float(np.std(per_seed_auroc)),
+            "auprc": float(np.mean(per_seed_auprc)),
+            "auprc_std": float(np.std(per_seed_auprc)),
+            "k": k,
+            "time": total_time,
+            "per_seed_auroc": per_seed_auroc,
+            "per_seed_auprc": per_seed_auprc,
         }
 
-        print(f'  Mean AUROC={results["auroc"]:.4f}±{results["auroc_std"]:.4f}')
+        print(f"  Mean AUROC={results['auroc']:.4f}±{results['auroc_std']:.4f}")
 
-        with open(out_path, 'w') as f:
+        with open(out_path, "w") as f:
             json.dump(results, f, indent=2)
-        print(f'  Saved to {out_path}')
+        print(f"  Saved to {out_path}")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

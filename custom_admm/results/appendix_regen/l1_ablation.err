@@ -1,0 +1,10 @@
+Traceback (most recent call last):
+  File "C:\Users\12425\Documents\Projects\NEW_Pruning_20251110\custom_admm\run_ablations.py", line 215, in <module>
+    run_l1_ablation()
+  File "C:\Users\12425\Documents\Projects\NEW_Pruning_20251110\custom_admm\run_ablations.py", line 96, in run_l1_ablation
+    res = eval_synthetic("lasso_input_group", ds_name, k_true, ns)
+  File "C:\Users\12425\Documents\Projects\NEW_Pruning_20251110\custom_admm\run_ablations.py", line 65, in eval_synthetic
+    _, _, scores, _ = run_fs_method(
+  File "C:\Users\12425\Documents\Projects\NEW_Pruning_20251110\custom_admm\src\core.py", line 303, in run_fs_method
+    raise NotImplementedError(f'Unknown FS method "{method_name}"')
+NotImplementedError: Unknown FS method "lasso_input_group"

@@ -1,0 +1,18 @@
+{
+  "state": "running",
+  "started_at": "2026-03-28T12:40:08",
+  "device": "auto",
+  "epochs": 240,
+  "warmup_epochs": 60,
+  "output": "C:\\Users\\12425\\Documents\\Projects\\NEW_Pruning_20251110\\custom_admm\\results\\mentor_axes\\backbone_tier2_synthetic_full_20260327.json",
+  "methods": [
+    "gated_token_transformer",
+    "gated_token_transformer_pretrained",
+    "fsnet",
+    "e2efs",
+    "cae",
+    "tabnet"
+  ],
+  "completed": [],
+  "current": "gated_token_transformer"
+}

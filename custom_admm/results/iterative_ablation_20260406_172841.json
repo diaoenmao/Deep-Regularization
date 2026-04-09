@@ -1,0 +1,123 @@
+{
+  "results": [
+    {
+      "dataset": "xor",
+      "method": "single_pass",
+      "seed": 0,
+      "best_k": 1.0,
+      "best_2k": 1.0,
+      "selected": [
+        1,
+        0
+      ]
+    },
+    {
+      "dataset": "xor",
+      "method": "single_pass",
+      "seed": 1,
+      "best_k": 1.0,
+      "best_2k": 1.0,
+      "selected": [
+        0,
+        1
+      ]
+    },
+    {
+      "dataset": "xor",
+      "method": "single_pass",
+      "seed": 2,
+      "best_k": 1.0,
+      "best_2k": 1.0,
+      "selected": [
+        1,
+        0
+      ]
+    },
+    {
+      "dataset": "xor",
+      "method": "iterative_hard",
+      "seed": 0,
+      "best_k": 0.0,
+      "best_2k": 0.0,
+      "selected": [
+        15,
+        9
+      ]
+    },
+    {
+      "dataset": "xor",
+      "method": "iterative_hard",
+      "seed": 1,
+      "best_k": 0.0,
+      "best_2k": 0.0,
+      "selected": [
+        12,
+        10
+      ]
+    },
+    {
+      "dataset": "xor",
+      "method": "iterative_hard",
+      "seed": 2,
+      "best_k": 0.0,
+      "best_2k": 0.0,
+      "selected": [
+        7,
+        19
+      ]
+    },
+    {
+      "dataset": "xor",
+      "method": "gradual_admm",
+      "seed": 0,
+      "best_k": 1.0,
+      "best_2k": 1.0,
+      "selected": [
+        1,
+        0
+      ]
+    },
+    {
+      "dataset": "xor",
+      "method": "gradual_admm",
+      "seed": 1,
+      "best_k": 1.0,
+      "best_2k": 1.0,
+      "selected": [
+        1,
+        0
+      ]
+    },
+    {
+      "dataset": "xor",
+      "method": "gradual_admm",
+      "seed": 2,
+      "best_k": 1.0,
+      "best_2k": 1.0,
+      "selected": [
+        1,
+        0
+      ]
+    }
+  ],
+  "summary": {
+    "xor": {
+      "single_pass": {
+        "best_k_mean": 1.0,
+        "best_k_std": 0.0,
+        "n_runs": 3
+      },
+      "iterative_hard": {
+        "best_k_mean": 0.0,
+        "best_k_std": 0.0,
+        "n_runs": 3
+      },
+      "gradual_admm": {
+        "best_k_mean": 1.0,
+        "best_k_std": 0.0,
+        "n_runs": 3
+      }
+    }
+  },
+  "timestamp": "2026-04-06T17:28:41.362533"
+}

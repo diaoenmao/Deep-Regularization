@@ -1,0 +1,514 @@
+{
+  "metadata": {
+    "timestamp": "20260326_131516",
+    "quick_mode": true,
+    "n_samples": 1000,
+    "n_folds": 6,
+    "fold_limit": 2,
+    "dim_limit": null,
+    "matched_backbone": {
+      "latent_size": 32,
+      "n_hidden_layers": 2,
+      "gaussian_noise": 0.0,
+      "dropout": 0.0,
+      "activation": "mish"
+    },
+    "matched_nn_fit": {
+      "learning_rate": 0.0017601777068292975,
+      "epochs": 416,
+      "batch_size": 56,
+      "weight_decay": 0.00048519293899787247,
+      "val": 0.2,
+      "early_stopping_patience": 66,
+      "optimizer": "adagrad",
+      "sam_type": "no-sam"
+    },
+    "matched_sadmm_hp": {
+      "latent_size": 32,
+      "n_hidden_layers": 2,
+      "gaussian_noise": 0.0,
+      "dropout": 0.0,
+      "activation": "mish",
+      "epochs": 416,
+      "warmup_epochs": 100,
+      "batch_size": 56,
+      "optimizer_type": "adagrad",
+      "use_early_stopping": true,
+      "patience": 66,
+      "val_split": 0.2,
+      "feat_drop": 0.6
+    },
+    "fsnet_fit": {
+      "n_epochs": 416,
+      "batch_size": 56,
+      "_lambda": 10.0,
+      "weight_decay": 1e-06
+    },
+    "lassonet_kwargs": {
+      "hidden_dims": [
+        32,
+        32
+      ],
+      "n_iters": [
+        30,
+        30
+      ],
+      "batch_size": 64,
+      "dropout": 0.0,
+      "patience": 10,
+      "lambda_start": 3.2768,
+      "tol": 0.9999,
+      "verbose": false
+    }
+  },
+  "method_specs": {
+    "sadmm_fs": {
+      "label": "SADMM-FS",
+      "match_level": "method_specific",
+      "reason": "Shared 2x32 predictor and Adagrad family, but ADMM gate updates are method-specific."
+    },
+    "stg": {
+      "label": "STG",
+      "match_level": "backbone_only",
+      "reason": "Hidden dims matched to 2x32, but STG keeps its stochastic-gate objective and Adam training path."
+    },
+    "cancelout_sigmoid": {
+      "label": "CancelOut-Sigmoid",
+      "match_level": "full_match",
+      "reason": "Shared 2x32 predictor and shared NNwrapper training config."
+    },
+    "deeppink": {
+      "label": "DeepPINK",
+      "match_level": "full_match",
+      "reason": "Shared 2x32 predictor and shared NNwrapper training config; method-specific knockoff front-end retained."
+    }
+  },
+  "results": {
+    "sadmm_fs": {
+      "xor": {
+        "8": {
+          "k": 2,
+          "folds": [
+            {
+              "status": "ok",
+              "best_k": 1.0,
+              "runtime_sec": 23.652606964111328,
+              "fold_idx": 0
+            },
+            {
+              "status": "ok",
+              "best_k": 1.0,
+              "runtime_sec": 23.95761466026306,
+              "fold_idx": 1
+            }
+          ],
+          "mean_best_k": 1.0,
+          "std_best_k": 0.0,
+          "mean_runtime_sec": 23.805110812187195
+        },
+        "128": {
+          "k": 2,
+          "folds": [
+            {
+              "status": "ok",
+              "best_k": 1.0,
+              "runtime_sec": 22.381930589675903,
+              "fold_idx": 0
+            },
+            {
+              "status": "ok",
+              "best_k": 1.0,
+              "runtime_sec": 21.88655686378479,
+              "fold_idx": 1
+            }
+          ],
+          "mean_best_k": 1.0,
+          "std_best_k": 0.0,
+          "mean_runtime_sec": 22.134243726730347
+        }
+      },
+      "ring": {
+        "32": {
+          "k": 2,
+          "folds": [
+            {
+              "status": "ok",
+              "best_k": 0.5,
+              "runtime_sec": 8.318427562713623,
+              "fold_idx": 0
+            },
+            {
+              "status": "ok",
+              "best_k": 0.5,
+              "runtime_sec": 8.13448166847229,
+              "fold_idx": 1
+            }
+          ],
+          "mean_best_k": 0.5,
+          "std_best_k": 0.0,
+          "mean_runtime_sec": 8.226454615592957
+        }
+      },
+      "ring+xor": {
+        "16": {
+          "k": 4,
+          "folds": [
+            {
+              "status": "ok",
+              "best_k": 0.75,
+              "runtime_sec": 22.10226273536682,
+              "fold_idx": 0
+            },
+            {
+              "status": "ok",
+              "best_k": 0.75,
+              "runtime_sec": 21.901591062545776,
+              "fold_idx": 1
+            }
+          ],
+          "mean_best_k": 0.75,
+          "std_best_k": 0.0,
+          "mean_runtime_sec": 22.0019268989563
+        }
+      }
+    },
+    "stg": {
+      "xor": {
+        "8": {
+          "k": 2,
+          "folds": [
+            {
+              "status": "ok",
+              "best_k": 1.0,
+              "runtime_sec": 21.282729148864746,
+              "fold_idx": 0
+            },
+            {
+              "status": "ok",
+              "best_k": 1.0,
+              "runtime_sec": 20.94937229156494,
+              "fold_idx": 1
+            }
+          ],
+          "mean_best_k": 1.0,
+          "std_best_k": 0.0,
+          "mean_runtime_sec": 21.116050720214844
+        },
+        "128": {
+          "k": 2,
+          "folds": [
+            {
+              "status": "ok",
+              "best_k": 1.0,
+              "runtime_sec": 20.960185527801514,
+              "fold_idx": 0
+            },
+            {
+              "status": "ok",
+              "best_k": 1.0,
+              "runtime_sec": 20.937158346176147,
+              "fold_idx": 1
+            }
+          ],
+          "mean_best_k": 1.0,
+          "std_best_k": 0.0,
+          "mean_runtime_sec": 20.94867193698883
+        }
+      },
+      "ring": {
+        "32": {
+          "k": 2,
+          "folds": [
+            {
+              "status": "ok",
+              "best_k": 0.0,
+              "runtime_sec": 20.99657940864563,
+              "fold_idx": 0
+            },
+            {
+              "status": "ok",
+              "best_k": 0.0,
+              "runtime_sec": 21.367289066314697,
+              "fold_idx": 1
+            }
+          ],
+          "mean_best_k": 0.0,
+          "std_best_k": 0.0,
+          "mean_runtime_sec": 21.181934237480164
+        }
+      },
+      "ring+xor": {
+        "16": {
+          "k": 4,
+          "folds": [
+            {
+              "status": "ok",
+              "best_k": 0.5,
+              "runtime_sec": 21.554129123687744,
+              "fold_idx": 0
+            },
+            {
+              "status": "ok",
+              "best_k": 0.5,
+              "runtime_sec": 20.861587047576904,
+              "fold_idx": 1
+            }
+          ],
+          "mean_best_k": 0.5,
+          "std_best_k": 0.0,
+          "mean_runtime_sec": 21.207858085632324
+        }
+      }
+    },
+    "cancelout_sigmoid": {
+      "xor": {
+        "8": {
+          "k": 2,
+          "folds": [
+            {
+              "status": "ok",
+              "best_k": 1.0,
+              "runtime_sec": 12.494176864624023,
+              "fold_idx": 0
+            },
+            {
+              "status": "ok",
+              "best_k": 1.0,
+              "runtime_sec": 12.428890466690063,
+              "fold_idx": 1
+            }
+          ],
+          "mean_best_k": 1.0,
+          "std_best_k": 0.0,
+          "mean_runtime_sec": 12.461533665657043
+        },
+        "128": {
+          "k": 2,
+          "folds": [
+            {
+              "status": "ok",
+              "best_k": 0.5,
+              "runtime_sec": 12.96630573272705,
+              "fold_idx": 0
+            },
+            {
+              "status": "ok",
+              "best_k": 0.5,
+              "runtime_sec": 2.1596474647521973,
+              "fold_idx": 1
+            }
+          ],
+          "mean_best_k": 0.5,
+          "std_best_k": 0.0,
+          "mean_runtime_sec": 7.562976598739624
+        }
+      },
+      "ring": {
+        "32": {
+          "k": 2,
+          "folds": [
+            {
+              "status": "ok",
+              "best_k": 0.5,
+              "runtime_sec": 12.87642502784729,
+              "fold_idx": 0
+            },
+            {
+              "status": "ok",
+              "best_k": 0.5,
+              "runtime_sec": 13.111949443817139,
+              "fold_idx": 1
+            }
+          ],
+          "mean_best_k": 0.5,
+          "std_best_k": 0.0,
+          "mean_runtime_sec": 12.994187235832214
+        }
+      },
+      "ring+xor": {
+        "16": {
+          "k": 4,
+          "folds": [
+            {
+              "status": "ok",
+              "best_k": 0.5,
+              "runtime_sec": 13.993895292282104,
+              "fold_idx": 0
+            },
+            {
+              "status": "ok",
+              "best_k": 0.5,
+              "runtime_sec": 14.0755615234375,
+              "fold_idx": 1
+            }
+          ],
+          "mean_best_k": 0.5,
+          "std_best_k": 0.0,
+          "mean_runtime_sec": 14.034728407859802
+        }
+      }
+    },
+    "deeppink": {
+      "xor": {
+        "8": {
+          "k": 2,
+          "folds": [
+            {
+              "status": "ok",
+              "best_k": 0.0,
+              "runtime_sec": 14.39960527420044,
+              "fold_idx": 0
+            },
+            {
+              "status": "ok",
+              "best_k": 0.0,
+              "runtime_sec": 15.478031635284424,
+              "fold_idx": 1
+            }
+          ],
+          "mean_best_k": 0.0,
+          "std_best_k": 0.0,
+          "mean_runtime_sec": 14.938818454742432
+        },
+        "128": {
+          "k": 2,
+          "folds": [
+            {
+              "status": "ok",
+              "best_k": 0.0,
+              "runtime_sec": 17.72260880470276,
+              "fold_idx": 0
+            },
+            {
+              "status": "ok",
+              "best_k": 0.0,
+              "runtime_sec": 18.121867656707764,
+              "fold_idx": 1
+            }
+          ],
+          "mean_best_k": 0.0,
+          "std_best_k": 0.0,
+          "mean_runtime_sec": 17.92223823070526
+        }
+      },
+      "ring": {
+        "32": {
+          "k": 2,
+          "folds": [
+            {
+              "status": "ok",
+              "best_k": 0.5,
+              "runtime_sec": 15.242121934890747,
+              "fold_idx": 0
+            },
+            {
+              "status": "ok",
+              "best_k": 0.0,
+              "runtime_sec": 14.931226015090942,
+              "fold_idx": 1
+            }
+          ],
+          "mean_best_k": 0.25,
+          "std_best_k": 0.25,
+          "mean_runtime_sec": 15.086673974990845
+        }
+      },
+      "ring+xor": {
+        "16": {
+          "k": 4,
+          "folds": [
+            {
+              "status": "ok",
+              "best_k": 0.25,
+              "runtime_sec": 14.83095407485962,
+              "fold_idx": 0
+            },
+            {
+              "status": "ok",
+              "best_k": 0.0,
+              "runtime_sec": 14.99996042251587,
+              "fold_idx": 1
+            }
+          ],
+          "mean_best_k": 0.125,
+          "std_best_k": 0.125,
+          "mean_runtime_sec": 14.915457248687744
+        }
+      }
+    }
+  },
+  "summary": {
+    "sadmm_fs": {
+      "overall_mean_best_k": 0.8125,
+      "datasets": {
+        "xor": {
+          "mean_best_k": 1.0,
+          "mean_runtime_sec": 22.96967726945877
+        },
+        "ring": {
+          "mean_best_k": 0.5,
+          "mean_runtime_sec": 8.226454615592957
+        },
+        "ring+xor": {
+          "mean_best_k": 0.75,
+          "mean_runtime_sec": 22.0019268989563
+        }
+      },
+      "match_level": "method_specific"
+    },
+    "stg": {
+      "overall_mean_best_k": 0.625,
+      "datasets": {
+        "xor": {
+          "mean_best_k": 1.0,
+          "mean_runtime_sec": 21.032361328601837
+        },
+        "ring": {
+          "mean_best_k": 0.0,
+          "mean_runtime_sec": 21.181934237480164
+        },
+        "ring+xor": {
+          "mean_best_k": 0.5,
+          "mean_runtime_sec": 21.207858085632324
+        }
+      },
+      "match_level": "backbone_only"
+    },
+    "cancelout_sigmoid": {
+      "overall_mean_best_k": 0.625,
+      "datasets": {
+        "xor": {
+          "mean_best_k": 0.75,
+          "mean_runtime_sec": 10.012255132198334
+        },
+        "ring": {
+          "mean_best_k": 0.5,
+          "mean_runtime_sec": 12.994187235832214
+        },
+        "ring+xor": {
+          "mean_best_k": 0.5,
+          "mean_runtime_sec": 14.034728407859802
+        }
+      },
+      "match_level": "full_match"
+    },
+    "deeppink": {
+      "overall_mean_best_k": 0.09375,
+      "datasets": {
+        "xor": {
+          "mean_best_k": 0.0,
+          "mean_runtime_sec": 16.430528342723846
+        },
+        "ring": {
+          "mean_best_k": 0.25,
+          "mean_runtime_sec": 15.086673974990845
+        },
+        "ring+xor": {
+          "mean_best_k": 0.125,
+          "mean_runtime_sec": 14.915457248687744
+        }
+      },
+      "match_level": "full_match"
+    }
+  }
+}

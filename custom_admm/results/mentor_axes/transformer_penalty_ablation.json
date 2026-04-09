@@ -1,0 +1,134 @@
+{
+  "xor_m128_uniform": {
+    "task": "xor_m128",
+    "penalty": "uniform",
+    "mean_best_k": 0.0,
+    "mean_auc": 0.5,
+    "per_fold_best_k": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "per_fold_auc": [
+      0.5,
+      0.5,
+      0.5,
+      0.5,
+      0.5,
+      0.5
+    ]
+  },
+  "xor_m128_adaptive": {
+    "task": "xor_m128",
+    "penalty": "adaptive",
+    "mean_best_k": 0.0,
+    "mean_auc": 0.5,
+    "per_fold_best_k": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "per_fold_auc": [
+      0.5,
+      0.5,
+      0.5,
+      0.5,
+      0.5,
+      0.5
+    ]
+  },
+  "ring_m128_uniform": {
+    "task": "ring_m128",
+    "penalty": "uniform",
+    "mean_best_k": 0.16666666666666666,
+    "mean_auc": 0.5,
+    "per_fold_best_k": [
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      0.0,
+      0.0
+    ],
+    "per_fold_auc": [
+      0.5,
+      0.5,
+      0.5,
+      0.5,
+      0.5,
+      0.5
+    ]
+  },
+  "ring_m128_adaptive": {
+    "task": "ring_m128",
+    "penalty": "adaptive",
+    "mean_best_k": 0.08333333333333333,
+    "mean_auc": 0.5,
+    "per_fold_best_k": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.5,
+      0.0
+    ],
+    "per_fold_auc": [
+      0.5,
+      0.5,
+      0.5,
+      0.5,
+      0.5,
+      0.5
+    ]
+  },
+  "ring+xor_m256_uniform": {
+    "task": "ring+xor_m256",
+    "penalty": "uniform",
+    "mean_best_k": 0.0,
+    "mean_auc": 0.5,
+    "per_fold_best_k": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "per_fold_auc": [
+      0.5,
+      0.5,
+      0.5,
+      0.5,
+      0.5,
+      0.5
+    ]
+  },
+  "ring+xor_m256_adaptive": {
+    "task": "ring+xor_m256",
+    "penalty": "adaptive",
+    "mean_best_k": 0.0,
+    "mean_auc": 0.5,
+    "per_fold_best_k": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "per_fold_auc": [
+      0.5,
+      0.5,
+      0.5,
+      0.5,
+      0.5,
+      0.5
+    ]
+  }
+}

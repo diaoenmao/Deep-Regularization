@@ -1,0 +1,110 @@
+{
+  "metadata": {
+    "timestamp": "20260327_212821",
+    "axis": [
+      "backbone"
+    ],
+    "device": "cpu",
+    "folds": 2,
+    "epochs": 72,
+    "warmup_epochs": 18
+  },
+  "axes": {
+    "backbone": {
+      "tasks": {
+        "xor_m128": {
+          "gated_mlp": {
+            "mean_best_k": 0.5,
+            "std_best_k": 0.5,
+            "mean_auc": 0.5141789176732359,
+            "std_auc": 0.001093518224200063,
+            "per_fold": [
+              {
+                "fold": 0,
+                "best_k": 0.0,
+                "auc": 0.5130853994490359,
+                "pretrain": null
+              },
+              {
+                "fold": 1,
+                "best_k": 1.0,
+                "auc": 0.515272435897436,
+                "pretrain": null
+              }
+            ],
+            "desc": "Baseline gated MLP backbone"
+          },
+          "gated_token_transformer": {
+            "mean_best_k": 0.0,
+            "std_best_k": 0.0,
+            "mean_auc": 0.5222301852481557,
+            "std_auc": 0.003539045521075146,
+            "per_fold": [
+              {
+                "fold": 0,
+                "best_k": 0.0,
+                "auc": 0.5186911397270805,
+                "pretrain": null
+              },
+              {
+                "fold": 1,
+                "best_k": 0.0,
+                "auc": 0.5257692307692308,
+                "pretrain": null
+              }
+            ],
+            "desc": "Feature-token transformer with ADMM gate"
+          },
+          "gated_token_transformer_pretrained": {
+            "mean_best_k": 0.0,
+            "std_best_k": 0.0,
+            "mean_auc": 0.5161780709600478,
+            "std_auc": 0.01095371198568873,
+            "per_fold": [
+              {
+                "fold": 0,
+                "best_k": 0.0,
+                "auc": 0.5271317829457365,
+                "pretrain": {
+                  "epochs": 12,
+                  "mask_prob": 0.15,
+                  "mean_recon_loss": 1.0031642553706963,
+                  "final_recon_loss": 1.0115508884191513
+                }
+              },
+              {
+                "fold": 1,
+                "best_k": 0.0,
+                "auc": 0.505224358974359,
+                "pretrain": {
+                  "epochs": 12,
+                  "mask_prob": 0.15,
+                  "mean_recon_loss": 1.0003983099013567,
+                  "final_recon_loss": 1.0053802728652954
+                }
+              }
+            ],
+            "desc": "Feature-token transformer with masked pretraining + ADMM gate"
+          }
+        }
+      },
+      "models": [
+        {
+          "name": "gated_mlp",
+          "desc": "Baseline gated MLP backbone",
+          "pretrain": false
+        },
+        {
+          "name": "gated_token_transformer",
+          "desc": "Feature-token transformer with ADMM gate",
+          "pretrain": false
+        },
+        {
+          "name": "gated_token_transformer_pretrained",
+          "desc": "Feature-token transformer with masked pretraining + ADMM gate",
+          "pretrain": true
+        }
+      ]
+    }
+  }
+}

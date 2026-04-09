@@ -1,0 +1,297 @@
+{
+  "metadata": {
+    "timestamp": "20260326_133132",
+    "quick_mode": true,
+    "fold_limit": 1,
+    "variants": {
+      "baseline_drop": {
+        "label": "Baseline gate + feature dropout",
+        "hp_overrides": {
+          "feat_drop": 0.6,
+          "column_normalize_first_layer": false
+        }
+      },
+      "baseline_no_drop": {
+        "label": "Baseline gate without feature dropout",
+        "hp_overrides": {
+          "feat_drop": 0.0,
+          "column_normalize_first_layer": false
+        }
+      },
+      "norm_drop": {
+        "label": "Column-normalized gate + feature dropout",
+        "hp_overrides": {
+          "feat_drop": 0.6,
+          "column_normalize_first_layer": true
+        }
+      },
+      "norm_no_drop": {
+        "label": "Column-normalized gate without feature dropout",
+        "hp_overrides": {
+          "feat_drop": 0.0,
+          "column_normalize_first_layer": true
+        }
+      }
+    }
+  },
+  "results": {
+    "baseline_drop": {
+      "xor": {
+        "128": {
+          "k": 2,
+          "folds": [
+            {
+              "best_k": 1.0,
+              "runtime_sec": 30.158730268478394,
+              "fold_idx": 0
+            }
+          ],
+          "mean_best_k": 1.0,
+          "std_best_k": 0.0,
+          "mean_runtime_sec": 30.158730268478394
+        }
+      },
+      "ring": {
+        "32": {
+          "k": 2,
+          "folds": [
+            {
+              "best_k": 0.5,
+              "runtime_sec": 28.958904504776,
+              "fold_idx": 0
+            }
+          ],
+          "mean_best_k": 0.5,
+          "std_best_k": 0.0,
+          "mean_runtime_sec": 28.958904504776
+        }
+      },
+      "ring+xor": {
+        "16": {
+          "k": 4,
+          "folds": [
+            {
+              "best_k": 0.5,
+              "runtime_sec": 29.304798126220703,
+              "fold_idx": 0
+            }
+          ],
+          "mean_best_k": 0.5,
+          "std_best_k": 0.0,
+          "mean_runtime_sec": 29.304798126220703
+        }
+      }
+    },
+    "baseline_no_drop": {
+      "xor": {
+        "128": {
+          "k": 2,
+          "folds": [
+            {
+              "best_k": 1.0,
+              "runtime_sec": 30.140820503234863,
+              "fold_idx": 0
+            }
+          ],
+          "mean_best_k": 1.0,
+          "std_best_k": 0.0,
+          "mean_runtime_sec": 30.140820503234863
+        }
+      },
+      "ring": {
+        "32": {
+          "k": 2,
+          "folds": [
+            {
+              "best_k": 0.5,
+              "runtime_sec": 27.26830816268921,
+              "fold_idx": 0
+            }
+          ],
+          "mean_best_k": 0.5,
+          "std_best_k": 0.0,
+          "mean_runtime_sec": 27.26830816268921
+        }
+      },
+      "ring+xor": {
+        "16": {
+          "k": 4,
+          "folds": [
+            {
+              "best_k": 1.0,
+              "runtime_sec": 26.69747233390808,
+              "fold_idx": 0
+            }
+          ],
+          "mean_best_k": 1.0,
+          "std_best_k": 0.0,
+          "mean_runtime_sec": 26.69747233390808
+        }
+      }
+    },
+    "norm_drop": {
+      "xor": {
+        "128": {
+          "k": 2,
+          "folds": [
+            {
+              "best_k": 1.0,
+              "runtime_sec": 32.33167052268982,
+              "fold_idx": 0
+            }
+          ],
+          "mean_best_k": 1.0,
+          "std_best_k": 0.0,
+          "mean_runtime_sec": 32.33167052268982
+        }
+      },
+      "ring": {
+        "32": {
+          "k": 2,
+          "folds": [
+            {
+              "best_k": 0.5,
+              "runtime_sec": 31.585394382476807,
+              "fold_idx": 0
+            }
+          ],
+          "mean_best_k": 0.5,
+          "std_best_k": 0.0,
+          "mean_runtime_sec": 31.585394382476807
+        }
+      },
+      "ring+xor": {
+        "16": {
+          "k": 4,
+          "folds": [
+            {
+              "best_k": 0.5,
+              "runtime_sec": 32.16343927383423,
+              "fold_idx": 0
+            }
+          ],
+          "mean_best_k": 0.5,
+          "std_best_k": 0.0,
+          "mean_runtime_sec": 32.16343927383423
+        }
+      }
+    },
+    "norm_no_drop": {
+      "xor": {
+        "128": {
+          "k": 2,
+          "folds": [
+            {
+              "best_k": 1.0,
+              "runtime_sec": 31.090010404586792,
+              "fold_idx": 0
+            }
+          ],
+          "mean_best_k": 1.0,
+          "std_best_k": 0.0,
+          "mean_runtime_sec": 31.090010404586792
+        }
+      },
+      "ring": {
+        "32": {
+          "k": 2,
+          "folds": [
+            {
+              "best_k": 1.0,
+              "runtime_sec": 31.28384566307068,
+              "fold_idx": 0
+            }
+          ],
+          "mean_best_k": 1.0,
+          "std_best_k": 0.0,
+          "mean_runtime_sec": 31.28384566307068
+        }
+      },
+      "ring+xor": {
+        "16": {
+          "k": 4,
+          "folds": [
+            {
+              "best_k": 0.5,
+              "runtime_sec": 32.016457319259644,
+              "fold_idx": 0
+            }
+          ],
+          "mean_best_k": 0.5,
+          "std_best_k": 0.0,
+          "mean_runtime_sec": 32.016457319259644
+        }
+      }
+    }
+  },
+  "summary": {
+    "baseline_drop": {
+      "overall_mean_best_k": 0.6666666666666666,
+      "datasets": {
+        "xor": {
+          "mean_best_k": 1.0,
+          "mean_runtime_sec": 30.158730268478394
+        },
+        "ring": {
+          "mean_best_k": 0.5,
+          "mean_runtime_sec": 28.958904504776
+        },
+        "ring+xor": {
+          "mean_best_k": 0.5,
+          "mean_runtime_sec": 29.304798126220703
+        }
+      }
+    },
+    "baseline_no_drop": {
+      "overall_mean_best_k": 0.8333333333333334,
+      "datasets": {
+        "xor": {
+          "mean_best_k": 1.0,
+          "mean_runtime_sec": 30.140820503234863
+        },
+        "ring": {
+          "mean_best_k": 0.5,
+          "mean_runtime_sec": 27.26830816268921
+        },
+        "ring+xor": {
+          "mean_best_k": 1.0,
+          "mean_runtime_sec": 26.69747233390808
+        }
+      }
+    },
+    "norm_drop": {
+      "overall_mean_best_k": 0.6666666666666666,
+      "datasets": {
+        "xor": {
+          "mean_best_k": 1.0,
+          "mean_runtime_sec": 32.33167052268982
+        },
+        "ring": {
+          "mean_best_k": 0.5,
+          "mean_runtime_sec": 31.585394382476807
+        },
+        "ring+xor": {
+          "mean_best_k": 0.5,
+          "mean_runtime_sec": 32.16343927383423
+        }
+      }
+    },
+    "norm_no_drop": {
+      "overall_mean_best_k": 0.8333333333333334,
+      "datasets": {
+        "xor": {
+          "mean_best_k": 1.0,
+          "mean_runtime_sec": 31.090010404586792
+        },
+        "ring": {
+          "mean_best_k": 1.0,
+          "mean_runtime_sec": 31.28384566307068
+        },
+        "ring+xor": {
+          "mean_best_k": 0.5,
+          "mean_runtime_sec": 32.016457319259644
+        }
+      }
+    }
+  }
+}
