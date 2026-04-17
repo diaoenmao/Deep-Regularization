@@ -1,0 +1,161 @@
+{
+  "results": [
+    {
+      "dataset": "xor",
+      "method": "single_pass",
+      "seed": 42,
+      "best_k": 1.0,
+      "best_2k": 1.0,
+      "selected": [
+        0,
+        1
+      ]
+    },
+    {
+      "dataset": "xor",
+      "method": "single_pass",
+      "seed": 43,
+      "best_k": 1.0,
+      "best_2k": 1.0,
+      "selected": [
+        0,
+        1
+      ]
+    },
+    {
+      "dataset": "xor",
+      "method": "single_pass",
+      "seed": 44,
+      "best_k": 1.0,
+      "best_2k": 1.0,
+      "selected": [
+        0,
+        1
+      ]
+    },
+    {
+      "dataset": "xor",
+      "method": "iterative_hard",
+      "seed": 42,
+      "best_k": 1.0,
+      "best_2k": 1.0,
+      "selected": [
+        0,
+        1
+      ]
+    },
+    {
+      "dataset": "xor",
+      "method": "iterative_hard",
+      "seed": 43,
+      "best_k": 1.0,
+      "best_2k": 1.0,
+      "selected": [
+        0,
+        1
+      ]
+    },
+    {
+      "dataset": "xor",
+      "method": "iterative_hard",
+      "seed": 44,
+      "best_k": 1.0,
+      "best_2k": 1.0,
+      "selected": [
+        0,
+        1
+      ]
+    },
+    {
+      "dataset": "xor",
+      "method": "lottery_ticket",
+      "seed": 42,
+      "best_k": 1.0,
+      "best_2k": 1.0,
+      "selected": [
+        0,
+        1
+      ]
+    },
+    {
+      "dataset": "xor",
+      "method": "lottery_ticket",
+      "seed": 43,
+      "best_k": 1.0,
+      "best_2k": 1.0,
+      "selected": [
+        0,
+        1
+      ]
+    },
+    {
+      "dataset": "xor",
+      "method": "lottery_ticket",
+      "seed": 44,
+      "best_k": 1.0,
+      "best_2k": 1.0,
+      "selected": [
+        0,
+        1
+      ]
+    },
+    {
+      "dataset": "xor",
+      "method": "gradual_admm",
+      "seed": 42,
+      "best_k": 1.0,
+      "best_2k": 1.0,
+      "selected": [
+        0,
+        1
+      ]
+    },
+    {
+      "dataset": "xor",
+      "method": "gradual_admm",
+      "seed": 43,
+      "best_k": 1.0,
+      "best_2k": 1.0,
+      "selected": [
+        0,
+        1
+      ]
+    },
+    {
+      "dataset": "xor",
+      "method": "gradual_admm",
+      "seed": 44,
+      "best_k": 1.0,
+      "best_2k": 1.0,
+      "selected": [
+        0,
+        1
+      ]
+    }
+  ],
+  "summary": {
+    "xor": {
+      "single_pass": {
+        "best_k_mean": 1.0,
+        "best_k_std": 0.0,
+        "n_runs": 3
+      },
+      "iterative_hard": {
+        "best_k_mean": 1.0,
+        "best_k_std": 0.0,
+        "n_runs": 3
+      },
+      "lottery_ticket": {
+        "best_k_mean": 1.0,
+        "best_k_std": 0.0,
+        "n_runs": 3
+      },
+      "gradual_admm": {
+        "best_k_mean": 1.0,
+        "best_k_std": 0.0,
+        "n_runs": 3
+      }
+    }
+  },
+  "timestamp": "2026-04-08T19:31:08.798542"
+}

@@ -1,0 +1,583 @@
+{
+  "results": [
+    {
+      "dataset": "xor",
+      "method": "single_pass",
+      "seed": 0,
+      "best_k": 0.0,
+      "best_2k": 0.0,
+      "selected": [
+        35,
+        37
+      ]
+    },
+    {
+      "dataset": "xor",
+      "method": "single_pass",
+      "seed": 1,
+      "best_k": 0.0,
+      "best_2k": 0.0,
+      "selected": [
+        55,
+        12
+      ]
+    },
+    {
+      "dataset": "xor",
+      "method": "single_pass",
+      "seed": 2,
+      "best_k": 0.0,
+      "best_2k": 0.0,
+      "selected": [
+        17,
+        47
+      ]
+    },
+    {
+      "dataset": "xor",
+      "method": "single_pass",
+      "seed": 3,
+      "best_k": 0.0,
+      "best_2k": 0.0,
+      "selected": [
+        84,
+        73
+      ]
+    },
+    {
+      "dataset": "xor",
+      "method": "single_pass",
+      "seed": 4,
+      "best_k": 0.0,
+      "best_2k": 0.0,
+      "selected": [
+        127,
+        109
+      ]
+    },
+    {
+      "dataset": "xor",
+      "method": "iterative_hard",
+      "seed": 0,
+      "best_k": 0.0,
+      "best_2k": 0.0,
+      "selected": [
+        125,
+        126
+      ]
+    },
+    {
+      "dataset": "xor",
+      "method": "iterative_hard",
+      "seed": 1,
+      "best_k": 0.0,
+      "best_2k": 0.0,
+      "selected": [
+        112,
+        127
+      ]
+    },
+    {
+      "dataset": "xor",
+      "method": "iterative_hard",
+      "seed": 2,
+      "best_k": 0.0,
+      "best_2k": 0.0,
+      "selected": [
+        125,
+        127
+      ]
+    },
+    {
+      "dataset": "xor",
+      "method": "iterative_hard",
+      "seed": 3,
+      "best_k": 0.0,
+      "best_2k": 0.0,
+      "selected": [
+        123,
+        126
+      ]
+    },
+    {
+      "dataset": "xor",
+      "method": "iterative_hard",
+      "seed": 4,
+      "best_k": 0.0,
+      "best_2k": 0.0,
+      "selected": [
+        126,
+        127
+      ]
+    },
+    {
+      "dataset": "xor",
+      "method": "gradual_admm",
+      "seed": 0,
+      "best_k": 0.0,
+      "best_2k": 0.0,
+      "selected": [
+        76,
+        37
+      ]
+    },
+    {
+      "dataset": "xor",
+      "method": "gradual_admm",
+      "seed": 1,
+      "best_k": 0.0,
+      "best_2k": 0.0,
+      "selected": [
+        109,
+        12
+      ]
+    },
+    {
+      "dataset": "xor",
+      "method": "gradual_admm",
+      "seed": 2,
+      "best_k": 0.0,
+      "best_2k": 0.0,
+      "selected": [
+        107,
+        47
+      ]
+    },
+    {
+      "dataset": "xor",
+      "method": "gradual_admm",
+      "seed": 3,
+      "best_k": 0.0,
+      "best_2k": 0.0,
+      "selected": [
+        54,
+        73
+      ]
+    },
+    {
+      "dataset": "xor",
+      "method": "gradual_admm",
+      "seed": 4,
+      "best_k": 0.0,
+      "best_2k": 0.0,
+      "selected": [
+        104,
+        127
+      ]
+    },
+    {
+      "dataset": "ring",
+      "method": "single_pass",
+      "seed": 0,
+      "best_k": 0.0,
+      "best_2k": 0.0,
+      "selected": [
+        83,
+        110
+      ]
+    },
+    {
+      "dataset": "ring",
+      "method": "single_pass",
+      "seed": 1,
+      "best_k": 0.0,
+      "best_2k": 0.0,
+      "selected": [
+        124,
+        79
+      ]
+    },
+    {
+      "dataset": "ring",
+      "method": "single_pass",
+      "seed": 2,
+      "best_k": 0.0,
+      "best_2k": 0.0,
+      "selected": [
+        10,
+        126
+      ]
+    },
+    {
+      "dataset": "ring",
+      "method": "single_pass",
+      "seed": 3,
+      "best_k": 0.0,
+      "best_2k": 0.0,
+      "selected": [
+        118,
+        94
+      ]
+    },
+    {
+      "dataset": "ring",
+      "method": "single_pass",
+      "seed": 4,
+      "best_k": 0.0,
+      "best_2k": 0.0,
+      "selected": [
+        52,
+        51
+      ]
+    },
+    {
+      "dataset": "ring",
+      "method": "iterative_hard",
+      "seed": 0,
+      "best_k": 0.0,
+      "best_2k": 0.0,
+      "selected": [
+        123,
+        125
+      ]
+    },
+    {
+      "dataset": "ring",
+      "method": "iterative_hard",
+      "seed": 1,
+      "best_k": 0.0,
+      "best_2k": 0.0,
+      "selected": [
+        125,
+        124
+      ]
+    },
+    {
+      "dataset": "ring",
+      "method": "iterative_hard",
+      "seed": 2,
+      "best_k": 0.0,
+      "best_2k": 0.0,
+      "selected": [
+        126,
+        127
+      ]
+    },
+    {
+      "dataset": "ring",
+      "method": "iterative_hard",
+      "seed": 3,
+      "best_k": 0.0,
+      "best_2k": 0.0,
+      "selected": [
+        125,
+        127
+      ]
+    },
+    {
+      "dataset": "ring",
+      "method": "iterative_hard",
+      "seed": 4,
+      "best_k": 0.0,
+      "best_2k": 0.0,
+      "selected": [
+        125,
+        126
+      ]
+    },
+    {
+      "dataset": "ring",
+      "method": "gradual_admm",
+      "seed": 0,
+      "best_k": 0.0,
+      "best_2k": 0.0,
+      "selected": [
+        83,
+        110
+      ]
+    },
+    {
+      "dataset": "ring",
+      "method": "gradual_admm",
+      "seed": 1,
+      "best_k": 0.0,
+      "best_2k": 0.0,
+      "selected": [
+        4,
+        79
+      ]
+    },
+    {
+      "dataset": "ring",
+      "method": "gradual_admm",
+      "seed": 2,
+      "best_k": 0.0,
+      "best_2k": 0.0,
+      "selected": [
+        11,
+        126
+      ]
+    },
+    {
+      "dataset": "ring",
+      "method": "gradual_admm",
+      "seed": 3,
+      "best_k": 0.0,
+      "best_2k": 0.0,
+      "selected": [
+        32,
+        94
+      ]
+    },
+    {
+      "dataset": "ring",
+      "method": "gradual_admm",
+      "seed": 4,
+      "best_k": 0.0,
+      "best_2k": 0.0,
+      "selected": [
+        112,
+        46
+      ]
+    },
+    {
+      "dataset": "ring+xor",
+      "method": "single_pass",
+      "seed": 0,
+      "best_k": 0.0,
+      "best_2k": 0.0,
+      "selected": [
+        136,
+        250,
+        110,
+        176
+      ]
+    },
+    {
+      "dataset": "ring+xor",
+      "method": "single_pass",
+      "seed": 1,
+      "best_k": 0.25,
+      "best_2k": 0.25,
+      "selected": [
+        156,
+        0,
+        186,
+        197
+      ]
+    },
+    {
+      "dataset": "ring+xor",
+      "method": "single_pass",
+      "seed": 2,
+      "best_k": 0.0,
+      "best_2k": 0.0,
+      "selected": [
+        182,
+        229,
+        228,
+        27
+      ]
+    },
+    {
+      "dataset": "ring+xor",
+      "method": "single_pass",
+      "seed": 3,
+      "best_k": 0.0,
+      "best_2k": 0.0,
+      "selected": [
+        129,
+        4,
+        74,
+        136
+      ]
+    },
+    {
+      "dataset": "ring+xor",
+      "method": "single_pass",
+      "seed": 4,
+      "best_k": 0.0,
+      "best_2k": 0.0,
+      "selected": [
+        103,
+        227,
+        152,
+        106
+      ]
+    },
+    {
+      "dataset": "ring+xor",
+      "method": "iterative_hard",
+      "seed": 0,
+      "best_k": 0.0,
+      "best_2k": 0.0,
+      "selected": [
+        251,
+        250,
+        252,
+        255
+      ]
+    },
+    {
+      "dataset": "ring+xor",
+      "method": "iterative_hard",
+      "seed": 1,
+      "best_k": 0.0,
+      "best_2k": 0.0,
+      "selected": [
+        244,
+        250,
+        251,
+        255
+      ]
+    },
+    {
+      "dataset": "ring+xor",
+      "method": "iterative_hard",
+      "seed": 2,
+      "best_k": 0.0,
+      "best_2k": 0.0,
+      "selected": [
+        244,
+        249,
+        251,
+        255
+      ]
+    },
+    {
+      "dataset": "ring+xor",
+      "method": "iterative_hard",
+      "seed": 3,
+      "best_k": 0.0,
+      "best_2k": 0.0,
+      "selected": [
+        246,
+        245,
+        250,
+        253
+      ]
+    },
+    {
+      "dataset": "ring+xor",
+      "method": "iterative_hard",
+      "seed": 4,
+      "best_k": 0.0,
+      "best_2k": 0.0,
+      "selected": [
+        241,
+        249,
+        250,
+        253
+      ]
+    },
+    {
+      "dataset": "ring+xor",
+      "method": "gradual_admm",
+      "seed": 0,
+      "best_k": 0.0,
+      "best_2k": 0.0,
+      "selected": [
+        88,
+        136,
+        110,
+        176
+      ]
+    },
+    {
+      "dataset": "ring+xor",
+      "method": "gradual_admm",
+      "seed": 1,
+      "best_k": 0.0,
+      "best_2k": 0.25,
+      "selected": [
+        186,
+        129,
+        178,
+        197
+      ]
+    },
+    {
+      "dataset": "ring+xor",
+      "method": "gradual_admm",
+      "seed": 2,
+      "best_k": 0.0,
+      "best_2k": 0.0,
+      "selected": [
+        190,
+        182,
+        228,
+        27
+      ]
+    },
+    {
+      "dataset": "ring+xor",
+      "method": "gradual_admm",
+      "seed": 3,
+      "best_k": 0.0,
+      "best_2k": 0.0,
+      "selected": [
+        225,
+        136,
+        74,
+        151
+      ]
+    },
+    {
+      "dataset": "ring+xor",
+      "method": "gradual_admm",
+      "seed": 4,
+      "best_k": 0.0,
+      "best_2k": 0.0,
+      "selected": [
+        154,
+        103,
+        106,
+        152
+      ]
+    }
+  ],
+  "summary": {
+    "xor": {
+      "single_pass": {
+        "best_k_mean": 0.0,
+        "best_k_std": 0.0,
+        "n_runs": 5
+      },
+      "iterative_hard": {
+        "best_k_mean": 0.0,
+        "best_k_std": 0.0,
+        "n_runs": 5
+      },
+      "gradual_admm": {
+        "best_k_mean": 0.0,
+        "best_k_std": 0.0,
+        "n_runs": 5
+      }
+    },
+    "ring": {
+      "single_pass": {
+        "best_k_mean": 0.0,
+        "best_k_std": 0.0,
+        "n_runs": 5
+      },
+      "iterative_hard": {
+        "best_k_mean": 0.0,
+        "best_k_std": 0.0,
+        "n_runs": 5
+      },
+      "gradual_admm": {
+        "best_k_mean": 0.0,
+        "best_k_std": 0.0,
+        "n_runs": 5
+      }
+    },
+    "ring+xor": {
+      "single_pass": {
+        "best_k_mean": 0.05,
+        "best_k_std": 0.10000000000000002,
+        "n_runs": 5
+      },
+      "iterative_hard": {
+        "best_k_mean": 0.0,
+        "best_k_std": 0.0,
+        "n_runs": 5
+      },
+      "gradual_admm": {
+        "best_k_mean": 0.0,
+        "best_k_std": 0.0,
+        "n_runs": 5
+      }
+    }
+  },
+  "timestamp": "2026-04-05T20:37:26.111690"
+}

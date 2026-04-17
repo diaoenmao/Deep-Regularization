@@ -1,0 +1,913 @@
+{
+  "results": [
+    {
+      "dataset": "xor",
+      "method": "single_pass",
+      "seed": 42,
+      "best_k": 1.0,
+      "best_2k": 1.0,
+      "selected": [
+        0,
+        1
+      ]
+    },
+    {
+      "dataset": "xor",
+      "method": "single_pass",
+      "seed": 43,
+      "best_k": 1.0,
+      "best_2k": 1.0,
+      "selected": [
+        0,
+        1
+      ]
+    },
+    {
+      "dataset": "xor",
+      "method": "single_pass",
+      "seed": 44,
+      "best_k": 1.0,
+      "best_2k": 1.0,
+      "selected": [
+        1,
+        0
+      ]
+    },
+    {
+      "dataset": "xor",
+      "method": "single_pass",
+      "seed": 45,
+      "best_k": 1.0,
+      "best_2k": 1.0,
+      "selected": [
+        0,
+        1
+      ]
+    },
+    {
+      "dataset": "xor",
+      "method": "single_pass",
+      "seed": 46,
+      "best_k": 1.0,
+      "best_2k": 1.0,
+      "selected": [
+        1,
+        0
+      ]
+    },
+    {
+      "dataset": "xor",
+      "method": "single_pass",
+      "seed": 47,
+      "best_k": 1.0,
+      "best_2k": 1.0,
+      "selected": [
+        0,
+        1
+      ]
+    },
+    {
+      "dataset": "xor",
+      "method": "iterative_hard",
+      "seed": 42,
+      "best_k": 0.5,
+      "best_2k": 1.0,
+      "selected": [
+        1,
+        8
+      ]
+    },
+    {
+      "dataset": "xor",
+      "method": "iterative_hard",
+      "seed": 43,
+      "best_k": 0.5,
+      "best_2k": 1.0,
+      "selected": [
+        20,
+        1
+      ]
+    },
+    {
+      "dataset": "xor",
+      "method": "iterative_hard",
+      "seed": 44,
+      "best_k": 1.0,
+      "best_2k": 1.0,
+      "selected": [
+        0,
+        1
+      ]
+    },
+    {
+      "dataset": "xor",
+      "method": "iterative_hard",
+      "seed": 45,
+      "best_k": 0.5,
+      "best_2k": 1.0,
+      "selected": [
+        0,
+        79
+      ]
+    },
+    {
+      "dataset": "xor",
+      "method": "iterative_hard",
+      "seed": 46,
+      "best_k": 0.5,
+      "best_2k": 1.0,
+      "selected": [
+        16,
+        1
+      ]
+    },
+    {
+      "dataset": "xor",
+      "method": "iterative_hard",
+      "seed": 47,
+      "best_k": 1.0,
+      "best_2k": 1.0,
+      "selected": [
+        0,
+        1
+      ]
+    },
+    {
+      "dataset": "xor",
+      "method": "lottery_ticket",
+      "seed": 42,
+      "best_k": 0.0,
+      "best_2k": 0.0,
+      "selected": [
+        55,
+        119
+      ]
+    },
+    {
+      "dataset": "xor",
+      "method": "lottery_ticket",
+      "seed": 43,
+      "best_k": 0.5,
+      "best_2k": 1.0,
+      "selected": [
+        0,
+        107
+      ]
+    },
+    {
+      "dataset": "xor",
+      "method": "lottery_ticket",
+      "seed": 44,
+      "best_k": 0.5,
+      "best_2k": 1.0,
+      "selected": [
+        0,
+        74
+      ]
+    },
+    {
+      "dataset": "xor",
+      "method": "lottery_ticket",
+      "seed": 45,
+      "best_k": 0.5,
+      "best_2k": 0.5,
+      "selected": [
+        1,
+        18
+      ]
+    },
+    {
+      "dataset": "xor",
+      "method": "lottery_ticket",
+      "seed": 46,
+      "best_k": 0.5,
+      "best_2k": 1.0,
+      "selected": [
+        0,
+        73
+      ]
+    },
+    {
+      "dataset": "xor",
+      "method": "lottery_ticket",
+      "seed": 47,
+      "best_k": 1.0,
+      "best_2k": 1.0,
+      "selected": [
+        0,
+        1
+      ]
+    },
+    {
+      "dataset": "xor",
+      "method": "gradual_admm",
+      "seed": 42,
+      "best_k": 1.0,
+      "best_2k": 1.0,
+      "selected": [
+        0,
+        1
+      ]
+    },
+    {
+      "dataset": "xor",
+      "method": "gradual_admm",
+      "seed": 43,
+      "best_k": 1.0,
+      "best_2k": 1.0,
+      "selected": [
+        0,
+        1
+      ]
+    },
+    {
+      "dataset": "xor",
+      "method": "gradual_admm",
+      "seed": 44,
+      "best_k": 1.0,
+      "best_2k": 1.0,
+      "selected": [
+        1,
+        0
+      ]
+    },
+    {
+      "dataset": "xor",
+      "method": "gradual_admm",
+      "seed": 45,
+      "best_k": 1.0,
+      "best_2k": 1.0,
+      "selected": [
+        0,
+        1
+      ]
+    },
+    {
+      "dataset": "xor",
+      "method": "gradual_admm",
+      "seed": 46,
+      "best_k": 1.0,
+      "best_2k": 1.0,
+      "selected": [
+        1,
+        0
+      ]
+    },
+    {
+      "dataset": "xor",
+      "method": "gradual_admm",
+      "seed": 47,
+      "best_k": 1.0,
+      "best_2k": 1.0,
+      "selected": [
+        0,
+        1
+      ]
+    },
+    {
+      "dataset": "ring",
+      "method": "single_pass",
+      "seed": 42,
+      "best_k": 0.5,
+      "best_2k": 1.0,
+      "selected": [
+        60,
+        1
+      ]
+    },
+    {
+      "dataset": "ring",
+      "method": "single_pass",
+      "seed": 43,
+      "best_k": 1.0,
+      "best_2k": 1.0,
+      "selected": [
+        0,
+        1
+      ]
+    },
+    {
+      "dataset": "ring",
+      "method": "single_pass",
+      "seed": 44,
+      "best_k": 0.5,
+      "best_2k": 1.0,
+      "selected": [
+        33,
+        0
+      ]
+    },
+    {
+      "dataset": "ring",
+      "method": "single_pass",
+      "seed": 45,
+      "best_k": 0.5,
+      "best_2k": 0.5,
+      "selected": [
+        16,
+        1
+      ]
+    },
+    {
+      "dataset": "ring",
+      "method": "single_pass",
+      "seed": 46,
+      "best_k": 1.0,
+      "best_2k": 1.0,
+      "selected": [
+        1,
+        0
+      ]
+    },
+    {
+      "dataset": "ring",
+      "method": "single_pass",
+      "seed": 47,
+      "best_k": 0.5,
+      "best_2k": 0.5,
+      "selected": [
+        78,
+        0
+      ]
+    },
+    {
+      "dataset": "ring",
+      "method": "iterative_hard",
+      "seed": 42,
+      "best_k": 0.5,
+      "best_2k": 0.5,
+      "selected": [
+        0,
+        105
+      ]
+    },
+    {
+      "dataset": "ring",
+      "method": "iterative_hard",
+      "seed": 43,
+      "best_k": 1.0,
+      "best_2k": 1.0,
+      "selected": [
+        0,
+        1
+      ]
+    },
+    {
+      "dataset": "ring",
+      "method": "iterative_hard",
+      "seed": 44,
+      "best_k": 0.5,
+      "best_2k": 0.5,
+      "selected": [
+        0,
+        89
+      ]
+    },
+    {
+      "dataset": "ring",
+      "method": "iterative_hard",
+      "seed": 45,
+      "best_k": 1.0,
+      "best_2k": 1.0,
+      "selected": [
+        0,
+        1
+      ]
+    },
+    {
+      "dataset": "ring",
+      "method": "iterative_hard",
+      "seed": 46,
+      "best_k": 0.0,
+      "best_2k": 0.0,
+      "selected": [
+        110,
+        109
+      ]
+    },
+    {
+      "dataset": "ring",
+      "method": "iterative_hard",
+      "seed": 47,
+      "best_k": 0.5,
+      "best_2k": 1.0,
+      "selected": [
+        0,
+        123
+      ]
+    },
+    {
+      "dataset": "ring",
+      "method": "lottery_ticket",
+      "seed": 42,
+      "best_k": 0.0,
+      "best_2k": 0.5,
+      "selected": [
+        56,
+        105
+      ]
+    },
+    {
+      "dataset": "ring",
+      "method": "lottery_ticket",
+      "seed": 43,
+      "best_k": 0.0,
+      "best_2k": 0.5,
+      "selected": [
+        32,
+        77
+      ]
+    },
+    {
+      "dataset": "ring",
+      "method": "lottery_ticket",
+      "seed": 44,
+      "best_k": 0.0,
+      "best_2k": 0.0,
+      "selected": [
+        105,
+        121
+      ]
+    },
+    {
+      "dataset": "ring",
+      "method": "lottery_ticket",
+      "seed": 45,
+      "best_k": 0.0,
+      "best_2k": 0.0,
+      "selected": [
+        46,
+        55
+      ]
+    },
+    {
+      "dataset": "ring",
+      "method": "lottery_ticket",
+      "seed": 46,
+      "best_k": 0.5,
+      "best_2k": 1.0,
+      "selected": [
+        21,
+        1
+      ]
+    },
+    {
+      "dataset": "ring",
+      "method": "lottery_ticket",
+      "seed": 47,
+      "best_k": 0.0,
+      "best_2k": 0.0,
+      "selected": [
+        56,
+        75
+      ]
+    },
+    {
+      "dataset": "ring",
+      "method": "gradual_admm",
+      "seed": 42,
+      "best_k": 1.0,
+      "best_2k": 1.0,
+      "selected": [
+        0,
+        1
+      ]
+    },
+    {
+      "dataset": "ring",
+      "method": "gradual_admm",
+      "seed": 43,
+      "best_k": 1.0,
+      "best_2k": 1.0,
+      "selected": [
+        1,
+        0
+      ]
+    },
+    {
+      "dataset": "ring",
+      "method": "gradual_admm",
+      "seed": 44,
+      "best_k": 1.0,
+      "best_2k": 1.0,
+      "selected": [
+        1,
+        0
+      ]
+    },
+    {
+      "dataset": "ring",
+      "method": "gradual_admm",
+      "seed": 45,
+      "best_k": 1.0,
+      "best_2k": 1.0,
+      "selected": [
+        0,
+        1
+      ]
+    },
+    {
+      "dataset": "ring",
+      "method": "gradual_admm",
+      "seed": 46,
+      "best_k": 1.0,
+      "best_2k": 1.0,
+      "selected": [
+        1,
+        0
+      ]
+    },
+    {
+      "dataset": "ring",
+      "method": "gradual_admm",
+      "seed": 47,
+      "best_k": 1.0,
+      "best_2k": 1.0,
+      "selected": [
+        1,
+        0
+      ]
+    },
+    {
+      "dataset": "ring+xor",
+      "method": "single_pass",
+      "seed": 42,
+      "best_k": 0.75,
+      "best_2k": 0.75,
+      "selected": [
+        249,
+        0,
+        3,
+        2
+      ]
+    },
+    {
+      "dataset": "ring+xor",
+      "method": "single_pass",
+      "seed": 43,
+      "best_k": 0.75,
+      "best_2k": 0.75,
+      "selected": [
+        238,
+        0,
+        2,
+        3
+      ]
+    },
+    {
+      "dataset": "ring+xor",
+      "method": "single_pass",
+      "seed": 44,
+      "best_k": 0.75,
+      "best_2k": 0.75,
+      "selected": [
+        205,
+        1,
+        2,
+        3
+      ]
+    },
+    {
+      "dataset": "ring+xor",
+      "method": "single_pass",
+      "seed": 45,
+      "best_k": 0.5,
+      "best_2k": 0.5,
+      "selected": [
+        23,
+        152,
+        3,
+        2
+      ]
+    },
+    {
+      "dataset": "ring+xor",
+      "method": "single_pass",
+      "seed": 46,
+      "best_k": 0.75,
+      "best_2k": 0.75,
+      "selected": [
+        110,
+        0,
+        2,
+        3
+      ]
+    },
+    {
+      "dataset": "ring+xor",
+      "method": "single_pass",
+      "seed": 47,
+      "best_k": 0.5,
+      "best_2k": 0.5,
+      "selected": [
+        59,
+        214,
+        3,
+        2
+      ]
+    },
+    {
+      "dataset": "ring+xor",
+      "method": "iterative_hard",
+      "seed": 42,
+      "best_k": 0.25,
+      "best_2k": 0.5,
+      "selected": [
+        113,
+        3,
+        212,
+        194
+      ]
+    },
+    {
+      "dataset": "ring+xor",
+      "method": "iterative_hard",
+      "seed": 43,
+      "best_k": 0.25,
+      "best_2k": 0.5,
+      "selected": [
+        17,
+        5,
+        1,
+        166
+      ]
+    },
+    {
+      "dataset": "ring+xor",
+      "method": "iterative_hard",
+      "seed": 44,
+      "best_k": 0.0,
+      "best_2k": 0.0,
+      "selected": [
+        105,
+        205,
+        241,
+        251
+      ]
+    },
+    {
+      "dataset": "ring+xor",
+      "method": "iterative_hard",
+      "seed": 45,
+      "best_k": 0.0,
+      "best_2k": 0.25,
+      "selected": [
+        166,
+        174,
+        212,
+        247
+      ]
+    },
+    {
+      "dataset": "ring+xor",
+      "method": "iterative_hard",
+      "seed": 46,
+      "best_k": 0.25,
+      "best_2k": 0.75,
+      "selected": [
+        0,
+        167,
+        211,
+        237
+      ]
+    },
+    {
+      "dataset": "ring+xor",
+      "method": "iterative_hard",
+      "seed": 47,
+      "best_k": 0.0,
+      "best_2k": 0.0,
+      "selected": [
+        114,
+        138,
+        161,
+        196
+      ]
+    },
+    {
+      "dataset": "ring+xor",
+      "method": "lottery_ticket",
+      "seed": 42,
+      "best_k": 0.25,
+      "best_2k": 0.5,
+      "selected": [
+        18,
+        70,
+        2,
+        188
+      ]
+    },
+    {
+      "dataset": "ring+xor",
+      "method": "lottery_ticket",
+      "seed": 43,
+      "best_k": 0.0,
+      "best_2k": 0.0,
+      "selected": [
+        105,
+        80,
+        166,
+        255
+      ]
+    },
+    {
+      "dataset": "ring+xor",
+      "method": "lottery_ticket",
+      "seed": 44,
+      "best_k": 0.0,
+      "best_2k": 0.0,
+      "selected": [
+        246,
+        241,
+        251,
+        250
+      ]
+    },
+    {
+      "dataset": "ring+xor",
+      "method": "lottery_ticket",
+      "seed": 45,
+      "best_k": 0.0,
+      "best_2k": 0.0,
+      "selected": [
+        127,
+        160,
+        166,
+        247
+      ]
+    },
+    {
+      "dataset": "ring+xor",
+      "method": "lottery_ticket",
+      "seed": 46,
+      "best_k": 0.5,
+      "best_2k": 0.75,
+      "selected": [
+        3,
+        2,
+        130,
+        237
+      ]
+    },
+    {
+      "dataset": "ring+xor",
+      "method": "lottery_ticket",
+      "seed": 47,
+      "best_k": 0.0,
+      "best_2k": 0.5,
+      "selected": [
+        107,
+        138,
+        161,
+        196
+      ]
+    },
+    {
+      "dataset": "ring+xor",
+      "method": "gradual_admm",
+      "seed": 42,
+      "best_k": 0.75,
+      "best_2k": 1.0,
+      "selected": [
+        107,
+        0,
+        3,
+        2
+      ]
+    },
+    {
+      "dataset": "ring+xor",
+      "method": "gradual_admm",
+      "seed": 43,
+      "best_k": 0.75,
+      "best_2k": 1.0,
+      "selected": [
+        120,
+        0,
+        2,
+        3
+      ]
+    },
+    {
+      "dataset": "ring+xor",
+      "method": "gradual_admm",
+      "seed": 44,
+      "best_k": 0.75,
+      "best_2k": 0.75,
+      "selected": [
+        205,
+        1,
+        2,
+        3
+      ]
+    },
+    {
+      "dataset": "ring+xor",
+      "method": "gradual_admm",
+      "seed": 45,
+      "best_k": 0.5,
+      "best_2k": 0.5,
+      "selected": [
+        245,
+        152,
+        3,
+        2
+      ]
+    },
+    {
+      "dataset": "ring+xor",
+      "method": "gradual_admm",
+      "seed": 46,
+      "best_k": 0.75,
+      "best_2k": 1.0,
+      "selected": [
+        110,
+        0,
+        3,
+        2
+      ]
+    },
+    {
+      "dataset": "ring+xor",
+      "method": "gradual_admm",
+      "seed": 47,
+      "best_k": 0.5,
+      "best_2k": 0.5,
+      "selected": [
+        59,
+        214,
+        3,
+        2
+      ]
+    }
+  ],
+  "summary": {
+    "xor": {
+      "single_pass": {
+        "best_k_mean": 1.0,
+        "best_k_std": 0.0,
+        "n_runs": 6
+      },
+      "iterative_hard": {
+        "best_k_mean": 0.6666666666666666,
+        "best_k_std": 0.23570226039551584,
+        "n_runs": 6
+      },
+      "lottery_ticket": {
+        "best_k_mean": 0.5,
+        "best_k_std": 0.28867513459481287,
+        "n_runs": 6
+      },
+      "gradual_admm": {
+        "best_k_mean": 1.0,
+        "best_k_std": 0.0,
+        "n_runs": 6
+      }
+    },
+    "ring": {
+      "single_pass": {
+        "best_k_mean": 0.6666666666666666,
+        "best_k_std": 0.23570226039551584,
+        "n_runs": 6
+      },
+      "iterative_hard": {
+        "best_k_mean": 0.5833333333333334,
+        "best_k_std": 0.3435921354681384,
+        "n_runs": 6
+      },
+      "lottery_ticket": {
+        "best_k_mean": 0.08333333333333333,
+        "best_k_std": 0.18633899812498247,
+        "n_runs": 6
+      },
+      "gradual_admm": {
+        "best_k_mean": 1.0,
+        "best_k_std": 0.0,
+        "n_runs": 6
+      }
+    },
+    "ring+xor": {
+      "single_pass": {
+        "best_k_mean": 0.6666666666666666,
+        "best_k_std": 0.11785113019775792,
+        "n_runs": 6
+      },
+      "iterative_hard": {
+        "best_k_mean": 0.125,
+        "best_k_std": 0.125,
+        "n_runs": 6
+      },
+      "lottery_ticket": {
+        "best_k_mean": 0.125,
+        "best_k_std": 0.19094065395649334,
+        "n_runs": 6
+      },
+      "gradual_admm": {
+        "best_k_mean": 0.6666666666666666,
+        "best_k_std": 0.11785113019775792,
+        "n_runs": 6
+      }
+    }
+  },
+  "timestamp": "2026-04-08T19:56:30.020750"
+}

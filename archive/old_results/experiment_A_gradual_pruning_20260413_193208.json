@@ -1,0 +1,622 @@
+{
+  "variants": [
+    {
+      "name": "gradual_none",
+      "prune_mode": "none",
+      "reweight": false
+    },
+    {
+      "name": "gradual_soft",
+      "prune_mode": "soft",
+      "reweight": true
+    },
+    {
+      "name": "gradual_soft_no_rw",
+      "prune_mode": "soft",
+      "reweight": false
+    },
+    {
+      "name": "gradual_hard",
+      "prune_mode": "hard",
+      "reweight": true
+    },
+    {
+      "name": "gradual_hard_no_rw",
+      "prune_mode": "hard",
+      "reweight": false
+    }
+  ],
+  "seeds": [
+    42,
+    43,
+    44
+  ],
+  "model_kwargs": {
+    "latent_size": 32,
+    "n_hidden_layers": 2,
+    "dropout": 0.043,
+    "activation": "mish",
+    "feat_drop": 0.6,
+    "bounded_gate": false
+  },
+  "summary": {
+    "xor": {
+      "gradual_none": {
+        "mean": 0.0,
+        "std": 0.0
+      },
+      "gradual_soft": {
+        "mean": 0.0,
+        "std": 0.0
+      },
+      "gradual_soft_no_rw": {
+        "mean": 0.5,
+        "std": 0.0
+      },
+      "gradual_hard": {
+        "mean": 0.0,
+        "std": 0.0
+      },
+      "gradual_hard_no_rw": {
+        "mean": 0.0,
+        "std": 0.0
+      }
+    },
+    "ring": {
+      "gradual_none": {
+        "mean": 0.0,
+        "std": 0.0
+      },
+      "gradual_soft": {
+        "mean": 0.0,
+        "std": 0.0
+      },
+      "gradual_soft_no_rw": {
+        "mean": 0.5,
+        "std": 0.0
+      },
+      "gradual_hard": {
+        "mean": 0.0,
+        "std": 0.0
+      },
+      "gradual_hard_no_rw": {
+        "mean": 0.0,
+        "std": 0.0
+      }
+    },
+    "ring+xor": {
+      "gradual_none": {
+        "mean": 0.0,
+        "std": 0.0
+      },
+      "gradual_soft": {
+        "mean": 0.0,
+        "std": 0.0
+      },
+      "gradual_soft_no_rw": {
+        "mean": 0.75,
+        "std": 0.0
+      },
+      "gradual_hard": {
+        "mean": 0.0,
+        "std": 0.0
+      },
+      "gradual_hard_no_rw": {
+        "mean": 0.0,
+        "std": 0.0
+      }
+    }
+  },
+  "runs": [
+    {
+      "dataset": "xor",
+      "variant": "gradual_none",
+      "mean_best_k": 0.0,
+      "std_best_k": 0.0,
+      "run_results": [
+        {
+          "seed": 42,
+          "best_k": 0.0,
+          "selected": [
+            27,
+            34
+          ]
+        },
+        {
+          "seed": 43,
+          "best_k": 0.0,
+          "selected": [
+            27,
+            14
+          ]
+        },
+        {
+          "seed": 44,
+          "best_k": 0.0,
+          "selected": [
+            27,
+            101
+          ]
+        }
+      ]
+    },
+    {
+      "dataset": "xor",
+      "variant": "gradual_soft",
+      "mean_best_k": 0.0,
+      "std_best_k": 0.0,
+      "run_results": [
+        {
+          "seed": 42,
+          "best_k": 0.0,
+          "selected": [
+            27,
+            119
+          ]
+        },
+        {
+          "seed": 43,
+          "best_k": 0.0,
+          "selected": [
+            27,
+            104
+          ]
+        },
+        {
+          "seed": 44,
+          "best_k": 0.0,
+          "selected": [
+            27,
+            119
+          ]
+        }
+      ]
+    },
+    {
+      "dataset": "xor",
+      "variant": "gradual_soft_no_rw",
+      "mean_best_k": 0.5,
+      "std_best_k": 0.0,
+      "run_results": [
+        {
+          "seed": 42,
+          "best_k": 0.5,
+          "selected": [
+            27,
+            0
+          ]
+        },
+        {
+          "seed": 43,
+          "best_k": 0.5,
+          "selected": [
+            27,
+            0
+          ]
+        },
+        {
+          "seed": 44,
+          "best_k": 0.5,
+          "selected": [
+            27,
+            0
+          ]
+        }
+      ]
+    },
+    {
+      "dataset": "xor",
+      "variant": "gradual_hard",
+      "mean_best_k": 0.0,
+      "std_best_k": 0.0,
+      "run_results": [
+        {
+          "seed": 42,
+          "best_k": 0.0,
+          "selected": [
+            27,
+            119
+          ]
+        },
+        {
+          "seed": 43,
+          "best_k": 0.0,
+          "selected": [
+            27,
+            104
+          ]
+        },
+        {
+          "seed": 44,
+          "best_k": 0.0,
+          "selected": [
+            27,
+            119
+          ]
+        }
+      ]
+    },
+    {
+      "dataset": "xor",
+      "variant": "gradual_hard_no_rw",
+      "mean_best_k": 0.0,
+      "std_best_k": 0.0,
+      "run_results": [
+        {
+          "seed": 42,
+          "best_k": 0.0,
+          "selected": [
+            27,
+            9
+          ]
+        },
+        {
+          "seed": 43,
+          "best_k": 0.0,
+          "selected": [
+            27,
+            119
+          ]
+        },
+        {
+          "seed": 44,
+          "best_k": 0.0,
+          "selected": [
+            27,
+            119
+          ]
+        }
+      ]
+    },
+    {
+      "dataset": "ring",
+      "variant": "gradual_none",
+      "mean_best_k": 0.0,
+      "std_best_k": 0.0,
+      "run_results": [
+        {
+          "seed": 42,
+          "best_k": 0.0,
+          "selected": [
+            56,
+            107
+          ]
+        },
+        {
+          "seed": 43,
+          "best_k": 0.0,
+          "selected": [
+            56,
+            112
+          ]
+        },
+        {
+          "seed": 44,
+          "best_k": 0.0,
+          "selected": [
+            56,
+            36
+          ]
+        }
+      ]
+    },
+    {
+      "dataset": "ring",
+      "variant": "gradual_soft",
+      "mean_best_k": 0.0,
+      "std_best_k": 0.0,
+      "run_results": [
+        {
+          "seed": 42,
+          "best_k": 0.0,
+          "selected": [
+            56,
+            25
+          ]
+        },
+        {
+          "seed": 43,
+          "best_k": 0.0,
+          "selected": [
+            56,
+            111
+          ]
+        },
+        {
+          "seed": 44,
+          "best_k": 0.0,
+          "selected": [
+            56,
+            105
+          ]
+        }
+      ]
+    },
+    {
+      "dataset": "ring",
+      "variant": "gradual_soft_no_rw",
+      "mean_best_k": 0.5,
+      "std_best_k": 0.0,
+      "run_results": [
+        {
+          "seed": 42,
+          "best_k": 0.5,
+          "selected": [
+            56,
+            0
+          ]
+        },
+        {
+          "seed": 43,
+          "best_k": 0.5,
+          "selected": [
+            56,
+            0
+          ]
+        },
+        {
+          "seed": 44,
+          "best_k": 0.5,
+          "selected": [
+            56,
+            0
+          ]
+        }
+      ]
+    },
+    {
+      "dataset": "ring",
+      "variant": "gradual_hard",
+      "mean_best_k": 0.0,
+      "std_best_k": 0.0,
+      "run_results": [
+        {
+          "seed": 42,
+          "best_k": 0.0,
+          "selected": [
+            56,
+            66
+          ]
+        },
+        {
+          "seed": 43,
+          "best_k": 0.0,
+          "selected": [
+            56,
+            111
+          ]
+        },
+        {
+          "seed": 44,
+          "best_k": 0.0,
+          "selected": [
+            56,
+            25
+          ]
+        }
+      ]
+    },
+    {
+      "dataset": "ring",
+      "variant": "gradual_hard_no_rw",
+      "mean_best_k": 0.0,
+      "std_best_k": 0.0,
+      "run_results": [
+        {
+          "seed": 42,
+          "best_k": 0.0,
+          "selected": [
+            56,
+            6
+          ]
+        },
+        {
+          "seed": 43,
+          "best_k": 0.0,
+          "selected": [
+            56,
+            6
+          ]
+        },
+        {
+          "seed": 44,
+          "best_k": 0.0,
+          "selected": [
+            56,
+            6
+          ]
+        }
+      ]
+    },
+    {
+      "dataset": "ring+xor",
+      "variant": "gradual_none",
+      "mean_best_k": 0.0,
+      "std_best_k": 0.0,
+      "run_results": [
+        {
+          "seed": 42,
+          "best_k": 0.0,
+          "selected": [
+            24,
+            125,
+            111,
+            45
+          ]
+        },
+        {
+          "seed": 43,
+          "best_k": 0.0,
+          "selected": [
+            98,
+            72,
+            66,
+            39
+          ]
+        },
+        {
+          "seed": 44,
+          "best_k": 0.0,
+          "selected": [
+            29,
+            117,
+            65,
+            52
+          ]
+        }
+      ]
+    },
+    {
+      "dataset": "ring+xor",
+      "variant": "gradual_soft",
+      "mean_best_k": 0.0,
+      "std_best_k": 0.0,
+      "run_results": [
+        {
+          "seed": 42,
+          "best_k": 0.0,
+          "selected": [
+            47,
+            28,
+            98,
+            24
+          ]
+        },
+        {
+          "seed": 43,
+          "best_k": 0.0,
+          "selected": [
+            98,
+            24,
+            47,
+            53
+          ]
+        },
+        {
+          "seed": 44,
+          "best_k": 0.0,
+          "selected": [
+            29,
+            24,
+            47,
+            98
+          ]
+        }
+      ]
+    },
+    {
+      "dataset": "ring+xor",
+      "variant": "gradual_soft_no_rw",
+      "mean_best_k": 0.75,
+      "std_best_k": 0.0,
+      "run_results": [
+        {
+          "seed": 42,
+          "best_k": 0.75,
+          "selected": [
+            24,
+            2,
+            0,
+            1
+          ]
+        },
+        {
+          "seed": 43,
+          "best_k": 0.75,
+          "selected": [
+            98,
+            2,
+            0,
+            1
+          ]
+        },
+        {
+          "seed": 44,
+          "best_k": 0.75,
+          "selected": [
+            29,
+            2,
+            0,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "dataset": "ring+xor",
+      "variant": "gradual_hard",
+      "mean_best_k": 0.0,
+      "std_best_k": 0.0,
+      "run_results": [
+        {
+          "seed": 42,
+          "best_k": 0.0,
+          "selected": [
+            47,
+            98,
+            28,
+            24
+          ]
+        },
+        {
+          "seed": 43,
+          "best_k": 0.0,
+          "selected": [
+            98,
+            24,
+            47,
+            29
+          ]
+        },
+        {
+          "seed": 44,
+          "best_k": 0.0,
+          "selected": [
+            29,
+            24,
+            98,
+            47
+          ]
+        }
+      ]
+    },
+    {
+      "dataset": "ring+xor",
+      "variant": "gradual_hard_no_rw",
+      "mean_best_k": 0.0,
+      "std_best_k": 0.0,
+      "run_results": [
+        {
+          "seed": 42,
+          "best_k": 0.0,
+          "selected": [
+            47,
+            28,
+            25,
+            41
+          ]
+        },
+        {
+          "seed": 43,
+          "best_k": 0.0,
+          "selected": [
+            98,
+            24,
+            47,
+            29
+          ]
+        },
+        {
+          "seed": 44,
+          "best_k": 0.0,
+          "selected": [
+            98,
+            24,
+            29,
+            47
+          ]
+        }
+      ]
+    }
+  ]
+}
