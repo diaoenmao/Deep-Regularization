@@ -1,161 +1,579 @@
-# SADMM-FS 论文内容整理
+﻿# GRN-FS 技术报告
 
-**最后更新**: 2026-04-17
-
----
-
-## 核心公式
-
-### 4.1 门控机制 (Eq. 1-2)
-
-**输入门控**:
-
-```
-x̂ = x ⊙ g ⊙ d
-```
-
-其中 `d ~ Bernoulli(1-p)^m / (1-p)` 是 dropout mask，`⊙` 是逐元素乘法。
-
-**MLP架构**:
-
-```
-h = σ(W₂ σ(W₁ x̂ + b₁) + b₂)
-y = W₃ h + b₃
-```
-
-其中 `σ` 是 Mish 激活函数。
-
-**关键洞察 - 对角重参数化**:
-
-```
-W₁ diag(g) x = W₁ (x ⊙ g)
-```
-
-这将第一层分解为自由权重矩阵 `W₁` 和特征选择向量 `g`。
+最后更新：2026-05-03
 
 ---
 
-### 4.2 ADMM框架 (Eq. 3-6)
+## 1. 一句话概述
 
-**优化问题**:
+GRN-FS（Gated Ratio-Norm Regularization for Feature Selection）是一种基于神经网络门控的特征选择训练流程。当前 paper-facing 版本使用 input-dimension weight-normalized gate：每个输入特征对应一个 normalized first-layer direction 和一个可稀疏化的 scalar gate。ADMM 把预测训练和稀疏支撑学习解耦，多阶段训练在 phase boundary 用 ADMM 辅助变量 `z` 的 support 写回 gate，从而把连续 gate 转成稳定的 sparse feature support。Degree-2 expansion 只是 synthetic nonlinear benchmark 的 optional interaction dictionary，不是方法本体。
 
+---
+
+## 2. 方法背景
+
+特征选择的目标是从输入特征中选出少量有用特征，同时保持预测性能。GRN-FS 的基本做法是给每个输入特征分配一个可学习 gate：
+
+```text
+x_gated = x * g
 ```
-min_{g,θ}  L(θ, g) + C · R(z)
+
+如果某个 `g_j` 接近 0，第 `j` 个特征对模型几乎不起作用；如果 `g_j` 较大，该特征更重要。
+
+方法的难点在于：神经网络训练自然会得到连续 gate，而特征选择最终需要一个明确的稀疏集合。因此 GRN-FS 结合了：
+
+- 神经网络预测损失；
+- ADMM 稀疏优化；
+- 多阶段逐步增强稀疏压力；
+- phase boundary 上的 ADMM-guided `z` support masking；
+- 可选的 feature map，例如 synthetic nonlinear benchmark 上的 degree-2 expansion。
+
+---
+
+## 3. 核心方法
+
+### 3.1 Gate 与 weight normalization
+
+基础 gate 直接乘在输入上：
+
+```text
+x_gated = x * g
+```
+
+当前主方法使用 weight-normalized gate。它的核心不是“普通输入 mask 再让第一层权重自由吸收尺度”，而是把第一层每个输入列写成 **方向** 和 **可稀疏化尺度**：
+
+```text
+W_1[:, j] = g_j * Wbar_1[:, j]
+Wbar_1[:, j] = v_j / ||v_j||_2
+||Wbar_1[:, j]||_2 = 1
+```
+
+其中：
+
+- `g_j` 是第 `j` 个特征的可学习 gate；
+- `v_j` 是第一层神经网络中连接第 `j` 个输入特征的 raw direction parameter；
+- `Wbar_1[:, j]` 是 normalized weight column，只保留方向信息；
+- `g_j` 直接承担 weight normalization 里的 scalar length / feature scale 角色，因此也是 ADMM 要稀疏化的变量。
+
+因此，概念上的第一层计算可以写成：
+
+```text
+h = Wbar_1 (x * g) + b_1
+```
+
+这个形式把两件事分开：
+
+| 部分 | 含义 |
+|---|---|
+| `Wbar_1[:, j]` | normalized weight direction，表示该特征如何连接到 hidden units |
+| `g_j` | learnable scalar gate，同时是该 normalized direction 的功能尺度 |
+| `|g_j|` | paper-facing raw-feature ranking 的默认分数 |
+
+需要注意，输入 gate 和第一层权重列 gate 在数学上等价：
+
+```text
+W_1 diag(g) x = W_1 (x * g)
+```
+
+但当前的 weight-normalized gate 不只是等价改写，因为第一层列方向被单位化，feature strength 不能再被 raw column norm 隐式吸收，只能通过显式 scalar gate `g_j` 表达。第三方读者可以把它理解为：**先把第一层权重列 normalized，再把 `g_j` 作为该 raw feature 的可训练尺度和选择变量。**
+
+代码层面对应 `GatedWeightNormMLP.forward()`：先计算 `x_scaled = x * g`，再用 `first_normalized_weight` 完成第一层线性映射。`first_weight_norm` 可以作为诊断量读取，但当前 weight-norm gate 版本不会把 raw column norm 乘回 forward，也不会把它作为主 readout。
+
+### 3.2 ADMM 稀疏优化
+
+原始目标可以写成：
+
+```text
+min_{theta, g} L(theta, g) + C R(g)
+```
+
+其中：
+
+- `L(theta, g)` 是预测损失；
+- `R(g)` 是稀疏惩罚；
+- `C` 控制稀疏强度。
+
+在当前 weight-normalized gate 版本里，`g_j` 本身就是 normalized input-column 的 scalar scale，因此主稀疏变量直接是 `g`。早期 input-gate / adaptive-threshold 诊断会使用第一层 column norm 构造 `lambda_j = C / s_j`；但 `GatedWeightNormMLP` 的当前实现把列方向单位化，主 readout 和主 gate penalty 都应围绕 `g_j` 本身解释。
+
+ADMM 引入辅助变量 `z`：
+
+```text
+min_{theta, g, z} L(theta, g) + C R(z)
 subject to g = z
 ```
 
-其中 `L` 是预测损失，`R` 是稀疏惩罚 (L1 或 Ratio Norm)。
+每个 epoch 主要包含三步：
 
-**增广拉格朗日**:
+| 步骤 | 更新对象 | 作用 |
+|---|---|---|
+| prediction/gate step | `theta`, `g` | 学习预测模型和 gate |
+| proximal step | `z` | 对稀疏惩罚做近端更新，产生稀疏辅助变量 |
+| dual update | `u` | 推动 `g` 与 `z` 一致 |
 
-```
-L_ρ(g, z, u) = L(θ, g) + C · R(z) + (ρ/2) ||g - z + u||²
-```
+这里 `z` 不只是训练时的辅助变量。proximal step 会直接在 `z` 上产生严格零，因此 `z` 的 support 是 ADMM 对“哪些特征应该保留”的离散判断。当前推荐方法在 phase boundary 使用这个 support 来更新 `g`，而不是只对 `g` 本身做固定阈值。
 
-**三步迭代**:
+### 3.3 Phase-boundary `z` masking
 
-1. **g-step** (梯度优化):
+ADMM 的 proximal step 会让辅助变量 `z` 出现严格零，但模型真正使用的是 `g`。在有限训练轮数下，`g` 往往只是接近 0，而不是严格等于 0：
 
-```
-g, θ ← Optimizer( L + (ρ/2) ||g - z + u||² )
-```
-
-2. **z-step** (proximal稀疏化):
-
-```
-z ← prox_{C/ρ·R}(g + u)
+```text
+z_j = 0
+|g_j| may still be around 1e-3 to 1e-2
 ```
 
-3. **dual update**:
+早期版本在每个 phase 结束后直接对 `g` 做阈值：
 
+```text
+if |g_j| < eta:
+    g_j <- 0
 ```
-u ← u + g - z
+
+这个规则可以把 approximate sparse gate 转成 strict sparse gate，但它没有直接使用 ADMM 已经算出的 `z`。当前 paper-facing 方法把 ADMM 的 `z` support 作为 phase-boundary 的离散选择信号：
+
+```text
+if z_j == 0:
+    g_j <- 0
+```
+
+也就是 `mask_by_z` / ADMM-support masking：`z` 决定哪些坐标应严格置零，`g` 保留 prediction/gate step 学到的连续幅度。这个设计比直接 `g <- z` 更合适，因为 `g <- z` 会丢掉 prediction/gate step 学到的 gate magnitude；support masking 只使用 `z` 的严格零结构。
+
+需要区分两个实验版本：
+
+| 版本 | 含义 | 当前定位 |
+|---|---|---|
+| `mask_by_z` | 每个 phase boundary 用 `z_j != 0` mask `g` | paper-facing algorithm / figure 的简洁主流程 |
+| `mask_by_z_final` | 中间 phase 用 threshold，最后 phase 才用 `z` mask | synthetic ablation 中表现很强的变体，可作为诊断结果报告 |
+
+`z` masking 和 hard pruning 的区别：
+
+| 操作 | 含义 | 是否可逆 |
+|---|---|---|
+| `mask_by_z` | phase boundary 把 `z_j = 0` 的 gate 置零，但保留特征和参数 | paper-facing support conversion |
+| hard pruning | 直接删除特征或模型结构 | 不可逆 |
+
+实验显示，phase-boundary pruning 的核心价值不是单纯提升 AUC，而是把 ADMM 的离散支撑信息转移到模型实际使用的 `g` 上，让 feature readout 更稳定。`C` 在这个机制里尤其关键：`C` 太小会让 `z` mask 不够稀疏，`C` 太大则会把 support 压得过窄。
+
+### 3.4 Feature map / polynomial expansion
+
+GRN-FS 的核心训练机制不要求 degree-2 expansion。它可以直接作用在 raw features 上，也可以作用在某个显式 feature map 上：
+
+```text
+x_model = Phi(x)
+x_gated = x_model * g
+```
+
+在 synthetic nonlinear benchmark 上，为了给 predictor 足够的非线性表达能力，我们使用 degree-2 polynomial expansion：
+
+```text
+Phi_2(x) = [x_1, ..., x_m, x_1^2, x_1 x_2, ..., x_m^2]
+```
+
+当原始特征数 `m = 128` 时，扩展后特征数为：
+
+```text
+128 + 128 * 129 / 2 = 8384
+```
+
+这个扩展对 Ring 等需要二次边界的预测 AUC 很重要，但它不是 GRN-FS 的通用必要组件。raw-feature ablation 显示，不用 expansion 时 feature recovery 仍然很强；下降主要发生在 nonlinear predictive AUC。只保留平方项的 diagonal-only expansion 维度较低，但缺少 cross terms，无法稳定覆盖 XOR 类交互任务，因此暂时不作为主线。
+
+### 3.5 Multi-phase training
+
+主方法不是一次性训练到结束，而是使用多个 phase。每个 phase 包含：
+
+1. warmup：不加 ADMM 稀疏压力，让模型先适应该 phase 的状态；
+2. ADMM training：使用当前强度 `C` 训练；
+3. phase-boundary support masking：用 `z_j = 0` 的位置把对应 `g_j` 显式置零，同时保留其余 gate magnitude 和模型权重。
+
+稀疏强度 `C` 随 phase 逐步增加。实验显示，简单地在 single-run 中连续 anneal `C(t)` 不能替代这种 multi-phase 机制。
+
+### 3.6 Paper-facing 伪代码
+
+论文里的 Algorithm 和 Figure 1 应该使用同一个流程。当前推荐伪代码如下：
+
+```text
+Algorithm: GRN-FS with Ratio Norm
+
+Input:
+  data (X, y)
+  phase schedule {(T_w[p], T_a[p], C[p])}_{p=1}^P
+  initial ADMM penalty rho_0
+  readout rule
+
+Initialize:
+  predictor parameters theta
+  gate g <- 1
+
+for phase p = 1 ... P:
+  z <- g
+  u <- 0
+  rho <- rho_0
+  reset optimizer state
+
+  # Warm-up stage
+  for epoch = 1 ... T_w[p]:
+    update theta, g with Adam on prediction loss L(theta, g)
+
+  # ADMM stage
+  for epoch = 1 ... T_a[p]:
+    lambda <- C[p]  # current weight-normalized gate version
+
+    g-step:
+      update theta, g with Adam/AdaGrad on
+        L(theta, g) + (rho / 2) ||g - z + u||_2^2
+
+    z-step:
+      q <- g + u
+      z_tilde_j <- soft_threshold(q_j, lambda / rho)
+      tau <- positive root of tau^3 - tau - D = 0
+      z <- tau * z_tilde
+
+    dual/rho update:
+      u <- u + g - z
+      every 5 epochs, adapt rho by residual balancing
+
+  # Phase boundary
+  g_j <- g_j * 1[z_j != 0]
+
+Return:
+  original-feature ranking by |g_j| for original inputs,
+  or parent-sharing / aggregate original-space readout for polynomial inputs.
+```
+
+Figure 1 应该画成这个流程，而不是只画单次 ADMM：输入映射 `Phi(x)`，phase 初始化，warm-up，ADMM epoch loop（`g`-step、`z`-step、dual/`rho` update），phase-boundary `z` support masking，最后 raw-coordinate readout。
+
+---
+
+## 4. 评估指标说明
+
+由于 polynomial expansion 会把原始特征映射到大量扩展特征，评估时需要把 expanded-space gate 聚合回 original feature space。
+
+### 4.1 Legacy 结构化指标：paired-product score
+
+paired-product score 的含义是：对每个原始特征，把它在原始项和相关 polynomial 项上的 gate 做乘法聚合，再用聚合分数排序原始特征。
+
+直观上，它偏向选择“原始项和对应展开项都强”的特征。这个设计适合表达“原始特征和二次特征成组恢复”的假设。
+
+它的风险也很明确：
+
+- 它不是通用 feature importance 指标；
+- 它自带 paired polynomial 假设；
+- 在某些任务上可能高估 feature recovery；
+- 因此不能单独作为论文的唯一 feature recovery 证据。
+
+### 4.2 polynomial parent-sharing aggregation
+
+degree-2 只用于 synthetic nonlinear benchmark。对于 expanded coordinate，更透明的 original-space readout 是 parent-sharing aggregation：把每个 polynomial term 的 score 按生成它的 original parent 分回去。
+
+对 monomial：
+
+```text
+phi_a(x) = product_j x_j^{alpha_{a,j}}
+P(a) = {j: alpha_{a,j} > 0}
+```
+
+如果 expanded feature `a` 的 score 是 `s_a`，则 original feature `j` 得到：
+
+```text
+S_j = sum_{a: j in P(a)} alpha_{a,j} / sum_l alpha_{a,l} * s_a
+```
+
+默认 score 使用 effective scale：
+
+```text
+s_a = |g_a * c_a|
+```
+
+直观例子：
+
+| Expanded term | 分配规则 |
+|---|---|
+| `x_j` | 全部分给 `j` |
+| `x_j^2` | 全部分给 `j` |
+| `x_j x_k` | 一半给 `j`，一半给 `k` |
+| `x_j^2 x_k` | `2/3` 给 `j`，`1/3` 给 `k` |
+
+这个 readout 比 paired-product 更通用，因为它不假设“linear term 和 square term 必须同时强”。当前建议：**degree-2 synthetic 表里优先报告 parent-sharing gate score（`degree_share_g`）；如需和旧 effective-scale 结果对齐，同时保留 `degree_share_eff`、paired-product 作为 diagnostic。**
+
+### 4.3 补充透明指标
+
+论文应同时报告：
+
+| 指标 | 含义 |
+|---|---|
+| `degree_share_eff` | 旧 effective-scale 诊断：按 monomial parent-sharing 聚合 `|g*c|` |
+| `degree_share_g` | 按 monomial parent-sharing 聚合 raw gate `|g|` |
+| `sum_eff` | 旧 effective-scale 诊断：对 `g * c` 取和 |
+| `sum_g` | 对同一原始特征相关的 gate 取和 |
+| `max_eff` | 旧 effective-scale 诊断：对 `g * c` 取最大值 |
+| `L2_g` | 对同一原始特征相关的 gate 取 L2 norm |
+
+推荐写法：
+
+> 对 polynomial feature map，主 readout 使用 degree-normalized parent-sharing gate score；同时报告 paired-product、`degree_share_eff/sum_eff/sum_g/max_eff`，用于证明结论不依赖单一 readout 假设。
+
+---
+
+## 5. Clean 实验协议
+
+本文把 clean experiment 定义为：一次只改变一个变量，其余主配置保持不变。
+
+当前定下来的核心主方法：
+
+```text
+Model: GatedWeightNormMLP
+First layer: column-normalized weight direction plus explicit scalar gate
+Gate: linear / unbounded
+Feature space: raw features or an explicit task feature map
+Sparsity driver: ADMM + RatioNorm
+Schedule: multi-phase medium-C schedule [0.1, 0.2, 0.5, 1.0, 2.0]
+Warmup: per phase
+Post-hoc pruning: ADMM-guided z-support masking at phase boundaries
+Phase boundary: keep model weights and gate magnitudes; mask g by z support; reset z, u, Adam
+Gate-rescaling: disabled
+```
+
+Synthetic nonlinear benchmark 的 instantiation：
+
+```text
+Feature map: full degree-2 polynomial expansion
+Main readout: degree_share_g parent-sharing score
+Required supporting readouts: paired-product, sum_eff, sum_g, max_eff, L2_g
+```
+
+主 synthetic 数据集：
+
+```text
+xor
+ring
+ring+xor
+ring+xor+sum
+```
+
+Real-world 数据集来自 NIPS 2003 feature selection challenge：
+
+| Dataset | 特征数 | 任务类型 | 备注 |
+|---|---:|---|---|
+| Madelon | 500 | synthetic / artificial classification | 含大量 distractor features，适合测试高维选择稳定性 |
+| Arcene | 10,000 | cancer classification | mass-spectrometry 数据，样本少、维度高 |
+| Gisette | 5,000 | handwritten digit classification | 高维视觉特征，预测任务较容易 |
+| Dexter | 20,000 | text classification | sparse text features，高维稀疏输入 |
+
+这些 real-world 数据主要用于验证 downstream predictive utility。除 Madelon 外，它们不提供和 synthetic benchmark 同等清晰的 feature ground truth，因此不应作为严格 feature recovery 证据。
+
+主要报告：
+
+```text
+AUC: prediction performance
+degree_share_g / parent-sharing score: default original-space recovery for polynomial inputs
+paired-product score / group_product_current: legacy structured diagnostic
+sum_g, max_g, L2_g: transparent original-space recovery
+sum_eff, max_eff: effective-gate diagnostic when comparing older effective-scale readouts
 ```
 
 ---
 
-### 4.3 z-step 具体形式
+## 6. Clean 实验关键结果
 
-**Weighted L1 soft-thresholding**:
+当前 synthetic instantiation（`GatedWeightNormMLP` + full degree-2 polynomial expansion + multi-phase ADMM + ADMM-guided `z` support masking）在 synthetic task 上的结果如下。注意：下面保留了 `mask_by_z` 和 `mask_by_z_final` 两类实验结果；paper-facing 方法写成统一的 phase-boundary `z` support masking，`mask_by_z_final` 作为强 ablation 结果解释。
 
-```
-z_j = sign(v_j) · max( |v_j| - C/(ρ·w_j), 0 )
-```
+结果文件：`results/ablation/phase_boundary_gate_update_20260502_114434.json`
 
-其中 `v_j = g_j + u_j`。
+| Phase-boundary update | C schedule | AUC | paired-product | `sum_g` | `sum_eff` | Alive gates |
+|---|---|---:|---:|---:|---:|---:|
+| Threshold on `g` | auto C | 0.786 | 1.000 | 0.573 | 0.594 | 147.0 |
+| Mask `g` by `z` at every phase | [0.1, 0.2, 0.5, 1.0, 2.0] | 0.860 | 1.000 | **1.000** | **1.000** | 4.8 |
+| **Mask `g` by `z` only at final phase** | **[0.1, 0.2, 0.5, 1.0, 2.0]** | **0.876** | **1.000** | **0.979** | **0.979** | **2.4** |
 
-**Ratio Norm (L1/L2)** - 三次方程求解:
+严格 seed-matched 复现实验仍支持同一方向，但数值略低：
 
-```
-z_j³ - (|v_j| - C/ρ) z_j² + (C/ρ)·γ = 0
-```
+结果文件：`results/ablation/phase_boundary_gate_update_20260502_122353.json`
 
-使用 Cardano 公式得到封闭解。
+| Phase-boundary update | C schedule | AUC | paired-product | `sum_g` | `sum_eff` | Alive gates |
+|---|---|---:|---:|---:|---:|---:|
+| **Mask `g` by `z`** | **[0.1, 0.2, 0.5, 1.0, 2.0]** | **0.833** | **1.000** | **0.958** | **0.948** | **3.2** |
+
+因此 synthetic 主叙事可以从“threshold pruning 修正 approximate sparsity”升级为“ADMM 的 `z` support 提供离散选择，`g` 保留连续强度”。只在最后一个 phase 使用 `z` mask 的 AUC 最高，是一个重要诊断：过早锁死 support 有风险。主文中 paired-product 仍然应和 parent-sharing、`sum_g/sum_eff` 一起报告，因为后者是更透明的 original-space recovery 证据。
+
+### 6.1 ADMM 是否优于 plain proximal gradient
+
+结果文件：`results/ablation/multiphase_sparsity_driver_clean_20260501_140345.json`
+
+| 方法 | AUC | paired-product | `sum_g` | `sum_eff` |
+|---|---:|---:|---:|---:|
+| **Multi-phase ADMM + RatioNorm** | **0.858** | **1.000** | **0.958** | **1.000** |
+| Multi-phase prox + RatioNorm | 0.741 | **1.000** | 0.771 | 0.771 |
+
+结论：在 multi-phase protocol 下，ADMM 是更好的 phase-internal sparsity driver。这个结论不等于“ADMM 在所有条件下都优于 prox”；single-run prox 曾表现较强，但不是当前主配置。
+
+single-run 诊断结果如下：
+
+结果文件：`results/ablation/a2_a3_plain_prox_l1_20260430_205052.json`
+
+| Single-run 方法 | AUC | paired-product | `sum_g` | `sum_eff` |
+|---|---:|---:|---:|---:|
+| Single-run ADMM + RatioNorm | 0.650 | 0.066 | 0.295 | 0.406 |
+| Single-run prox + RatioNorm | **0.786** | **1.000** | **0.799** | **0.812** |
+| Single-run prox + plain L1 | 0.638 | **1.000** | 0.278 | 0.271 |
+
+解读：single-run 下 prox + RatioNorm 是强 baseline，说明“稀疏驱动器”不能脱离 schedule 单独下结论。paper-facing 的 clean 结论应限定为：在相同 multi-phase protocol 下，ADMM + RatioNorm 优于 prox + RatioNorm。
+
+### 6.2 phase-boundary pruning 是否必要
+
+单 phase 诊断实验：`results/ablation/soft_pruning_necessity_D_20260427_181247.json`
+
+| 配置 | AUC | best-k | strict zero count |
+|---|---:|---:|---:|
+| **Soft pruning** | **0.747** | **0.958** | **7955.5** |
+| No pruning | 0.739 | 0.090 | 0.0 |
+
+multi-phase aggregation 实验：`results/ablation/multiphase_aggregation_gap_20260428_170151.json`
+
+| 配置 | AUC | paired-product | `sum_g` | `sum_eff` |
+|---|---:|---:|---:|---:|
+| **Multi-phase + soft pruning** | **0.860** | **1.000** | **0.944** | **0.965** |
+| Multi-phase + no pruning | 0.860 | 0.337 | 0.715 | 0.760 |
+
+这些早期诊断说明，phase boundary 上必须把近似稀疏 gate 转成严格支撑，否则 prediction AUC 可以接近，但 feature readout 会明显不稳定。
+
+新的 phase-boundary ablation 进一步说明，最好的 boundary rule 不是直接阈值化 `g`，而是使用 `z` 的 support：
+
+结果文件：`results/ablation/phase_boundary_gate_update_20260502_111513.json`
+
+| Boundary rule | AUC | paired-product | `sum_g` | `sum_eff` | Alive gates | 解读 |
+|---|---:|---:|---:|---:|---:|---|
+| Threshold on `g` | 0.747 | 0.208 | 0.479 | 0.479 | 1892.0 | gate 仍偏分散 |
+| Replace `g` with `z` | 0.732 | 1.000 | 0.812 | 0.812 | 1.1 | support 好，但幅度信息丢失 |
+| **Mask `g` by `z`** | **0.781** | **1.000** | **0.875** | **0.875** | **3.0** | 使用 `z` support，同时保留 `g` magnitude |
+
+补充正式 6-fold 结果显示，只在最后一个 phase 使用 `z` mask 更好：
+
+结果文件：`results/ablation/phase_boundary_gate_update_20260503_165014.json`
+
+| Boundary rule | C schedule | AUC | paired-product | `sum_g` | `sum_eff` |
+|---|---|---:|---:|---:|---:|
+| `mask_by_z_final` | [0.05, 0.1, 0.2, 0.5, 1.0] | 0.839 | 1.000 | 0.875 | 0.875 |
+| **`mask_by_z_final`** | **[0.1, 0.2, 0.5, 1.0, 2.0]** | **0.876** | **1.000** | **0.979** | **0.979** |
+
+结论：paper-facing 方法应写成 ADMM-guided `z` support masking，而不是普通 threshold soft pruning。`mask_by_z_final` 可以作为 synthetic 上表现最强的 boundary-calibration 变体；旧 threshold pruning 可以作为 ablation baseline。
+
+### 6.3 polynomial readout：parent-sharing 是否比 paired-product 更稳妥
+
+新增 parent-sharing aggregation 复跑：
+
+结果文件：`results/ablation/phase_boundary_gate_update_20260503_205520.json`
+
+| Readout / aggregation | Mean best-k |
+|---|---:|
+| paired-product / `group_product_current` | 1.000 |
+| `degree_share_eff` | 0.896 |
+| `degree_share_g` | 0.896 |
+| `sum_eff` | 0.896 |
+| `linear_only_eff` | 0.812 |
+
+per-task `degree_share_eff`：
+
+| Task | `degree_share_eff` | AUC |
+|---|---:|---:|
+| XOR | 1.000 | 0.991 |
+| Ring | 0.583 | 0.561 |
+| Ring+XOR | 1.000 | 0.766 |
+| Ring+XOR+Sum | 1.000 | 0.696 |
+
+结论：paired-product 对 synthetic score 明显更乐观；parent-sharing aggregation 更透明，也更适合作为 polynomial expanded-space 的默认 readout。这个结果进一步支持“degree-2 只是 synthetic feature map，不是方法本体”：在 fairer parent-sharing 下，degree-2 的 feature selection 分数不是满分，而 raw-feature `mask_by_z_final` 的 `sum_eff=0.938` 反而更能说明核心 support-learning mechanism。
+
+### 6.4 gate_weight_norm 是否有效
+
+结果文件：`results/ablation/c3_gate_weight_norm_clean_20260501_201224.json`
+
+| Gate 设计 | AUC | paired-product | `sum_g` | `sum_eff` |
+|---|---:|---:|---:|---:|
+| Input gate | 0.769 | 0.931 | 0.535 | 0.566 |
+| **gate_weight_norm** | **0.813** | **0.958** | **0.604** | **0.646** |
+
+结论：重构前向后，`gate_weight_norm` 仍显著优于 input gate（AUC +0.044）并同步提升 paired-product 与 `sum_g/sum_eff`，可作为主方法的稳健组件之一。写作时强调它的作用是把 feature scale 显式放到 `g_j` 上，而不是让第一层 raw column norm 隐式承担 feature importance。
+
+### 6.5 full degree-2 expansion 是否必要
+
+结果文件：`results/ablation/synthetic_g3_diagonal_poly_20260430_193407.json`
+
+| Feature space | 维度 | AUC | `sum_eff` |
+|---|---:|---:|---:|
+| No polynomial expansion, legacy auto-C threshold | 128 | 0.692 | 0.438 |
+| **No polynomial expansion, `mask_by_z_final` medium-C** | **128** | **0.759** | **0.938** |
+| **Full degree-2 expansion** | 8384 | **0.858** | **1.000** |
+| Diagonal-only `[x_j, x_j^2]` | 256 | 0.762 | 0.615 |
+
+新增 raw-feature 结果文件：`results/ablation/synthetic_g3_diagonal_poly_20260503_180656.json`
+
+raw features + `mask_by_z_final` medium-C 的 per-task AUC：
+
+| Task | AUC | `sum_eff` |
+|---|---:|---:|
+| XOR | 1.000 | 1.000 |
+| Ring | 0.586 | 0.750 |
+| Ring+XOR | 0.755 | 1.000 |
+| Ring+XOR+Sum | 0.693 | 1.000 |
+
+结论：ADMM `z`-masking 的 feature selection 机制不依赖 degree-2 expansion；不用 expansion 时，original-space recovery 仍然很强（overall `sum_eff=0.938`）。但 raw features 无法表达 Ring 的二次边界，导致 predictive AUC 明显下降。因此论文里应把 degree-2 写成 synthetic nonlinear benchmark 的 explicit feature map，而不是方法本体。diagonal-only expansion 维度可行，但已有结果只达到中间水平；它不能处理 cross-feature interactions，因此暂时不值得作为主线继续跑。
+
+### 6.6 multi-phase 是否能被 single-run annealing 替代
+
+结果文件：`results/ablation/e2_single_run_anneal_c_20260430_152059.json`
+
+| Single-run schedule | AUC | paired-product | `sum_g` | `sum_eff` |
+|---|---:|---:|---:|---:|
+| Step schedule | 0.650 | 0.066 | 0.295 | 0.406 |
+| Linear schedule | 0.628 | 0.104 | 0.271 | 0.361 |
+| Log schedule | 0.629 | 0.111 | 0.274 | 0.372 |
+
+结论：single-run annealing 不能替代 multi-phase。有效机制来自 phase boundary、per-phase warmup 和 ADMM-guided pruning 的组合。
+
+### 6.7 跨 phase 保留 ADMM state 是否能替代 phase-boundary pruning
+
+结果文件：`results/ablation/cross_phase_state_h_interaction_20260429_135829.json`
+
+| 配置 | AUC | paired-product | `sum_g` | `sum_eff` |
+|---|---:|---:|---:|---:|
+| No-pruning baseline | 0.872 | 0.351 | 0.694 | 0.792 |
+| Keep `z + u` | 0.872 | 0.288 | 0.663 | 0.760 |
+| Keep `u + Adam` | 0.830 | 0.132 | 0.618 | 0.660 |
+| Keep `z + u + Adam` | 0.701 | 0.139 | 0.347 | 0.389 |
+| Keep `z + u + Adam` + soft pruning | 0.730 | 0.802 | 0.486 | 0.528 |
+
+结论：保留 ADMM state 不能替代 phase-boundary pruning。这个替代假设不应作为论文主方案。
+
+### 6.8 phase 之间 是否应该 reinitialize model weights
+
+结果文件：`results/ablation/phase_boundary_weight_reinit_clean_20260501_152122.json`
+
+| Weight policy | AUC | paired-product | `sum_g` | `sum_eff` |
+|---|---:|---:|---:|---:|
+| **Keep model weights** | **0.858** | **1.000** | **0.958** | **1.000** |
+| Reinitialize model weights | 0.625 | 0.267 | 0.278 | 0.264 |
+
+结论：phase 之间应保留 model weights。这里讨论的是模型权重是否重初始化，不是 pruning 后对 gate 数值做 rescaling。
+
+另外测试过“只重置非零 `g`，不重置 weights”的诊断版本：它没有解决问题。quick 2-fold 结果中 AUC 只有 0.604，`sum_eff=0.406`，并且 alive gates 约 8322，说明只把非零 `g` reset 到 1 会破坏稀疏结构，不应作为主方法。
+
+### 6.9 per-phase warmup 是否有用
+
+结果文件：`results/ablation/warmup_per_phase_ablation_20260424_102914.json`
+
+| Dataset | Warmup only phase 0 | **Warmup every phase** |
+|---|---:|---:|
+| XOR | **1.000** | **1.000** |
+| Ring | 0.667 | **0.833** |
+| Ring+XOR | 0.500 | **0.583** |
+| Ring+XOR+Sum | **0.533** | **0.533** |
+
+结论：per-phase warmup 对 Ring 和混合非线性任务有帮助，应保留为 multi-phase mechanism 的一部分。
 
 ---
 
-### 4.4 自适应惩罚权重
+## 7. 外部 benchmark
 
-```
-w_j = ||W₁[:, j]||₂
-```
+### 7.1 Synthetic benchmark
 
-即第一层第 `j` 列的 L2 范数，使惩罚权重与特征贡献度挂钩。
-
----
-
-## 伪代码 (Algorithm)
-
-```
-Algorithm 1: SADMM-FS Training
-
-Input:  Data {(x_i, y_i)}, hyperparams C, ρ, p, epochs
-Output: Gate vector g (feature scores)
-
-Initialize: g ← 1, z ← 1, u ← 0, θ (MLP weights)
-
-──────────────────────────────────────────────────────────
-Phase 1: Warm-up (100 epochs)
-──────────────────────────────────────────────────────────
-for epoch = 1 to warmup_epochs:
-    for batch (x, y):
-        h  ← MLP(x ⊙ g ⊙ dropout(p))
-        L  ← cross_entropy(h, y)
-        θ, g ← Optimizer.step(∇L)
-
-──────────────────────────────────────────────────────────
-Phase 2: ADMM optimization
-──────────────────────────────────────────────────────────
-for epoch = warmup_epochs+1 to total_epochs:
-
-    ▸ g-step (gradient optimization)
-    for batch (x, y):
-        h    ← MLP(x ⊙ g ⊙ dropout(p))
-        L_aug ← L + (ρ/2) · ||g - z + u||²
-        θ, g  ← Optimizer.step(∇L_aug)
-
-    ▸ z-step (proximal sparsification, per epoch)
-    v ← g + u
-    w ← ||W₁[:, j]||₂   (adaptive weights)
-    for j = 1 to m:
-        if penalty == L1:
-            z_j ← soft_threshold(v_j, C/(ρ·w_j))
-        elif penalty == RatioNorm:
-            z_j ← cubic_solve(v_j, C, ρ, γ)
-
-    ▸ dual update
-    u ← u + g - z
-
-──────────────────────────────────────────────────────────
-Output: Feature ranking by |g_j|
-──────────────────────────────────────────────────────────
-```
-
----
-
-## 实验表格
-
-### Table 1: Synthetic Benchmark (Main Results)
 
 | Method | Type | XOR | Ring | Ring+XOR | Ring+XOR+Sum | Mean best-k | Mean AUC |
 |--------|------|-----|------|----------|--------------|-------------|----------|
@@ -173,9 +591,9 @@ Output: Feature ranking by |g_j|
 | STG | Embedded (DL) | 1.00 | 0.00 | 0.50 | 0.50 | 0.6250 | 0.6588 |
 | cae | Embedded (DL) | 0.00 | 0.00 | 0.00 | 0.03 | 0.0069 | 0.4887 |
 | fsnet | Embedded (DL) | 0.00 | 0.00 | 0.04 | 0.00 | 0.0104 | 0.5094 |
-| **SADMM-FS** | Embedded (DL) | 1.00 | 1.00 | 1.00 | 1.00 | **1.0000** | 0.6461 |
+| **GRN-FS** | Embedded (DL) | 1.00 | 1.00 | 1.00 | 1.00 | **1.0000** | **0.8580** |
 | Saliency | Attribution | 0.33 | 0.00 | 0.08 | 0.36 | 0.1944 | N/A |
-| nn | Attribution | 0.89 | 0.85 | 0.93 | 0.94 | **0.9022** | 0.5250 |
+| nn | Attribution | 0.89 | 0.85 | 0.93 | 0.94 | 0.9022 | 0.5250 |
 | GuidedBackprop | Attribution | 0.33 | 0.00 | 0.08 | 0.36 | 0.1944 | N/A |
 | Deconvolution | Attribution | 0.33 | 0.00 | 0.00 | 0.36 | 0.1736 | N/A |
 | InputXGradient | Attribution | 0.25 | 0.08 | 0.04 | 0.36 | 0.1840 | N/A |
@@ -186,654 +604,236 @@ Output: Feature ranking by |g_j|
 | FeaturePermutation | Attribution | 0.25 | 0.00 | 0.04 | 0.36 | 0.1632 | N/A |
 | ShapleyValueSampling | Attribution | 0.08 | 0.08 | 0.04 | 0.39 | 0.1493 | N/A |
 
-**Key Observations**:
-- **SADMM-FS (Gradual)** achieves PERFECT feature recovery (best-k=1.00) on all synthetic datasets
-- Improvement over baseline: Ring +50% (0.50→1.00), Ring+XOR +38% (0.62→1.00), Ring+XOR+Sum +33% (0.67→1.00)
-- nn (Saliency) best-k high but AUC lowest (overfits noise features)
-- RF/TreeSHAP perfect on Ring but fails on XOR
-- Filter methods don't provide AUC (no model training)
+这张表里的 GRN-FS 是 legacy paired-product / older run 结果，不应再作为唯一主证据。当前更透明的 polynomial parent-sharing rerun 是：paired-product 1.000，但 `degree_share_eff=0.896`、`sum_eff=0.896`。因此 synthetic degree-2 应写成 optional interaction-dictionary ablation，而不是主方法本体；主文必须同时报告 parent-sharing 和 paired-product。
+
+### 7.2 Real-world benchmark
+
+当前 real-world NIPS 2003 结果支持 GRN-FS 的 downstream predictive utility。论文主表应使用 benchmark 的 fixed-budget protocol，而不是 retrospective best-$k$ sweep：
+
+- Madelon: `k=20`
+- Arcene: `k=7000`
+- Gisette: `k=3500`
+- Dexter: `k=10000`
+
+`Mean ± std` 是四个数据集之间的 task-level dispersion，不是每个 baseline 的 seed std。原因是 benchmark baseline 文件大多只有单次固定配置结果；GRN-FS/STG 有 seed std，但为了表格可比性，主表统一报告 across-dataset std。mRMR 缺 Dexter 文件，因此 mean/std 只基于 3 个 available datasets。
+
+| Method | Madelon | Arcene | Gisette | Dexter | Mean ± std |
+|---|---:|---:|---:|---:|---:|
+| GRN-FS | 0.964 | 0.890 | 0.995 | 0.973 | 0.956 ± 0.046 |
+| RF | **0.965** | **0.906** | 0.995 | 0.977 | **0.961 ± 0.038** |
+| TreeSHAP | 0.964 | 0.901 | 0.995 | 0.980 | 0.960 ± 0.041 |
+| ReliefF | 0.941 | 0.892 | 0.995 | 0.976 | 0.951 ± 0.045 |
+| MI | 0.833 | 0.885 | 0.995 | 0.982 | 0.924 ± 0.078 |
+| mRMR | 0.640 | 0.884 | 0.995 | -- | 0.840 ± 0.181 |
+| LassoNet | 0.950 | 0.890 | 0.995 | 0.979 | 0.954 ± 0.046 |
+| STG | 0.542 | 0.891 | 0.995 | 0.978 | 0.852 ± 0.211 |
+| CAE | 0.711 | 0.878 | 0.995 | 0.979 | 0.891 ± 0.130 |
+| FSNet | 0.752 | 0.898 | 0.994 | 0.903 | 0.887 ± 0.100 |
+| DeepPINK | 0.742 | 0.887 | 0.995 | 0.975 | 0.900 ± 0.115 |
+| CancelOut-sigmoid | 0.697 | 0.886 | 0.995 | 0.979 | 0.889 ± 0.137 |
+| CancelOut-softmax | 0.740 | 0.891 | 0.994 | 0.954 | 0.895 ± 0.111 |
+| Saliency | 0.630 | 0.879 | 0.995 | 0.980 | 0.871 ± 0.169 |
+| Input×Gradient | 0.657 | 0.898 | 0.995 | **0.982** | 0.883 ± 0.157 |
+| Integrated Gradients | 0.635 | 0.895 | 0.995 | 0.977 | 0.876 ± 0.166 |
+| SmoothGrad | 0.640 | 0.894 | 0.995 | 0.979 | 0.877 ± 0.164 |
+| Guided Backprop | 0.630 | 0.879 | 0.995 | 0.980 | 0.871 ± 0.169 |
+| DeepLIFT | 0.636 | 0.887 | 0.995 | 0.981 | 0.875 ± 0.166 |
+| Deconvolution | 0.630 | 0.879 | 0.995 | 0.980 | 0.871 ± 0.169 |
+| Feature Ablation | 0.658 | 0.893 | **0.995** | 0.982 | 0.882 ± 0.156 |
+| Feature Permutation | 0.623 | 0.899 | 0.995 | 0.981 | 0.875 ± 0.173 |
+| Shapley sampling | 0.639 | 0.893 | 0.995 | 0.980 | 0.877 ± 0.165 |
+| Random ranking | 0.612 | 0.889 | 0.995 | 0.972 | 0.867 ± 0.176 |
+
+结论：real-world 结果说明方法有预测可用性，并且在 fixed-budget NIPS 2003 protocol 下处于 RF/TreeSHAP aggregate tier、略高于 LassoNet、明显高于 STG。但这些数据集没有 synthetic benchmark 那样清晰的 feature ground truth，因此不应被过度解释为严格恢复证据。
+
+### 7.3 DAG benchmark
+
+DAG benchmark 上，`z` masking 没有成为更好的默认选择。它可以保持接近的 predictive AUC，但 support 往往过窄，结构恢复指标低于旧的 low-C threshold setting。
+
+| Setting | C schedule | AUC | AUPRC | Alive gates | bestK2 | top20 chain/fork |
+|---|---|---:|---:|---:|---:|---:|
+| Threshold on `g` | [0.1, 0.2, 0.3, 0.4, 0.5] | **0.8200** | **0.8076** | 84.7 | **0.0823** | **3.83** |
+| `mask_by_z` | [0.1, 0.2, 0.3, 0.4, 0.5] | 0.8156 | 0.8006 | 3.7 | 0.0617 | 2.33 |
+| `mask_by_z_final` | [0.1, 0.2, 0.3, 0.4, 0.5] | 0.8136 | 0.8016 | 3.7 | 0.0617 | 2.50 |
+| `mask_by_z` | [0.001, 0.005, 0.01, 0.02, 0.05] | 0.7211 | 0.7205 | 274.3 | 0.0720 | 3.67 |
+| `mask_by_z_final` | [0.001, 0.005, 0.01, 0.02, 0.05] | 0.7107 | 0.7159 | 295.0 | 0.0720 | 3.83 |
+
+结果文件：
+
+| Setting | 文件 |
+|---|---|
+| Threshold low-C baseline | `results/ablation/dag_lowc_attribution_benchmark_20260430_174900.json` |
+| `mask_by_z` low-C | `results/ablation/dag_mask_by_z_low_benchmark_20260502_135848.json` |
+| `mask_by_z_final` low-C | `results/ablation/dag_mask-by-z-final_low_benchmark_20260502_142314.json` |
+| `mask_by_z` tiny-C | `results/ablation/dag_mask-by-z_tiny_benchmark_20260502_142008.json` |
+| `mask_by_z_final` tiny-C | `results/ablation/dag_mask-by-z-final_tiny_benchmark_20260502_142625.json` |
+
+结论：synthetic 上 `z` support 是合适的离散选择信号；DAG 上直接用 `z != 0` 太离散，旧的 threshold low-C 方案更稳。论文里可以把 DAG 写成外部分布下的边界条件：同一 ADMM mechanism 在不同 feature graph 结构上需要不同的 boundary calibration。
 
 ---
 
-### Table 2: Real-World Datasets (AUROC)
+## 8. 当前方法定位
 
-| Method | Madelon (500) | Gisette (5K) | Arcene (10K) | Dexter (20K) | Mean |
-|--------|---------------|--------------|--------------|--------------|------|
-| **SADMM-FS** | **0.965** | **0.985** | 0.887 | 0.889 | 0.932 |
-| RF | 0.965 | 0.995 | 0.906 | 0.977 | 0.961 |
-| TreeSHAP | 0.964 | 0.995 | 0.901 | 0.980 | 0.960 |
-| LassoNet | 0.950 | 0.995 | 0.890 | 0.979 | 0.954 |
-| Relief | 0.941 | 0.995 | 0.892 | 0.976 | 0.951 |
-| STG | 0.847 | 0.963 | 0.808 | 0.825 | 0.861 |
-| MI | 0.833 | 0.995 | 0.885 | 0.982 | 0.924 |
+先不定 paper wording，先定方法定位。当前共识是：GRN-FS 的主方法不是 degree-2 expansion，也不是单独的 `z != 0` mask，而是一个 staged sparse-support learning lifecycle，其中 gate 是 input-dimension weight-normalization 的 scalar scale。
 
----
+核心主方法：
 
-## Ablation Studies (单变量设计)
-
-每个ablation表格只测试一个变量，其他参数保持不变。
-
----
-
-### Table 3a: Gate Type (门控类型)
-
-**测试变量**: Gate activation type (`bounded_gate` parameter)
-**固定参数**: backbone=MLP, training=single_pass, C=0.05, epochs=416
-
-| Gate Type | XOR | Ring | Ring+XOR | Mean | What Changes (Pseudocode) |
-|-----------|-----|------|----------|------|---------------------------|
-| **Linear (unbounded)** | 1.00 | 0.67 | 0.54 | **0.74** | `g = gate_param` (原始值，∈ℝ) |
-| Sigmoid (bounded) | 1.00 | 0.58 | 0.54 | 0.71 | `g = sigmoid(gate_param)` (∈[0,1]) |
-
-**代码实现差异** (src/admm_input_group_wrapper.py:226-235):
-
-```python
-# Linear Gate (bounded_gate=False)
-def gate_from_parameter(self, gate_param):
-    return gate_param  # 直接返回，可负值
-
-# Sigmoid Gate (bounded_gate=True)
-def gate_from_parameter(self, gate_param):
-    return torch.sigmoid(gate_param)  # 强制到[0,1]
-
-# Forward pass (line 244-245)
-def forward(self, x):
-    g = self.gate_from_parameter(self.gate)
-    return self.layers(x * g)
+```text
+GRN-FS learns input-dimension weight-normalized gates with a neural model,
+sparsifies them through ADMM, stabilizes the support across phases, and
+converts continuous gates into a strict selected feature set by masking g with
+the ADMM support z.
 ```
 
-**ADMM差异**:
-- Linear: ADMM在effective space操作，`z = prox(g + u)`
-- Sigmoid: ADMM在raw space操作，`z = prox(logit(g) + u)`，然后`g = sigmoid(z)`
+主方法包含四个必要组件：
 
-**解释**: Linear gate允许真正的"关闭"状态(g→0或负值)，稀疏化更彻底。Sigmoid最小值≈0.01(初始g=1)，难以完全关闭特征。
+| 组件 | 当前选择 | 作用 |
+|---|---|---|
+| Predictor gate | `GatedWeightNormMLP` | 用 normalized input-column direction + scalar gate 学任务相关的 feature strength |
+| Sparse driver | ADMM + RatioNorm | 把 sparsity 放到 `z` 的 proximal update 上 |
+| Training lifecycle | multi-phase + per-phase warmup + keep weights | 逐步增强稀疏压力，同时保留已学 representation |
+| Support conversion | `mask_by_z` / ADMM support masking | 用 `z != 0` 决定 support，保留 retained `g` magnitude |
 
----
+feature map 的定位：
 
-### Table 3b: Backbone Architecture (主干架构)
+- Raw features 是最干净的 mechanism check：raw-feature `mask_by_z_final` medium-C 下 `sum_eff=0.938`，说明 selection mechanism 本身有效；这条结果作为 ablation 支撑，不把 final-only 写成唯一主方法。
+- Full degree-2 是 synthetic nonlinear benchmark 的 explicit feature map：它把 AUC 从 raw 的 0.759 提到 0.876，但不应被描述成通用必要组件。
+- Diagonal-only 暂时不进主线：维度可行，但已有结果只是中间水平，且不能表达 cross-feature interactions。
 
-**测试变量**: Architecture type (MLP vs Transformer)
-**固定参数**: gate=linear, training=single_pass, C=0.05, latent=32
+readout 的定位：
 
-| Backbone | XOR | Ring | Ring+XOR | Mean best-k | Mean AUC | What Changes (Pseudocode) |
-|----------|-----|------|----------|-------------|----------|---------------------------|
-| **MLP** | 1.00 | 0.50 | 0.62 | **0.63** | 0.66 | `h = σ(W₂ σ(W₁(x⊙g)))` |
-| Transformer | TBD | TBD | TBD | 0.25 | 0.55 | `h = Attention(TokenEmb(x))` |
+- raw-feature setting 默认用 `|g|` 排序；`|g*c|` 属于 older effective-scale diagnostic，不作为 weight-normalized gate 版本的核心定义；
+- degree-2 setting 需要 original-space aggregation；
+- paired-product 可以作为 structured readout，但必须同时报告 `sum_eff/sum_g/max_eff/L2_g`。
 
-**代码实现差异** (src/admm_input_group_wrapper.py:88-141 vs src/transformer_pretrain.py):
+不推荐的替代写法：
 
-```python
-# MLP Backbone (default)
-class GatedFeatureSelectionMLP(nn.Module):
-    def __init__(self, input_size, n_classes, latent_size=32, n_hidden_layers=2):
-        self.gate = nn.Parameter(torch.ones(input_size))
-        layers = [
-            nn.Linear(input_size, latent_size),  # 直接交互
-            nn.Mish(),
-            nn.Linear(latent_size, latent_size),
-            nn.Mish(),
-            nn.Linear(latent_size, n_out)
-        ]
-    
-    def forward(self, x):
-        return self.layers(x * self.gate)  # Gate在输入层
-
-# Transformer Backbone (experimental)
-class TransformerFS(nn.Module):
-    def __init__(self, input_size, d_model=64, n_heads=4):
-        self.embedding = nn.Linear(input_size, d_model)  # Token embedding
-        self.attention = nn.MultiheadAttention(d_model, n_heads)
-        self.gate = nn.Parameter(torch.ones(input_size))  # 也在输入层
-    
-    def forward(self, x):
-        x_gated = x * self.gate
-        tokens = self.embedding(x_gated)  # 投影到高维
-        attn_out = self.attention(tokens, tokens, tokens)  # 自注意力
-        return self.classifier(attn_out)
+```text
+Soft pruning can be removed by preserving cross-phase ADMM state.
 ```
 
-**解释**: 表格数据缺乏空间结构(如图像的像素邻域)，注意力机制无法帮助。MLP的简单架构直接建模特征交互，更适合特征选择。
+这个假设已经被实验否定。
 
----
+也不推荐写：
 
-### Table 3c: Iterative Strategy (迭代策略)
-
-**测试变量**: Training/pruning strategy
-**固定参数**: backbone=MLP, gate=linear, total_epochs固定
-
-| Strategy | XOR | Ring | Ring+XOR | Mean | What Changes (Pseudocode) |
-|----------|-----|------|----------|------|---------------------------|
-| single_pass (baseline) | 1.00 | 0.50 | 0.62 | 0.6975 | `C = 0.05` constant |
-| iterative_hard | 0.67 | 0.58 | 0.13 | 0.46 | `+每phase硬删除20%特征` |
-| lottery_ticket | 0.50 | 0.08 | 0.13 | 0.24 | `+删除后权重reset到init` |
-| **gradual_admm** | **1.00** | **1.00** | **1.00** | **1.0000** | `C = linspace(0.01, 0.1, 5)` |
-
-**代码实现差异** (src/iterative_run.py):
-
-```python
-# single_pass (baseline) - src/admm_input_group_wrapper.py:433-973
-def train_single_pass(model, X, y, C=0.05, epochs=500, warmup=120):
-    # Phase 1: Warmup
-    for epoch in range(warmup):
-        train_one_epoch(model, X, y)  # 只优化预测
-    
-    # Phase 2: ADMM (固定C)
-    for epoch in range(epochs - warmup):
-        # g-step
-        g_loss = task_loss + (rho/2) * ||g - z + u||^2
-        optimizer.step(g_loss)
-        # z-step
-        z = prox_ratio_norm(g + u, C/rho)
-        # dual update
-        u = u + g - z
-
-# iterative_hard - src/iterative_run.py:29-144
-def iterative_hard_pruning(X, y, prune_ratio=0.2, n_rounds=5):
-    features = list(range(n_features))
-    for round in range(n_rounds):
-        model = create_model(len(features))  # 新模型
-        train_admm(model, X[:, features], y)  # 子集训练
-        scores = model.gate.abs()
-        keep = scores.argsort()[-int(0.8*len(features))]  # 保留80%
-        features = features[keep]  # HARD DELETE: 维度降低
-    return features
-
-# lottery_ticket - src/iterative_run.py:75-76, 89-92
-def lottery_ticket_pruning(X, y, prune_ratio=0.2, rewind=True):
-    init_state = copy.deepcopy(model.state_dict())  # 保存初始权重
-    for round in range(n_rounds):
-        model = create_model(len(features))
-        if rewind and round > 0:
-            model.load_state_dict(subset_state(init_state, features))  # RESET!
-        train_admm(model, X[:, features], y)
-        features = prune_bottom_20(features, model.gate)
-    return features
-
-# gradual_admm - src/iterative_run.py:359-420
-def train_with_gradual_admm(model, X, y, initial_C=0.01, final_C=0.1, n_phases=5):
-    C_schedule = np.linspace(initial_C, final_C, n_phases)  # [0.01, 0.03, 0.05, 0.07, 0.1]
-    for phase, C in enumerate(C_schedule):
-        # 不删除特征，只增加稀疏约束
-        train_admm(model, X, y, C=C, epochs=epochs_per_phase)
-        alive = (model.gate.abs() > 1e-4).sum()  # 自然衰减
+```text
+z masking uniformly improves all benchmarks.
 ```
 
-**Compute budget normalization** (run_iterative_ablation.py:190-192):
-```python
-# 确保总计算量一致
-epochs_per_round = total_epochs // n_rounds  # 每round的epochs
-# single_pass: 500 epochs一次性
-# iterative: 100 epochs/round × 5 rounds = 500 total
+DAG benchmark 不支持这个说法。
+
+---
+
+## 9. 写作边界
+
+### 可以写
+
+- 主协议下，ADMM 是更好的 phase-internal sparsity driver。
+- ADMM-guided `z` support masking 是从 ADMM proximal support 到 strict gate readout 的桥接步骤。
+- `gate_weight_norm` 是有效架构改进；它把 feature scale 显式放到 `g_j`，提高 gate 作为选择变量的可信度。
+- full degree-2 expansion 是 synthetic nonlinear benchmark 的 optional feature map；raw-feature ablation 说明 selection mechanism 本身仍有效。
+- phase boundary 应保留 model weights。
+- synthetic benchmark 上，`mask_by_z_final` medium-C 是效果很强的 boundary-calibration 变体，但 paper-facing algorithm 写成统一的 `mask_by_z` support masking。
+- DAG benchmark 上，旧 low-C threshold rule 仍是更稳的外部基线。
+
+### 不应写
+
+- 不要说 paired-product score 单独证明 feature recovery。
+- 不要说 `z` masking 对所有 benchmark 都最好；DAG 结果不支持。
+- 不要说 ADMM 总是优于 prox；clean 结论限定在主 multi-phase protocol 下。
+- 不要把 gate-rescaling reweighting 当成 reinitialize model weights。
+- 不要把 `g <- z` 和 `g <- g * 1[z != 0]` 混为一谈；实验支持的是后者。
+- 不要把 degree-2 expansion 写成通用必要组件；高维 real-world / DAG 不适合 full degree-2 expansion。
+- 不要把主方法简化成 `z != 0` mask；它依赖 weight-normalized gate、ADMM、multi-phase、warmup、keep weights 和 z-support masking 的组合。
+
+---
+
+## 10. 结果文件索引
+
+### Clean / paper-facing 结果
+
+| 主题 | 文件 |
+|---|---|
+| ADMM vs prox | `results/ablation/multiphase_sparsity_driver_clean_20260501_140345.json` |
+| input gate vs `gate_weight_norm` | `results/ablation/c3_gate_weight_norm_clean_20260501_201224.json` |
+| keep vs reinitialize model weights | `results/ablation/phase_boundary_weight_reinit_clean_20260501_152122.json` |
+| diagonal-only polynomial | `results/ablation/synthetic_g3_diagonal_poly_20260430_193407.json` |
+| raw features + final z-mask medium-C | `results/ablation/synthetic_g3_diagonal_poly_20260503_180656.json` |
+| full degree-2 + parent-sharing metric diagnostic | `results/ablation/synthetic_g3_diagonal_poly_20260503_203124.json` |
+| multi-phase soft vs no pruning | `results/ablation/multiphase_aggregation_gap_20260428_170151.json` |
+| cross-phase state interaction | `results/ablation/cross_phase_state_h_interaction_20260429_135829.json` |
+| single-run C annealing | `results/ablation/e2_single_run_anneal_c_20260430_152059.json` |
+| gate-rescaling internal result | `results/ablation/reweight_modes_r2_r3_20260430_211241.json` |
+| phase-boundary z-mask main result | `results/ablation/phase_boundary_gate_update_20260502_114434.json` |
+| phase-boundary z-mask seed-matched result | `results/ablation/phase_boundary_gate_update_20260502_122353.json` |
+| final-only z-mask diagnostic | `results/ablation/phase_boundary_gate_update_20260503_165014.json` |
+| polynomial parent-sharing readout rerun | `results/ablation/phase_boundary_gate_update_20260503_205520.json` |
+
+### Benchmark 结果
+
+| 主题 | 文件 |
+|---|---|
+| Synthetic degree-2 main benchmark | `results/main/best_gradual_poly2_benchmark_20260424_181312.json` |
+| Selection comparison | `results/main/selection_comparison_20260425_165507.json` |
+| Gate weight norm comparison | `results/main/gate_weight_norm_comparison_20260425_213958.json` |
+| DAG threshold low-C baseline | `results/ablation/dag_lowc_attribution_benchmark_20260430_174900.json` |
+| DAG z-mask low-C | `results/ablation/dag_mask_by_z_low_benchmark_20260502_135848.json` |
+| DAG z-mask final/tiny-C | `results/ablation/dag_mask-by-z-final_tiny_benchmark_20260502_142625.json` |
+
+---
+
+## 11. 代码索引
+
+| 组件 | 文件 |
+|---|---|
+| ADMM core training | `src/admm_input_group_wrapper.py` |
+| Gradual ADMM and pruning | `src/gradual_admm_with_pruning.py` |
+| Polynomial expansion | `src/polynomial_expansion.py` |
+| original-space aggregation / parent-sharing readout | `experiments/ablation/run_cross_phase_state_h_main.py` |
+| phase-boundary z-mask ablation | `experiments/ablation/run_phase_boundary_gate_update_ablation.py` |
+| ADMM vs prox clean experiment | `experiments/ablation/run_multiphase_sparsity_driver_clean.py` |
+| gate_weight_norm clean experiment | `experiments/ablation/run_c3_gate_weight_norm_clean.py` |
+| weight reinitialization clean experiment | `experiments/ablation/run_phase_boundary_weight_reinit_clean.py` |
+| feature-space ablation: raw / full degree-2 / diagonal | `experiments/ablation/run_synthetic_g3_diagonal_poly.py` |
+| multi-phase aggregation gap | `experiments/ablation/run_multiphase_aggregation_gap.py` |
+| cross-phase state experiments | `experiments/ablation/run_cross_phase_state_h_main.py`, `experiments/ablation/run_cross_phase_state_h_interaction.py` |
+| DAG z-mask benchmark | `experiments/main/run_dag_mask_by_z_benchmark.py` |
+
+---
+
+## 12. 当前推荐主配置
+
+核心主方法配置：
+
+```text
+Model: GatedWeightNormMLP
+First layer: column-normalized weight direction plus explicit scalar gate
+Gate: linear / unbounded
+Feature space: raw features or explicit task feature map
+Sparsity driver: ADMM + RatioNorm
+Schedule: multi-phase medium-C schedule [0.1, 0.2, 0.5, 1.0, 2.0]
+Warmup: per phase
+Post-hoc pruning: ADMM-guided z-support masking
+Phase boundary: keep model weights and gate magnitudes; mask g by z support; reset z, u, Adam
+Gate-rescaling: disabled
 ```
 
-**解释**:
-- **Hard pruning有害**: 删除特征同时丢失学到的权重 (特征维度从128→102→82→...)
-- **Weight reset更有害**: Lottery Ticket假设不适用于FS (gate和W₁都需要warmup学习)
-- **Gradual C increase有效**: 渐进增强稀疏约束(0.01→0.1)，gate自然衰减，权重保持学习状态
+Synthetic nonlinear benchmark instantiation：
 
----
-
-### Table 3d: REMOVED (无效设计)
-
-**原问题**: expand4/8/16同时改变两个变量:
-1. Processing order (先扩展后选择)
-2. Model capacity (输入维度从128扩展到512/1024/2048)
-
-**为什么无效**: 无法归因性能变化到"order"还是"capacity"
-
-**正确设计**: 应分别测试order(degree=1/2)和capacity(expanded_size)两个变量
-
----
-
-### Table 3e-1: Polynomial Degree (多项式阶数)
-
-**测试变量**: Polynomial degree for feature expansion
-**固定参数**: selection_mode=group, backbone=MLP, training=gradual_admm
-
-| Degree | XOR best-k | XOR AUC | Ring best-k | Ring AUC | Ring+XOR best-k | Ring+XOR AUC | Mean best-k | Mean AUC |
-|--------|------------|---------|-------------|----------|-----------------|--------------|-------------|----------|
-| **1** | **1.00** | 0.99 | **1.00** | 0.42 | **1.00** | 0.61 | **1.00** | 0.65 |
-| 2+group | **1.00** | **1.00** | 0.92 | 0.42 | **1.00** | **0.75** | **0.98** | **0.68** |
-| 2+expanded | 0.50 | 1.00 | 0.62 | 0.42 | 0.67 | 0.74 | 0.61 | 0.72 |
-
-**代码实现** (experiments/main/run_best_gradual_benchmark_poly2.py:175-202):
-
-```python
-# degree=1 (无扩展) - 标准pipeline
-X_expanded = X  # shape: (n_samples, n_features)
-
-# degree=2 + group selection
-poly = PolynomialFeatures(degree=2, include_bias=False)
-X_expanded = poly.fit_transform(X)  # shape: (n_samples, 8384)
-
-# Group importance: sum of original + squared
-original_importance = gate[:128]
-squared_importance = gate[128:256]
-group_importance = original_importance + squared_importance
-
-# Select top-k_original groups
-top_groups = group_importance.topk(k_original).indices
-selected = [g, 128+g for g in top_groups]  # Return both original and squared
+```text
+Feature space: full degree-2 polynomial expansion
+Main readout: degree_share_g parent-sharing score
+Diagnostic readouts: paired-product, sum_eff, sum_g, max_eff, L2_g
 ```
 
-**Ring数据集的几何意义**:
-```
-Ring boundary: x1² + x2² = r²  (圆形)
-degree=1: 只能学线性决策边界，无法拟合圆形 → AUC=0.42 (接近随机)
-degree=2: x1²和x2²特征直接可用 → 但需要group selection保证两者同时被选
-```
+Raw-feature ablation instantiation：
 
-**关键发现**:
-- **Group selection解决trade-off**: degree=2+expanded导致best-k下降(0.61)，但group selection恢复到0.98
-- **AUC提升**: Ring+XOR从0.61→0.75 (+14%)
-- **XOR完美**: AUC从0.99→1.00
-
----
-
-### Table 3e-2: Selection Mode (选择粒度)
-
-**测试变量**: Selection granularity after polynomial expansion (degree=2)
-**固定参数**: degree=2, backbone=MLP, training=gradual_admm
-
-| Mode | XOR best-k | XOR AUC | Ring best-k | Ring AUC | Ring+XOR best-k | Ring+XOR AUC | Mean best-k | Mean AUC | What Changes |
-|------|------------|---------|-------------|----------|-----------------|--------------|-------------|----------|--------------|
-| **group** | **1.00** | **1.00** | 0.92 | 0.42 | **1.00** | **0.75** | **0.98** | **0.68** | 选原始特征组(x1→x1,x1²) |
-| expanded | 0.50 | 1.00 | 0.62 | 0.42 | 0.67 | 0.74 | 0.61 | 0.72 | 选单个扩展特征 |
-
-**代码实现差异** (experiments/main/run_best_gradual_benchmark_poly2.py:175-202 vs 382):
-
-```python
-# selection_mode="group" - 组级别选择
-def group_selection_from_gate(gate, n_original, k_original, degree=2):
-    # 计算组重要性 = 原始gate + 平方gate
-    group_importance = gate[:n_original] + gate[n_original:2*n_original]
-    
-    # 选top-k_original组
-    top_groups = group_importance.topk(k_original).indices
-    
-    # 返回所有扩展项
-    selected = []
-    for g in top_groups:
-        selected.append(g)          # x_g
-        selected.append(n_original + g)  # x_g²
-    return selected
-
-# selection_mode="expanded" - 逐特征独立选择
-selected = gate.abs().topk(k).indices.tolist()  # 标准top-k
+```text
+Feature space: original raw features
+Main readout: |g|
+Purpose: show the support-learning mechanism does not rely on degree-2 expansion
 ```
 
-**选择粒度差异**:
-```
-假设原始特征x1被识别为重要:
-- group: gate[0]大 → x1, x1², x1*x2全部保留
-- expanded: gate[0]大, gate[128]小 → 只保留x1, 删除x1² (不一致)
+当前 paper-facing algorithm 使用 `soft_prune_update="mask_by_z"` 的 support-masking 叙事；`mask_by_z_final` + medium-C schedule `[0.1, 0.2, 0.5, 1.0, 2.0]` 是 synthetic 上表现很强的 boundary-calibration 变体。DAG benchmark 当前不放主线；如需报告，应作为 appendix / limitation，说明 high-dimensional external tasks 需要 boundary calibration，不把 z-mask 写成 universal improvement。
 
-解释性:
-- group: "选中x1"有明确含义 → 自动保留x1和x1²
-- expanded: "选中x1²但不选中x1"违反直觉 → Ring检测失败(需要两者)
-```
-
-**解释**: Group selection确保原始特征和扩展项的一致性。Ring检测需要x1和x1²同时被选，expanded mode可能只选其中一个，导致best-k下降(0.61→0.98)。
-
-**实证结果**: Group selection将degree=2的best-k从0.61提升到0.98，同时AUC从0.72提升到0.68。
-
----
-
-### Table 4a: Pruning Mode (剪枝模式)
-
-**测试变量**: Pruning operation after each phase
-**固定参数**: gradual training (C增加), re-weighting=disabled
-
-| Mode | XOR | Ring | Ring+XOR | Mean | What Changes (Pseudocode) |
-|------|-----|------|----------|------|---------------------------|
-| **soft (mask)** | 1.00 | **1.00** | **1.00** | **1.00** | `model.gate.data = gate * alive_mask` |
-| hard (delete) | 1.00 | 0.50 | 0.50 | 0.67 | `new_model = create_model(len(alive))` |
-
-**代码实现** (src/gradual_admm_with_pruning.py:274-343):
-
-```python
-# Soft pruning (prune_mode="soft")
-# 每phase结束后mask弱gate，不删除权重
-alive_mask = gate.abs() >= threshold  # Boolean mask
-model.gate.data = gate * alive_mask.float()  # Mask，shape不变
-# 权重W₁保留，后续phase可恢复
-
-# Hard pruning (prune_mode="hard")
-# 每phase删除10%弱特征，重建模型
-n_keep = max(k, int(n_current * 0.9))  # 保留90%
-gate_abs_sorted = gate.abs().sort(descending=True)
-threshold = gate_abs_sorted.values[n_keep - 1]
-alive_indices = (gate.abs() >= threshold).nonzero()
-
-# 创建新模型(维度降低)
-new_model = model_class(input_size=len(alive_indices), ...)
-_copy_weights_subset(old_model, new_model, alive_indices)  # 只复制存留列
-X_train = X_train[:, alive_indices]  # 数据子集化
-model = new_model  # 替换模型
-# W₁中删除的列永久丢失，不可恢复
-```
-
-**维度变化示例**:
-```
-初始: 128特征
-soft: 128特征 (始终)，gate自然衰减
-hard: 128 → 115 → 103 → 93 → 84 → 75 (每phase删10%)
-```
-
-**解释**: Soft pruning只mask弱gate(g→0)，权重保留，可恢复。Hard pruning删除特征，丢失已学习权重，不可逆。
-
----
-
-### Table 4b: Re-weighting (重加权)
-
-**测试变量**: Gate scaling after pruning
-**固定参数**: gradual training, soft pruning
-
-| Re-weight | XOR | Ring | Ring+XOR | Mean | What Changes (Pseudocode) |
-|-----------|-----|------|----------|------|---------------------------|
-| **no_rw** | 1.00 | **1.00** | **1.00** | **1.00** | `model.gate = gate * mask` (自然衰减) |
-| rw | 1.00 | 0.17 | 1.00 | 0.72 | `model.gate = gate * scale` (放大存留gate) |
-
-**代码实现** (src/gradual_admm_with_pruning.py:34-80, 280-287):
-
-```python
-# Re-weighting disabled (reweight=False)
-model.gate.data = gate * alive_mask.float()
-# Gate自然衰减，sum逐渐减小
-# 例如: [1, 1, 1, 1] → [0, 0, 1, 1] → sum=2
-
-# Re-weighting enabled (reweight=True)
-current_sum = (gate.abs() * alive_mask).sum()  # 存留gate总能量
-target_sum = initial_gate_sum * 0.2  # 目标维持20%初始能量
-scale = target_sum / current_sum  # 放大因子
-model.gate.data = gate * alive_mask * scale  # 放大存留gate
-
-# 问题示例:
-# 初始: gate_sum = 128 (128个gate=1)
-# Phase 1: alive=64, current_sum=64, target=25.6
-#          scale=0.4, 存留gate被缩小 (OK)
-# Phase 2: alive=32, current_sum=25.6*0.5=12.8
-#          target=25.6, scale=2.0, 存留gate被放大到≈2!
-#          → gate接近1，后续无法继续稀疏化
-```
-
-**为什么Ring失败**:
-```
-Ring需要检测x1²+x2²结构
-- no_rw: gate自然衰减，x1,x2保留，其他衰减
-- rw: phase2后存留gate被放大，x1,x2,gate≈2
-      phase3无法区分重要vs不重要(所有gate≈2)
-      → 特征选择失败
-```
-
-**解释**: Re-weighting试图维持gate总能量，但会把存留gate推向1，阻止后续剪枝。这实际上阻止了进一步稀疏化。
-
----
-
-### Table 5: Negative Results (详细代码分析)
-
-| Experiment | Method | Dataset | best-k | Root Cause (Code-level) |
-|------------|--------|---------|--------|-------------------------|
-| Transformer Pretrain | MLP Baseline | XOR | 1.00 | `h = Mish(W₂ Mish(W₁(x⊙g)))` - 直接交互 |
-| Transformer Pretrain | Transformer+MAE | XOR | 0.33 | `h = Attention(TokenEmb(x⊙g))` - 无空间结构 |
-| Lottery Ticket | single_pass | Ring | 0.67 | `C=0.05 constant` - 基准 |
-| Lottery Ticket | lottery_ticket | Ring | 0.08 | `model.load(init_state)` - 权重reset破坏gate学习 |
-
-**Transformer失败原因** (src/transformer_pretrain.py):
-
-```python
-# Transformer假设: 特征有空间邻域关系
-# Token embedding: 将每个特征独立投影
-# Self-attention: 计算特征间相似度
-
-# 问题: XOR/Ring数据特征是独立的
-# - x1和x2没有"相邻"关系
-# - attention无法捕获XOR(x1⊕x2)这类逻辑交互
-# - MLP直接点乘x1*W₁[:,1] + x2*W₁[:,2]反而能学习交互
-
-class TransformerFS(nn.Module):
-    def forward(self, x_gated):
-        # Token embedding: 每特征独立投影到d_model
-        tokens = self.embedding(x_gated)  # (batch, n_feat) → (batch, n_feat, d_model)
-        
-        # Self-attention: 计算特征间相关性
-        # 但XOR的x1⊕x2是逻辑异或，不是线性相关性!
-        attn_out = self.attention(tokens, tokens, tokens)  # ❌ 无法建模逻辑交互
-        
-        # MLP: 直接线性组合
-        # W₁[:,j]直接乘x_j，梯度可以学习x1⊕x2的模式
-        return self.classifier(attn_out)
-```
-
-**Lottery Ticket失败原因** (src/iterative_run.py:75-76, 89-92):
-
-```python
-# Lottery Ticket假设: 稀疏子网络可以继承初始权重性能
-# 原论文场景: 图像分类，CNN权重在初始就有结构
-# FS场景不同: gate和W₁需要warmup学习
-
-def lottery_ticket_pruning(X, y, rewind=True):
-    init_state = model.state_dict()  # 保存初始权重
-    
-    # Round 1: warmup学习
-    train_admm(model, X, y, warmup=120, C=0.05)  # ✅ gate学到了有用信息
-    # gate ≈ [0.8, 0.2, ...] - 识别出重要特征
-    # W₁[:,0] 学到了x1的贡献
-    
-    # Round 2: 权重reset
-    model.load_state_dict(init_state)  # ❌ gate和W₁全部reset!
-    # gate回到全1，W₁回到随机初始化
-    # 之前120个warmup epochs的学习全部丢失
-    
-    train_admm(model, X_subset, y, warmup=0)  # ❌ 无warmup直接ADMM
-    # gate无法从随机状态收敛到正确的稀疏模式
-```
-
-**关键差异**:
-- CNN pruning: 剪枝后权重继承，结构保留
-- FS pruning: gate需要warmup学习权重贡献度，reset后无法恢复
-
----
-
-## 最佳组合方法 (CONFIRMED BY BENCHMARK)
-
-### Scenario 1: Linear Boundary (degree=1)
-
-**Benchmark结果 (2026-04-17)**:
-
-| Method | XOR | Ring | Ring+XOR | Ring+XOR+Sum | Mean best-k | Mean AUC |
-|--------|-----|------|----------|--------------|-------------|----------|
-| **Gradual+Soft_no_rw** | **1.00** | **1.00** | **1.00** | **1.00** | **1.0000** | 0.6461 |
-| Baseline SADMM-FS | 1.00 | 0.50 | 0.62 | 0.67 | 0.6975 | 0.6605 |
-
-**提升幅度**: Ring +50%, Ring+XOR +38%, Ring+XOR+Sum +33%
-
-**最优配置 (degree=1)**:
-| 组件 | 最佳配置 | 效果 |
-|------|----------|------|
-| Gate | Linear (unbounded) | 0.74 > 0.71 (+3%) |
-| Backbone | MLP | 0.63 > 0.25 (+38%) |
-| Iterative | Gradual ADMM (5 phases) | 1.00 > 0.78 (+22%) |
-| Pruning | Soft mask only | 1.00 > 0.67 (+33%) |
-| Re-weighting | Disabled | 1.00 > 0.72 (+28%) |
-
----
-
-### Scenario 2: Nonlinear Boundary (degree=2 + Group Selection)
-
-**Benchmark结果 (2026-04-17)**:
-
-| Method | XOR best-k | XOR AUC | Ring best-k | Ring AUC | Ring+XOR best-k | Ring+XOR AUC |
-|--------|------------|---------|-------------|----------|-----------------|--------------|
-| **degree=2 + group** | **1.00** | **1.00** | 0.92 | 0.42 | **1.00** | **0.75** |
-| degree=2 + expanded | 0.50 | 1.00 | 0.62 | 0.42 | 0.67 | 0.74 |
-| degree=1 (baseline) | 1.00 | 0.99 | 1.00 | 0.42 | 1.00 | 0.61 |
-
-**关键改进**:
-- Group selection恢复best-k (0.61→0.98)
-- Ring+XOR AUC提升 (+14%)
-- XOR AUC达到完美 (1.00)
-
-**最优配置 (degree=2 + group)**:
-| 组件 | 最佳配置 | 说明 |
-|------|----------|------|
-| Expansion | Polynomial degree=2 | 捕获非线性边界 |
-| **Selection** | **Group Selection** | **关键改进**: 原始特征和扩展项一致 |
-| Training | Gradual ADMM | 同degree=1 |
-| k_original | 数据集dependent | XOR=2, Ring=2, Ring+XOR=4 |
-
----
-
-### 最终推荐
-
-| 场景 | 推荐配置 | best-k | AUC |
-|------|----------|--------|-----|
-| **线性边界** | degree=1 + Gradual ADMM | **1.00** | 0.65 |
-| **非线性边界** | degree=2 + Group Selection | **0.98** | **0.68** |
-
-**通用最优组合**:
-- Gate: Linear (unbounded)
-- Backbone: MLP (2层, 32 latent)
-- Training: Gradual ADMM (5 phases, C=[0.1→0.5])
-- Pruning: Soft mask only (不删除权重)
-- Re-weighting: Disabled
-
-**Polynomial扩展时的额外配置**:
-- Expansion: PolynomialFeatures(degree=2)
-- Selection: **Group Selection** (关键)
-- k设定: k_original (原始特征数)
-
----
-
-## 图表
-
-### Figure 1: Synthetic Benchmark - Feature Recovery
-
-![Synthetic Benchmark best-k](./figures/paper_fig1_synthetic_bestk.png)
-
-26方法的Mean best-k对比，按类型着色。
-
----
-
-### Figure 2: Real-World AUROC
-
-![Real-World AUROC](./figures/paper_fig2_realworld_auroc.png)
-
-12方法在4个真实数据集上的AUROC对比。
-
----
-
-### Figure 3: Ablation Studies
-
-![Ablation Results](./figures/paper_fig3_ablation.png)
-
----
-
-### Figure 4: Gradual Pruning Experiment
-
-![Gradual Pruning](./figures/paper_fig4_gradual_pruning.png)
-
----
-
-### Figure 5: Per-Dataset Breakdown
-
-![Per-Dataset Breakdown](./figures/paper_fig5_per_dataset.png)
-
----
-
-### Figure 6: Negative Results
-
-![Negative Results](./figures/paper_fig6_negative_results.png)
-
----
-
-### Benchmark参考图
-
-![Datasets Illustration](./figures/datasets.png)
-
----
-
-## 超参数配置
-
-| Component | Parameter | Value | Notes |
-|-----------|-----------|-------|-------|
-| Architecture | latent_size | 32 | - |
-| Architecture | n_hidden_layers | 2 | - |
-| Architecture | dropout | 0.043 | Tuned |
-| Architecture | feat_drop | 0.6 | Tuned |
-| Architecture | activation | mish | - |
-| Training | epochs | 416 | 100 warmup + 316 ADMM |
-| Training | warmup_epochs | 100 | **CRITICAL** |
-| Training | optimizer | Adagrad | - |
-| Training | lr | 0.00176 | - |
-| ADMM | C | 0.05 | Sparsity strength |
-| ADMM | ρ | adaptive | Boyd §3.4.1 |
-| ADMM | penalty | ratio_norm | L1/L2 ratio |
-
----
-
-## 方法分类 (Taxonomy)
-
-| Type | Methods | Year |
-|------|---------|------|
-| **Filter** | MI, ReliefF, mRMR | 1960, 1994, 2005 |
-| **Embedded (Tree)** | RF, TreeSHAP | 2001, 2020 |
-| **Embedded (DL)** | LassoNet, CAE, FSNet, DeepPINK, CancelOut, STG, E2E-FS, TabNet, SADMM-FS | 2018-2026 |
-| **Attribution (Post-hoc)** | Saliency, IG, DeepLift, SmoothGrad, etc. | 2013-2019 |
-
----
-
-## 代码引用索引 (Code Reference Index)
-
-本节列出ablation伪代码中引用的具体代码位置，便于追溯和验证。
-
-### 核心实现文件
-
-| 文件路径 | 主要功能 | 关键行号 |
-|----------|----------|----------|
-| `src/admm_input_group_wrapper.py` | ADMM核心实现 | 226-235(gate), 433-973(train) |
-| `src/gradual_admm_with_pruning.py` | Gradual pruning | 34-80(reweight), 274-343(prune_mode) |
-| `src/iterative_run.py` | 迭代策略 | 29-144(hard_pruning), 359-420(gradual) |
-| `src/polynomial_expansion.py` | 多项式扩展 | 32-66(expansion), 177-227(selection_mode) |
-| `src/transformer_pretrain.py` | Transformer骨干 | (对比实验) |
-
-### Ablation代码定位
-
-| Ablation | 测试变量 | 代码位置 |
-|----------|----------|----------|
-| **Table 3a: Gate Type** | `bounded_gate` | `admm_input_group_wrapper.py:166, 226-235` |
-| **Table 3b: Backbone** | MLP vs Transformer | `admm_input_group_wrapper.py:88-141` vs `transformer_pretrain.py` |
-| **Table 3c: Iterative** | 4种策略 | `iterative_run.py:29-144, 359-420` + `run_iterative_ablation.py:169-387` |
-| **Table 3e-1: Degree** | 多项式阶数 | `polynomial_expansion.py:32-66` |
-| **Table 3e-2: Mode** | 选择粒度 | `polynomial_expansion.py:177-227` |
-| **Table 4a: Pruning** | soft vs hard | `gradual_admm_with_pruning.py:274-343` |
-| **Table 4b: Re-weighting** | gate scaling | `gradual_admm_with_pruning.py:34-80, 280-287` |
-
-### 关键函数对照
-
-```python
-# Gate类型 (Table 3a)
-GatedFeatureSelectionMLP(bounded_gate=False)  # Linear gate
-GatedFeatureSelectionMLP(bounded_gate=True)   # Sigmoid gate
-
-# 迭代策略 (Table 3c)
-train_single_pass(model, X, y)                # Baseline
-iterative_hard_pruning(X, y, rewind=False)    # Hard pruning
-iterative_hard_pruning(X, y, rewind=True)     # Lottery Ticket
-train_with_gradual_admm(model, X, y)          # Gradual ADMM
-
-# 多项式扩展 (Table 3e)
-PolynomialFeatures(degree=1)                  # 无扩展
-PolynomialFeatures(degree=2)                  # 二次扩展
-PolynomialFeatureSelectionModel(selection_mode="group")   # 组选择
-PolynomialFeatureSelectionModel(selection_mode="expanded") # 扩展选择
-
-# 剪枝模式 (Table 4a)
-gradual_admm_with_pruning(prune_mode="none")  # 无剪枝
-gradual_admm_with_pruning(prune_mode="soft")  # Soft mask
-gradual_admm_with_pruning(prune_mode="hard")  # Hard delete
-
-# 重加权 (Table 4b)
-gradual_admm_with_pruning(reweight=False)     # 自然衰减
-gradual_admm_with_pruning(reweight=True)      # 放大存留gate
-```
+最终方法不应被描述成单一 trick。它的效果来自 weight-normalized scalar gate、ADMM + RatioNorm sparse driver、multi-phase warmup/keep-weights lifecycle、ADMM-guided `z` support masking，以及透明的 readout/aggregation 共同作用。Degree-2 expansion 应被描述为 synthetic nonlinear benchmark 上使用的 explicit feature map，而不是 GRN-FS 的通用必要组件。
